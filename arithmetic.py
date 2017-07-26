@@ -37,6 +37,7 @@ def interpret(input):
     parser = langParser(stream)
     tree = parser.expression()
     vis = evalVisitor(parser)
+    print(tree.toStringTree())
     return vis.visitExpression(tree)
 
 def main(argv):

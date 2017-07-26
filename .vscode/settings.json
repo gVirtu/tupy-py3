@@ -8,7 +8,9 @@
         "*_test.py"
     ],
     "python.unitTest.unittestEnabled": false,
-    "python.unitTest.pyTestEnabled": false,
+    "python.unitTest.pyTestEnabled": true,
     "python.unitTest.nosetestsEnabled": false,
-    "python.unitTest.promptToConfigure": false
+    "python.unitTest.pyTestArgs": [
+        "."
+    ]
 }

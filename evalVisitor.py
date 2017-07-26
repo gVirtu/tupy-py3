@@ -207,22 +207,82 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#expression.
     def visitExpression(self, ctx:langParser.ExpressionContext):
-        return self.visitChildren(ctx)
+        res = self.visitXorExpression(ctx.xorExpression(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitXorExpression(c)
+                typ = self.resultType(c, typ, rhs.type)
+                if (res.type != Type.INT or rhs.type != Type.INT):
+                    error(TypeError, "Cannot do bit-wise OR with non-integer types!", ctx)
+                res.value = res.value | rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#xorExpression.
     def visitXorExpression(self, ctx:langParser.XorExpressionContext):
-        return self.visitChildren(ctx)
+        res = self.visitAndExpression(ctx.andExpression(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitAndExpression(c)
+                typ = self.resultType(c, typ, rhs.type)
+                if (res.type != Type.INT or rhs.type != Type.INT):
+                    error(TypeError, "Cannot do bit-wise XOR with non-integer types!", ctx)
+                res.value = res.value ^ rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#andExpression.
     def visitAndExpression(self, ctx:langParser.AndExpressionContext):
-        return self.visitChildren(ctx)
+        res = self.visitShiftExpression(ctx.shiftExpression(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitShiftExpression(c)
+                typ = self.resultType(c, typ, rhs.type)
+                if (res.type != Type.INT or rhs.type != Type.INT):
+                    error(TypeError, "Cannot do bit-wise AND with non-integer types!", ctx)
+                res.value = res.value & rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#shiftExpression.
     def visitShiftExpression(self, ctx:langParser.ShiftExpressionContext):
-        return self.visitChildren(ctx)
+        res = self.visitArithmeticExpression(ctx.arithmeticExpression(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitArithmeticExpression(c)
+                typ = self.resultType(c, typ, rhs.type)
+                if (res.type != Type.INT or rhs.type != Type.INT):
+                    error(TypeError, "Cannot do bit-wise shift with non-integer types!", ctx)
+
+                if op == self.parser.LEFT_SHIFT:
+                    res.value = res.value << rhs.value
+                elif op == self.parser.RIGHT_SHIFT:
+                    res.value = res.value >> rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#arithmeticExpression.

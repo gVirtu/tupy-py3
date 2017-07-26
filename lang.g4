@@ -599,7 +599,6 @@ BIN_INTEGER
 /// floatnumber   ::=  pointfloat | exponentfloat
 FLOAT_NUMBER
  : POINT_FLOAT
- | EXPONENT_FLOAT
  ;
 
 /// imagnumber ::=  (floatnumber | intpart) ("j" | "J")
@@ -662,11 +661,6 @@ fragment POINT_FLOAT
  | INT_PART '.'
  ;
 
-/// exponentfloat ::=  (intpart | pointfloat) exponent
-fragment EXPONENT_FLOAT
- : ( INT_PART | POINT_FLOAT ) EXPONENT
- ;
-
 /// intpart       ::=  digit+
 fragment INT_PART
  : DIGIT+
@@ -675,11 +669,6 @@ fragment INT_PART
 /// fraction      ::=  "." digit+
 fragment FRACTION
  : '.' DIGIT+
- ;
-
-/// exponent      ::=  ("e" | "E") ["+" | "-"] digit+
-fragment EXPONENT
- : [eE] [+-]? DIGIT+
  ;
 
 /// shortbytes     ::=  "'" shortbytesitem* "'" | '"' shortbytesitem* '"'
