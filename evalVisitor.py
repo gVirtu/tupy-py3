@@ -82,7 +82,11 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpressionStatement.
     def visitTestOrExpressionStatement(self, ctx:langParser.TestOrExpressionStatementContext):
-        return self.visitChildren(ctx)
+        res = self.visitTestOrExpressionList(ctx.testOrExpressionList(0))
+        #TODO: Assignment
+        if len(res)==1:
+            return res[0]
+        return res
 
 
     # Visit a parse tree produced by langParser#expressionList.
@@ -162,22 +166,53 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#test.
     def visitTest(self, ctx:langParser.TestContext):
-        return self.visitChildren(ctx)
+        res = self.visitOrTest(ctx.orTest())
+        if ctx.CARDINALITY_OP(0) is not None:
+            return Instance(Type.INT, res.size)
+        else:
+            return res
 
 
     # Visit a parse tree produced by langParser#orTest.
     def visitOrTest(self, ctx:langParser.OrTestContext):
-        return self.visitChildren(ctx)
+        res = self.visitAndTest(ctx.andTest(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitAndTest(c)
+                typ = Type.BOOL
+                res.value = res.value or rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#andTest.
     def visitAndTest(self, ctx:langParser.AndTestContext):
-        return self.visitChildren(ctx)
+        res = self.visitNotTest(ctx.notTest(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                rhs = self.visitNotTest(c)
+                typ = Type.BOOL
+                res.value = res.value and rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#notTest.
     def visitNotTest(self, ctx:langParser.NotTestContext):
-        return self.visitChildren(ctx)
+        if ctx.NOT() is not None:
+            return Instance(Type.BOOL, not self.visitNotTest(ctx.notTest()).value)
+        else:
+            return self.visitComparison(ctx.comparison())
 
 
     # Visit a parse tree produced by langParser#comparison.
@@ -390,6 +425,20 @@ class evalVisitor(ParseTreeVisitor):
             return Instance(Type.BOOL, False);
         elif ctx.NULL() is not None:
             return Instance(Type.NULL, 0);
+        elif ctx.OPEN_PAREN() is not None:
+            res = ()
+            if ctx.testOrExpressionList() is not None:
+                res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+            return Instance(Type.TUPLE, tuple(res));
+        elif ctx.OPEN_BRACK() is not None:
+            res = []
+            if ctx.testOrExpressionList() is not None:
+                res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+            try:
+                return Instance(Type.ARRAY, res);
+            except TypeError:
+                error(TypeError, "Types in array must be consistent!", ctx)
+
         else:
             return self.visitChildren(ctx)
 
@@ -421,7 +470,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpressionList.
     def visitTestOrExpressionList(self, ctx:langParser.TestOrExpressionListContext):
-        return self.visitChildren(ctx)
+        return [self.visitTestOrExpression(expr) for expr in ctx.testOrExpression()]
 
 
     # Visit a parse tree produced by langParser#classDefinition.

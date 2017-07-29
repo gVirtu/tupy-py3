@@ -377,7 +377,8 @@ power
 ///        '{' [dictorsetmaker] '}' |				<- Not valid atom?
 ///        NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
 atom
- : OPEN_PAREN testOrExpressionList CLOSE_PAREN 
+ : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN 
+ | OPEN_BRACK (testOrExpressionList)? CLOSE_BRACK
  | NAME 
  | number 
  | string+ 
