@@ -182,7 +182,30 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#comparison.
     def visitComparison(self, ctx:langParser.ComparisonContext):
-        return self.visitChildren(ctx)
+        res = self.visitExpression(ctx.expression(0))
+        typ = res.type
+        op = 0
+        i_children = iter(ctx.getChildren())
+        next(i_children) # all except first factor
+        for c in i_children:
+            if isinstance(c, self.parser.ComparisonOperatorContext): 
+                op = c.getChild(0).getSymbol().type
+            else:
+                rhs = self.visitExpression(c)
+                typ = Type.BOOL
+                if op == self.parser.GREATER_THAN:
+                    res.value = res.value > rhs.value
+                elif op == self.parser.LESS_THAN:
+                    res.value = res.value < rhs.value
+                elif op == self.parser.EQUALS:
+                    res.value = res.value == rhs.value
+                elif op == self.parser.GT_EQ:
+                    res.value = res.value >= rhs.value
+                elif op == self.parser.LT_EQ:
+                    res.value = res.value <= rhs.value
+                elif op == self.parser.NOT_EQ:
+                    res.value = res.value != rhs.value
+        return Instance(typ, res.value)
 
 
     # Visit a parse tree produced by langParser#comparisonOperator.
@@ -447,17 +470,19 @@ class evalVisitor(ParseTreeVisitor):
     def aggregateResult(self, aggregate, nextResult):
         #print("Aggregating "+str(aggregate)+" and "+str(nextResult))
         if aggregate is not None:
-            res = aggregate + nextResult
+            res = aggregate
         else:
             res = nextResult
         #print("Gives us "+str(res))
-        return nextResult
+        return res
 
     def resultType(self, ctx, a, b):
         if (a == Type.REFERENCE or b == Type.REFERENCE):
-            error(TypeError, "Cannot operate on object of type REFERENCE!", ctx)
+            error(TypeError, "Cannot operate on instance of type REFERENCE!", ctx)
         elif (a == Type.NULL or b == Type.NULL):
-            error(TypeError, "Cannot operate on object of type NULL!", ctx)
+            error(TypeError, "Cannot operate on instance of type NULL!", ctx)
+        elif (a == Type.RANGE or b == Type.RANGE):
+            error(TypeError, "Cannot operate on instance of type RANGE!", ctx)
         else:
             if (a == Type.STRING or b == Type.STRING):
                 return Type.STRING
@@ -478,5 +503,3 @@ class evalVisitor(ParseTreeVisitor):
         else: b = str(rhs.value)
 
         return a + b
-
-del langParser

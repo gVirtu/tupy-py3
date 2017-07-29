@@ -32,13 +32,13 @@ def handleMultiply(expr):
     return value'''
 
 def interpret(input):
-    lexer = langLexer(input)
+    lexer = langLexer(InputStream(input))
     stream = CommonTokenStream(lexer)
     parser = langParser(stream)
-    tree = parser.expression()
+    tree = parser.r()
     vis = evalVisitor(parser)
     print(tree.toStringTree())
-    return vis.visitExpression(tree)
+    return vis.visitR(tree)
 
 def main(argv):
     if len(argv)>1:

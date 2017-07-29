@@ -8,6 +8,7 @@ class Type(Enum):
     CHAR = 4
     BOOL = 5
     REFERENCE = 6
+    RANGE = 7
 
 class Instance(object):
     __slots__ = [

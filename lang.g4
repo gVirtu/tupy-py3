@@ -6,23 +6,25 @@ grammar lang;
 // Tokens do controle da indentação
 tokens { INDENT, DEDENT }
 
-@header {
+@lexer::header {
 import re
+from langParser import langParser
+from antlr4.Token import CommonToken
 }
 
 @lexer::members {
 
-#Uma fila para tokens adicionais (ver a regra NEWLINE do lexer)
-tokens = []
+    #Uma fila para tokens adicionais (ver a regra NEWLINE do lexer)
+    self.tokens = []
 
-#A pilha para controlar o nível de indentação
-indents = []
+    #A pilha para controlar o nível de indentação
+    self.indents = []
 
-#O número de colchetes e parênteses abertos
-opened = 0
+    #O número de colchetes e parênteses abertos
+    self.opened = 0
 
-#A token produzida mais recente.
-lastToken = None
+    #A token produzida mais recente.
+    self.lastToken = None
 
 def emitToken(self, t):
     self._token = t
@@ -34,16 +36,16 @@ def nextToken(self):
 
       # Remove tokens EOF por enquanto
       for i in range(tokens.size() - 1, 0, -1):
-        if (tokens.get(i).getType() == EOF):
-          tokens.remove(i)
+        if (self.tokens.get(i).getType() == EOF):
+          self.tokens.remove(i)
 
       # Emite uma token de quebra de linha, que termina a declaração atual
       self.emitToken(commonToken(langParser.NEWLINE, "\n"))
 
       # Emite quantos DEDENTS necessários 
-      while (not indents.isEmpty()):
+      while (not self.indents.isEmpty()):
         self.emitToken(createDedent())
-        indents.pop()
+        self.indents.pop()
 
       # Coloca o EOF de volta
       self.emitToken(commonToken(langParser.EOF, "<EOF>"));
@@ -478,15 +480,15 @@ UNTIL : 'ate' | 'até';
 DOT : '.';
 //RANGE_OP : '..';
 CARDINALITY_OP : '|';
-OPEN_PAREN : '(' {opened+=1};
-CLOSE_PAREN : ')' {opened-=1};
+OPEN_PAREN : '(' {self.opened+=1};
+CLOSE_PAREN : ')' {self.opened-=1};
 COMMA : ',';
 COLON : ':';
 SEMI_COLON : ';';
 POWER : '^';
 ASSIGN : '<-';
-OPEN_BRACK : '[' {opened+=1};
-CLOSE_BRACK : ']' {opened-=1};
+OPEN_BRACK : '[' {self.opened+=1};
+CLOSE_BRACK : ']' {self.opened-=1};
 OR_OP : '||';
 XOR : 'xor';
 AND_OP : '&&';
@@ -499,8 +501,8 @@ DIV : '/';
 MOD : 'mod';
 IDIV : 'div';
 NOT_OP : '~';
-OPEN_BRACE : '{' {opened+=1};
-CLOSE_BRACE : '}' {opened-=1};
+OPEN_BRACE : '{' {self.opened+=1};
+CLOSE_BRACE : '}' {self.opened-=1};
 LESS_THAN : '<';
 GREATER_THAN : '>';
 EQUALS : '=';
@@ -543,13 +545,13 @@ NEWLINE
         # skip indents of the same size as the present indent-size
         self.skip()
       elif (indent > previous):
-        indents.push(indent)
+        self.indents.push(indent)
         emitToken(commonToken(langParser.INDENT, spaces))
       else:
         # Possibly emit more than 1 DEDENT token.
-        while(len(indents)>0 and indents[0] > indent):
+        while(len(self.indents)>0 and self.indents[0] > indent):
           emitToken(createDedent())
-          indents.pop()
+          self.indents.pop()
           
    }
  ;

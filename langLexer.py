@@ -6,6 +6,8 @@ import sys
 
 
 import re
+from langParser import langParser
+from antlr4.Token import CommonToken
 
 
 def serializedATN():
@@ -568,17 +570,17 @@ class langLexer(Lexer):
 
 
 
-    #Uma fila para tokens adicionais (ver a regra NEWLINE do lexer)
-    tokens = []
+        #Uma fila para tokens adicionais (ver a regra NEWLINE do lexer)
+        self.tokens = []
 
-    #A pilha para controlar o nível de indentação
-    indents = []
+        #A pilha para controlar o nível de indentação
+        self.indents = []
 
-    #O número de colchetes e parênteses abertos
-    opened = 0
+        #O número de colchetes e parênteses abertos
+        self.opened = 0
 
-    #A token produzida mais recente.
-    lastToken = None
+        #A token produzida mais recente.
+        self.lastToken = None
 
     def emitToken(self, t):
         self._token = t
@@ -590,16 +592,16 @@ class langLexer(Lexer):
 
           # Remove tokens EOF por enquanto
           for i in range(tokens.size() - 1, 0, -1):
-            if (tokens.get(i).getType() == EOF):
-              tokens.remove(i)
+            if (self.tokens.get(i).getType() == EOF):
+              self.tokens.remove(i)
 
           # Emite uma token de quebra de linha, que termina a declaração atual
           self.emitToken(commonToken(langParser.NEWLINE, "\n"))
 
           # Emite quantos DEDENTS necessários 
-          while (not indents.isEmpty()):
+          while (not self.indents.isEmpty()):
             self.emitToken(createDedent())
-            indents.pop()
+            self.indents.pop()
 
           # Coloca o EOF de volta
           self.emitToken(commonToken(langParser.EOF, "<EOF>"));
@@ -671,32 +673,32 @@ class langLexer(Lexer):
 
     def OPEN_PAREN_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 0:
-            opened+=1
+            self.opened+=1
      
 
     def CLOSE_PAREN_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 1:
-            opened-=1
+            self.opened-=1
      
 
     def OPEN_BRACK_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 2:
-            opened+=1
+            self.opened+=1
      
 
     def CLOSE_BRACK_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 3:
-            opened-=1
+            self.opened-=1
      
 
     def OPEN_BRACE_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 4:
-            opened+=1
+            self.opened+=1
      
 
     def CLOSE_BRACE_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 5:
-            opened-=1
+            self.opened-=1
      
 
     def NEWLINE_action(self, localctx:RuleContext , actionIndex:int):
@@ -720,13 +722,13 @@ class langLexer(Lexer):
                     # skip indents of the same size as the present indent-size
                     self.skip()
                   elif (indent > previous):
-                    indents.push(indent)
+                    self.indents.push(indent)
                     emitToken(commonToken(langParser.INDENT, spaces))
                   else:
                     # Possibly emit more than 1 DEDENT token.
-                    while(len(indents)>0 and indents[0] > indent):
+                    while(len(self.indents)>0 and self.indents[0] > indent):
                       emitToken(createDedent())
-                      indents.pop()
+                      self.indents.pop()
                       
                
      
