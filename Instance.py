@@ -1,16 +1,4 @@
-from enum import Enum
-
-class Type(Enum):
-    NULL = 0
-    INT = 1
-    FLOAT = 2
-    STRING = 3
-    CHAR = 4
-    BOOL = 5
-    REFERENCE = 6
-    RANGE = 7
-    ARRAY = 8
-    TUPLE = 9
+from Type import Type
 
 class Instance(object):
     __slots__ = [
@@ -31,14 +19,14 @@ class Instance(object):
         self.value = value
 
         if self.type == Type.ARRAY and len(self.value)>0:
-            self.heldtype = self.value[0].type
-            if not all(element.type == self.heldtype for element in self.value):
+            self.heldtype = self.value[0].get().type
+            if not all(element.get().type == self.heldtype for element in self.value):
                 raise TypeError()
 
         if self.type == Type.STRING:
             self.size = len(self.value)
         elif self.type == Type.ARRAY or self.type == Type.TUPLE:
-            self.size = sum([element.collection_size for element in self.value])
+            self.size = sum([element.get().collection_size for element in self.value])
         elif self.type == Type.NULL:
             self.size = 0
         else:
@@ -49,14 +37,38 @@ class Instance(object):
     def __str__(self):
         return "INST({0}, {1})".format(self.type.name, self.value)
 
-    def array_update(self, pos, inst):
-        self.size -= self.value[pos].size
-        self.value[pos] = inst
-        self.size += inst.size
+    def array_get(self, pos):
+        try:
+            if not self.is_subscriptable_array():
+                raise TypeError("{0} cannot be subscripted.".format(self.type))
+            return self.value[pos]
+        except TypeError:
+            raise
 
-    def array_append(self, inst):
-        self.value.append(inst)
-        self.size += inst.size
+    def array_update(self, pos, literal):
+        try:
+            if not self.is_mutable_array():
+                raise TypeError("{0} is immutable.".format(self.type))
+            self.size -= self.value[pos].size
+            self.value[pos] = literal
+            self.size += inst.size
+        except TypeError:
+            raise
+
+    def array_append(self, literal):
+        try:
+            if not self.is_mutable_array():
+                raise TypeError("{0} cannot be appended.".format(self.type))
+            self.value += inst
+            self.size += inst.size
+        except TypeError:
+            raise
 
     def array_length(self):
         return len(self.value)
+
+    def is_subscriptable_array(self):
+        return self.type in [Type.ARRAY, Type.STRING, Type.RANGE, Type.TUPLE]
+
+    def is_mutable_array(self):
+        return self.type in [Type.ARRAY, Type.STRING]
