@@ -2,14 +2,15 @@ from Type import Type
 
 class Instance(object):
     __slots__ = [
-        'value', 'type', 'heldtype', 'size', 'collection_size'
+        'value', 'type', 'heldtype', 'size', 'collection_size', 'callable'
     ]
 
     # TODO: Scope?
 
-    def __init__(self, datatype, value):
+    def __init__(self, datatype, value, callable=False):
         self.type = datatype
         self.heldtype = None # For arrays
+        self.callable = None # If true, value is an AST 
 
         if self.type == Type.INT:
             if not float(value).is_integer():

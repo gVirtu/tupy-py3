@@ -1,5 +1,6 @@
 from Instance import Instance
 from Type import Type
+import Interpreter as ii
 
 class Variable(object):
     def call(self, params):
@@ -164,3 +165,30 @@ class Literal(Variable):
 
     def get(self):
         return self.inst
+
+class Symbol(Variable):
+    __slots__ = [
+        'name', 'scope'
+    ]
+
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "SYMBOL<{0}>".format(str(self.name))
+
+    #TODO
+    def call(self, params):
+        if (self.get().callable):
+            return 0 #AST here?
+        else:
+            raise TypeError(self.name + " is not callable")
+
+    def subscript(self, subscript):
+        try:
+            return self.inst.array_get(subscript)
+        except TypeError:
+            raise
+
+    def get(self):
+        return ii.Interpreter.loadSymbol(self.name)

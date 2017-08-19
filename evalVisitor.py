@@ -1,6 +1,6 @@
 # Generated from lang.g4 by ANTLR 4.7
 from Instance import Instance
-from Variable import Variable, Literal
+from Variable import Variable, Literal, Symbol
 from Type import Type
 
 from antlr4 import *
@@ -11,14 +11,17 @@ else:
 
 from errorHelper import error
 
-# This class defines a complete generic visitor for a parse tree produced by langParser.
+import Interpreter as ii
+import traceback
 
-symbolTable = {}
-callStack = []
+# This class defines a complete generic visitor for a parse tree produced by langParser.
 
 class evalVisitor(ParseTreeVisitor):
 
-    def __init__(self, parser):
+    def __init__(self):
+        self.parser = None
+
+    def setParser(self, parser):
         self.parser = parser
 
     # Visit a parse tree produced by langParser#r.
@@ -63,7 +66,9 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):
-        return self.visitChildren(ctx)
+        for statement in ctx.smallStatement():
+            res = self.visitSmallStatement(statement)
+        return res
 
 
     # Visit a parse tree produced by langParser#smallStatement.
@@ -73,7 +78,16 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#declarationStatement.
     def visitDeclarationStatement(self, ctx:langParser.DeclarationStatementContext):
-        return self.visitChildren(ctx)
+        lextype = ctx.dataType().getChild(0).getSymbol().type
+        datatype = self.mapLexType(lextype)
+        #TODO: handle constants
+        decl = self.visitTestOrExpressionStatement(ctx.testOrExpressionStatement())
+        for symbol in decl:
+            if symbol.get().type == datatype:
+                pass
+            else:
+                error(TypeError, "Assignment types do not match!", ctx)
+        return decl
 
 
     # Visit a parse tree produced by langParser#dataType.
@@ -83,11 +97,34 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpressionStatement.
     def visitTestOrExpressionStatement(self, ctx:langParser.TestOrExpressionStatementContext):
-        res = self.visitTestOrExpressionList(ctx.testOrExpressionList(0))
-        #TODO: Assignment
-        if len(res)==1:
-            return res[0]
-        return res
+        childcount = len(ctx.testOrExpressionList())
+        rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
+        lhs = rhs # Only for return purposes when no assignment is done
+        i_children = iter(reversed(list(ctx.getChildren())))
+        next(i_children) # all except last
+        for c in i_children:
+            if isinstance(c, TerminalNode):
+                pass
+            else:
+                # Visit expression lists pairwise from right to left
+                lhs = self.visitTestOrExpressionList(c)
+                print("VISITTESTOREXPRESSIONSTATEMENT")
+                print("LHS = "+str(lhs))
+                print("RHS = "+str(rhs))
+                if (len(lhs) == len(rhs)):
+                    for ind in range(0, len(lhs)):
+                        print("ind="+str(ind))
+                        lval = lhs[ind]
+                        rval = rhs[ind]
+                        if isinstance(lval, Symbol):
+                            ii.Interpreter.storeSymbol(lval.name, rval.get())
+                        else:
+                            error(SyntaxError, "Cannot assign to literal!", ctx)
+                else:
+                    error(SyntaxError, "Cannot assign expression lists of different sizes!", ctx)
+                rhs = lhs
+            
+        return lhs
 
 
     # Visit a parse tree produced by langParser#expressionList.
@@ -387,7 +424,9 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):
-        if ctx.TRUE() is not None:
+        if ctx.NAME() is not None:
+            return Symbol(str(ctx.NAME().getText()))
+        elif ctx.TRUE() is not None:
             return Literal(Instance(Type.BOOL, True));
         elif ctx.FALSE() is not None:
             return Literal(Instance(Type.BOOL, False));
@@ -485,10 +524,20 @@ class evalVisitor(ParseTreeVisitor):
 
 
     def aggregateResult(self, aggregate, nextResult):
-        #print("Aggregating "+str(aggregate)+" and "+str(nextResult))
+        # print("Aggregating "+str(aggregate)+" and "+str(nextResult))
         if aggregate is not None:
             res = aggregate
         else:
             res = nextResult
-        #print("Gives us "+str(res))
+        # print("Gives us "+str(res))
         return res
+
+    def mapLexType(self, lextype):
+        return {
+            self.parser.INTEGER: Type.INT,
+            self.parser.REAL: Type.FLOAT,
+            self.parser.CHAR: Type.CHAR,
+            self.parser.STRING: Type.STRING,
+            self.parser.BOOLEAN: Type.BOOL,
+            self.parser.NAME: Type.REFERENCE
+        }.get(lextype, Type.NULL)
