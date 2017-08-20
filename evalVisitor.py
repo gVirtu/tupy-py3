@@ -26,8 +26,15 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
-        return self.visitChildren(ctx)
-
+        for s in ctx.statement():
+            res = self.visitStatement(s)
+        print("ALL DONE!")
+        print("CallStack top is {0}".format(str(ii.Interpreter.callStack.top())))
+        print("Returnin {0}".format(res[0]))
+        if (len(res)>1):
+            return tuple((c.get()) for c in res)
+        else:
+            return res[0].get()
 
     # Visit a parse tree produced by langParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
@@ -78,16 +85,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#declarationStatement.
     def visitDeclarationStatement(self, ctx:langParser.DeclarationStatementContext):
-        lextype = ctx.dataType().getChild(0).getSymbol().type
-        datatype = self.mapLexType(lextype)
-        #TODO: handle constants
-        decl = self.visitTestOrExpressionStatement(ctx.testOrExpressionStatement())
-        for symbol in decl:
-            if symbol.get().type == datatype:
-                pass
-            else:
-                error(TypeError, "Assignment types do not match!", ctx)
-        return decl
+        return self.visitTestOrExpressionStatement(ctx.testOrExpressionStatement())
 
 
     # Visit a parse tree produced by langParser#dataType.
@@ -98,31 +96,43 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#testOrExpressionStatement.
     def visitTestOrExpressionStatement(self, ctx:langParser.TestOrExpressionStatementContext):
         childcount = len(ctx.testOrExpressionList())
+        isDeclaration = isinstance(ctx.parentCtx, langParser.DeclarationStatementContext)
+        decltype = Type.NULL
+        if (isDeclaration):
+            decltype = self.mapLexType(ctx.parentCtx.dataType().getChild(0).getSymbol().type)
+
         rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
-        lhs = rhs # Only for return purposes when no assignment is done
-        i_children = iter(reversed(list(ctx.getChildren())))
+        # Only for return purposes when no assignment is done
+        lhs = rhs 
+        current_child = 1
+        if (isDeclaration and childcount == current_child):
+            self.doDeclare(lhs, decltype)
+        
+        i_children = iter(reversed(list(ctx.testOrExpressionList())))
         next(i_children) # all except last
+        
         for c in i_children:
-            if isinstance(c, TerminalNode):
-                pass
+            # Visit expression lists pairwise from right to left
+            lhs = self.visitTestOrExpressionList(c)
+            current_child += 1
+            if (isDeclaration and childcount == current_child):
+                self.doDeclare(lhs, decltype)
+
+            print("VISITTESTOREXPRESSIONSTATEMENT")
+            print("LHS = "+str(lhs))
+            print("RHS = "+str(rhs))
+            if (len(lhs) == len(rhs)):
+                for ind in range(0, len(lhs)):
+                    print("ind="+str(ind))
+                    lval = lhs[ind]
+                    rval = rhs[ind]
+                    if isinstance(lval, Symbol):
+                        ii.Interpreter.storeSymbol(lval.name, rval.get())
+                    else:
+                        error(SyntaxError, "Cannot assign to literal!", ctx)
             else:
-                # Visit expression lists pairwise from right to left
-                lhs = self.visitTestOrExpressionList(c)
-                print("VISITTESTOREXPRESSIONSTATEMENT")
-                print("LHS = "+str(lhs))
-                print("RHS = "+str(rhs))
-                if (len(lhs) == len(rhs)):
-                    for ind in range(0, len(lhs)):
-                        print("ind="+str(ind))
-                        lval = lhs[ind]
-                        rval = rhs[ind]
-                        if isinstance(lval, Symbol):
-                            ii.Interpreter.storeSymbol(lval.name, rval.get())
-                        else:
-                            error(SyntaxError, "Cannot assign to literal!", ctx)
-                else:
-                    error(SyntaxError, "Cannot assign expression lists of different sizes!", ctx)
-                rhs = lhs
+                error(SyntaxError, "Cannot assign expression lists of different sizes!", ctx)
+            rhs = lhs
             
         return lhs
 
@@ -184,7 +194,20 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#ifStatement.
     def visitIfStatement(self, ctx:langParser.IfStatementContext):
-        return self.visitChildren(ctx)
+        ret = None
+        test = False
+        lastOne = False
+        for c in ctx.getChildren():
+            if isinstance(c, TerminalNode) and c.getSymbol().type == self.parser.ELSE:
+                lastOne = True
+            elif isinstance(c, langParser.ElseIfContext):
+                pass
+            elif isinstance(c, langParser.TestContext):
+                test = bool(self.visitTest(c).get().value)
+            elif isinstance(c, langParser.BlockContext) and ((test is True) or (lastOne)):
+                ret = self.visitBlock(c)
+                break
+        return ret
 
 
     # Visit a parse tree produced by langParser#whileStatement.
@@ -199,7 +222,10 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext):
-        return self.visitChildren(ctx)
+        ii.Interpreter.pushFrame()
+        ret = self.visitChildren(ctx)
+        ii.Interpreter.popFrame()
+        return ret
 
 
     # Visit a parse tree produced by langParser#test.
@@ -477,7 +503,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpressionList.
     def visitTestOrExpressionList(self, ctx:langParser.TestOrExpressionListContext):
-        return [self.visitTestOrExpression(expr) for expr in ctx.testOrExpression()]
+        return tuple(self.visitTestOrExpression(expr) for expr in ctx.testOrExpression())
 
 
     # Visit a parse tree produced by langParser#classDefinition.
@@ -541,3 +567,7 @@ class evalVisitor(ParseTreeVisitor):
             self.parser.BOOLEAN: Type.BOOL,
             self.parser.NAME: Type.REFERENCE
         }.get(lextype, Type.NULL)
+
+    def doDeclare(self, lhs, decltype):
+        for lval in lhs:
+            ii.Interpreter.declareSymbol(lval.name, decltype)

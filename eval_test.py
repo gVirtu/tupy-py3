@@ -257,29 +257,57 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_assignment(self):
         ret = Interpreter.interpret("inteiro a <- 3; a\n")
-        self.assertEqual(ret[0].get().type, Type.INT)
-        self.assertEqual(ret[0].get().value, 3)
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 3)
         ret = Interpreter.interpret("caracter b, c <- '3', '5'; b, c\n")
-        self.assertEqual(ret[0].get().type, Type.CHAR)
-        self.assertEqual(ret[0].get().value, ord("3"))
-        self.assertEqual(ret[1].get().type, Type.CHAR)
-        self.assertEqual(ret[1].get().value, ord("5"))
-        ret = Interpreter.interpret("inteiro a <- b <- 3; a, b\n")
-        self.assertEqual(ret[0].get().type, Type.INT)
-        self.assertEqual(ret[0].get().value, 3)
-        self.assertEqual(ret[1].get().type, Type.INT)
-        self.assertEqual(ret[1].get().value, 3)
-        ret = Interpreter.interpret("inteiro a, b <- c, d <- 3, 30; a, b, c, d\n")
-        self.assertEqual(ret[0].get().type, Type.INT)
-        self.assertEqual(ret[0].get().value, 3)
-        self.assertEqual(ret[1].get().type, Type.INT)
-        self.assertEqual(ret[1].get().value, 30)
-        self.assertEqual(ret[2].get().type, Type.INT)
-        self.assertEqual(ret[2].get().value, 3)
-        self.assertEqual(ret[3].get().type, Type.INT)
-        self.assertEqual(ret[3].get().value, 30)
+        self.assertEqual(ret[0].type, Type.CHAR)
+        self.assertEqual(ret[0].value, ord("3"))
+        self.assertEqual(ret[1].type, Type.CHAR)
+        self.assertEqual(ret[1].value, ord("5"))
+        ret = Interpreter.interpret("inteiro a, b; a <- b <- 3; a, b\n")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 3)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 3)
+        ret = Interpreter.interpret("inteiro c, d; inteiro a, b <- c, d <- 3, 30; a, b, c, d\n")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 3)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 30)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 3)
+        self.assertEqual(ret[3].type, Type.INT)
+        self.assertEqual(ret[3].value, 30)
+        self.assertRaises(NameError, Interpreter.interpret, "inteiro a <- b\n")
+        self.assertRaises(NameError, Interpreter.interpret, "inteiro a <- b <- 3\n")
+        self.assertRaises(TypeError, Interpreter.interpret, "inteiro a; real b <- 3.0; a <- b; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a <- 3.01; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a, b <- 3, 3.01; a, b\n")
 
+    def test_if(self):
+        ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ok")
+        ret = Interpreter.interpret("se 1 > 2: \"not ok\"\nsenão: \"ok\"\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ok")
+        ret = Interpreter.interpret("se falso: \"not ok\"\nsenao se verdadeiro: \"ok\"\nsenão: \"not ok\"\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ok")
+
+    def test_block(self):
+        ret = Interpreter.interpret(("inteiro a <- 5\n"
+                                     "se verdadeiro:\n"
+                                     "\t inteiro b <- 6\n"
+                                     "a\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
+        self.assertRaises(NameError, Interpreter.interpret, ("inteiro a <- 5\n"
+                                                             "se verdadeiro:\n"
+                                                             "\t inteiro b <- 6\n"
+                                                             "b\n"
+                                                            ))
+        
 if __name__ == '__main__':
     unittest.main()

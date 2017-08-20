@@ -233,6 +233,15 @@ class langListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by langParser#elseIf.
+    def enterElseIf(self, ctx:langParser.ElseIfContext):
+        pass
+
+    # Exit a parse tree produced by langParser#elseIf.
+    def exitElseIf(self, ctx:langParser.ElseIfContext):
+        pass
+
+
     # Enter a parse tree produced by langParser#whileStatement.
     def enterWhileStatement(self, ctx:langParser.WhileStatementContext):
         pass

@@ -6,6 +6,7 @@ import sys
 
 
 import re
+from Stack import Stack
 from langParser import langParser
 from antlr4.Token import CommonToken
 
@@ -574,7 +575,7 @@ class langLexer(Lexer):
         self.tokens = []
 
         #A pilha para controlar o nível de indentação
-        self.indents = []
+        self.indents = Stack()
 
         #O número de colchetes e parênteses abertos
         self.opened = 0
@@ -617,8 +618,8 @@ class langLexer(Lexer):
         return self.tokens.pop(0)
 
     def createDedent(self):
-      dedent = commonToken(langParser.DEDENT, "")
-      dedent.setLine(self.lastToken.getLine())
+      dedent = self.commonToken(langParser.DEDENT, "")
+      dedent.line = self.lastToken.line
       return dedent
 
     def commonToken(self, mytype, text):
@@ -716,18 +717,18 @@ class langLexer(Lexer):
                   self.emitToken(self.commonToken(langParser.NEWLINE, newLine))
 
                   indent = self.getIndentationCount(spaces)
-                  previous = 0 if len(self.indents)==0 else self.indents[0]
+                  previous = 0 if len(self.indents)==0 else self.indents.top()
 
                   if (indent == previous):
                     # skip indents of the same size as the present indent-size
                     self.skip()
                   elif (indent > previous):
                     self.indents.push(indent)
-                    emitToken(commonToken(langParser.INDENT, spaces))
+                    self.emitToken(self.commonToken(langParser.INDENT, spaces))
                   else:
                     # Possibly emit more than 1 DEDENT token.
-                    while(len(self.indents)>0 and self.indents[0] > indent):
-                      emitToken(createDedent())
+                    while(len(self.indents)>0 and self.indents.top() > indent):
+                      self.emitToken(self.createDedent())
                       self.indents.pop()
                       
                

@@ -134,6 +134,11 @@ class langVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by langParser#elseIf.
+    def visitElseIf(self, ctx:langParser.ElseIfContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by langParser#whileStatement.
     def visitWhileStatement(self, ctx:langParser.WhileStatementContext):
         return self.visitChildren(ctx)
