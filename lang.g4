@@ -319,7 +319,7 @@ loopRange
  ;
 
 rangeDelimiter
- : UNTIL | COLON
+ : UNTIL | RANGE_OP
  ;
  
 rangeList
@@ -395,9 +395,9 @@ atom
 
 /// trailer: '(' [argList] ')' | '[' subscriptlist ']' | '.' NAME
 trailer
- : OPEN_PAREN argList? CLOSE_PAREN			# trailerArgs
- | OPEN_BRACK subscriptList CLOSE_BRACK		# trailerSubs
- | DOT NAME									# trailerDot
+ : OPEN_PAREN argList? CLOSE_PAREN	
+ | OPEN_BRACK subscriptList CLOSE_BRACK	
+ | DOT NAME									
  ;
 
 /// subscriptlist: subscript (',' subscript)* [',']
@@ -484,7 +484,7 @@ STEP : 'passo';
 UNTIL : 'ate' | 'até';
 
 DOT : '.';
-//RANGE_OP : '..';
+RANGE_OP : '..';
 CARDINALITY_OP : '|';
 OPEN_PAREN : '(' {self.opened+=1};
 CLOSE_PAREN : ')' {self.opened-=1};
@@ -665,8 +665,7 @@ fragment BIN_DIGIT
 
 /// pointfloat    ::=  [intpart] fraction | intpart "."
 fragment POINT_FLOAT
- : INT_PART? FRACTION
- | INT_PART '.'
+ : INT_PART FRACTION
  ;
 
 /// intpart       ::=  digit+

@@ -1,8 +1,11 @@
 from Instance import Instance
-from Type import Type
+from Type import TrailerType, Type
 import Interpreter as ii
 
 class Variable(object):
+    def __init__(self):
+        self.trailers = []
+
     def call(self, params):
         pass
 
@@ -11,6 +14,22 @@ class Variable(object):
 
     def get(self):
         pass
+
+    def retrieveWithTrailers(self, inst):
+        ret = inst
+        for (ttype, tid) in self.trailers:
+            if ttype == TrailerType.SUBSCRIPT:
+                # Parse subscript list
+                for ss in tid:
+                    if ss.isWildcard:
+                        pass
+                    elif ss.begin == ss.end:
+                        ret = ret.array_get(ss.begin).get()
+                    else:
+                        ret = Instance(inst.type, ret.array_get_range(ss.begin, ss.end))
+            else:
+                pass
+        return ret
 
     def power(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
@@ -145,13 +164,17 @@ class Variable(object):
 
 class Literal(Variable):
     __slots__ = [
-        'inst'
+        'inst', 'trailers'
     ]
 
     def __init__(self, instance):
+        self.trailers = []
         self.inst = instance
 
     def __str__(self):
+        return "LITERAL<{0}>".format(str(self.inst))
+
+    def __repr__(self):
         return "LITERAL<{0}>".format(str(self.inst))
 
     def call(self, params):
@@ -164,14 +187,15 @@ class Literal(Variable):
             raise
 
     def get(self):
-        return self.inst
+        return self.retrieveWithTrailers(self.inst)
 
 class Symbol(Variable):
     __slots__ = [
-        'name', 'scope'
+        'name', 'scope', 'trailers'
     ]
 
     def __init__(self, name):
+        self.trailers = []
         self.name = name
 
     def __str__(self):
@@ -191,4 +215,4 @@ class Symbol(Variable):
             raise
 
     def get(self):
-        return ii.Interpreter.loadSymbol(self.name)
+        return self.retrieveWithTrailers(ii.Interpreter.loadSymbol(self.name))

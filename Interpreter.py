@@ -21,10 +21,10 @@ class Interpreter(object):
         tree = treenode()
         cls.visitor = evalVisitor()
         cls.visitor.setParser(parser)
-        print(tree.toStringTree())
+        #print(tree.toStringTree())
         print("Using rule " + rule)
         visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
-        print(visit)
+        #print(visit)
         return visit(tree)
 
     @classmethod
@@ -40,9 +40,9 @@ class Interpreter(object):
         return cls.callStack.top().locals.put(name, instance)
 
     @classmethod
-    def declareSymbol(cls, name, datatype):
+    def declareSymbol(cls, name, datatype, subscriptList):
         print("Declaring "+name+" as "+str(datatype))
-        return cls.callStack.top().locals.declare(name, datatype)
+        return cls.callStack.top().locals.declare(name, datatype, subscriptList)
 
     @classmethod
     def pushFrame(cls):

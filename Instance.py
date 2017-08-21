@@ -38,11 +38,22 @@ class Instance(object):
     def __str__(self):
         return "INST({0}, {1})".format(self.type.name, self.value)
 
+    def __repr__(self):
+        return "INST({0}, {1})".format(self.type.name, self.value)
+
     def array_get(self, pos):
         try:
             if not self.is_subscriptable_array():
                 raise TypeError("{0} cannot be subscripted.".format(self.type))
             return self.value[pos]
+        except TypeError:
+            raise
+
+    def array_get_range(self, begin, end):
+        try:
+            if not self.is_subscriptable_array():
+                raise TypeError("{0} cannot be subscripted.".format(self.type))
+            return self.value[begin:(end+1)]
         except TypeError:
             raise
 
@@ -52,7 +63,7 @@ class Instance(object):
                 raise TypeError("{0} is immutable.".format(self.type))
             self.size -= self.value[pos].size
             self.value[pos] = literal
-            self.size += inst.size
+            self.size += literal.get().size
         except TypeError:
             raise
 
@@ -60,13 +71,21 @@ class Instance(object):
         try:
             if not self.is_mutable_array():
                 raise TypeError("{0} cannot be appended.".format(self.type))
-            self.value += inst
-            self.size += inst.size
+            self.value += [literal]
+            self.size += literal.get().size
+            self.collection_size += 1
         except TypeError:
             raise
 
     def array_length(self):
         return len(self.value)
+
+    def array_pad(self, size, literal):
+        while self.array_length() < size:
+            self.array_append(literal)
+
+    def is_pure_array(self):
+        return self.type == Type.ARRAY
 
     def is_subscriptable_array(self):
         return self.type in [Type.ARRAY, Type.STRING, Type.RANGE, Type.TUPLE]

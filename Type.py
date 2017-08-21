@@ -11,3 +11,8 @@ class Type(Enum):
     RANGE = 7
     ARRAY = 8
     TUPLE = 9
+
+class TrailerType(Enum):
+    SUBSCRIPT = 0
+    CALL = 1
+    MEMBER = 2

@@ -14,6 +14,15 @@ class TestEvalVisitor(unittest.TestCase):
     def evalExpression(self, expr):
         return Interpreter.interpret(expr, type(self).eex).get()
 
+    def assertArrayEquals(self, ret, targetType, array):
+        for ind in range(len(array)):
+            if (isinstance(array[ind], list)):
+                self.assertEqual(ret.value[ind].get().type, Type.ARRAY)
+                self.assertArrayEquals(ret.value[ind].get(), targetType, array[ind])
+            else:
+                self.assertEqual(ret.value[ind].get().type, targetType)
+                self.assertEqual(ret.value[ind].get().value, array[ind])
+
     def test_integer(self):
         ret = self.evalExpression("123\n")
         self.assertEqual(ret.type, Type.INT)
@@ -255,6 +264,30 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 8)
 
+
+    def test_subscripts(self):
+        ret = self.evalExpression("[5,10,20,40][2]\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 20)
+        ret = self.evalExpression("[5,10,20,40][1..2]\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertEqual(ret.value[0].get().type, Type.INT)
+        self.assertEqual(ret.value[0].get().value, 10)
+        self.assertEqual(ret.value[1].get().type, Type.INT)
+        self.assertEqual(ret.value[1].get().value, 20)
+        ret = self.evalExpression("(5,10.1,20,40)[1..2]\n")
+        self.assertEqual(ret.type, Type.TUPLE)
+        self.assertEqual(ret.value[0].get().type, Type.FLOAT)
+        self.assertEqual(ret.value[0].get().value, 10.1)
+        self.assertEqual(ret.value[1].get().type, Type.INT)
+        self.assertEqual(ret.value[1].get().value, 20)
+        ret_1 = self.evalExpression("[5,10,20,40]\n")
+        ret_2 = self.evalExpression("[5,10,20,40][*]\n")
+        self.assertEqual(ret_2.type, Type.ARRAY)
+        for i in range(len(ret_1.value)):
+            self.assertEqual(ret_2.value[i].get().type, ret_1.value[i].get().type)
+            self.assertEqual(ret_2.value[i].get().value, ret_1.value[i].get().value)
+
     def test_assignment(self):
         ret = Interpreter.interpret("inteiro a <- 3; a\n")
         self.assertEqual(ret.type, Type.INT)
@@ -283,6 +316,31 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a; real b <- 3.0; a <- b; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a <- 3.01; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a, b <- 3, 3.01; a, b\n")
+
+    def test_array_declaration(self):
+        ret = Interpreter.interpret("inteiro a[5] <- [9,8,7,6,5]; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        targetArray = [9,8,7,6,5]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
+        ret = Interpreter.interpret("inteiro a[*] <- [9,8,7,6,5]; a\n")
+        self.assertArrayEquals(ret, Type.INT, targetArray)
+        self.assertRaises(TypeError, Interpreter.interpret, "inteiro a[4] <- [9,8,7,6,5]; a\n")
+        targetArray = [[1,2,3], [4,5,6], [7,8,9]]
+        ret = Interpreter.interpret("inteiro m[3,3] <- [[1,2,3], [4,5,6], [7,8,9]]; m\n")
+        self.assertArrayEquals(ret, Type.INT, targetArray)
+        ret = Interpreter.interpret("inteiro a[5] <- [9,8,7]; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        targetArray = [9,8,7,0,0]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
+        ret = Interpreter.interpret("cadeia s[3,2] <- [[\"oi\"], [\"tudo\"], [\"ok\"]]; s\n")
+        targetArray = [["oi", ""], ["tudo", ""], ["ok", ""]]
+        self.assertArrayEquals(ret, Type.STRING, targetArray)
+        ret = Interpreter.interpret("real s[3,2,*] <- [ [[1.0], [2.0, 3.0]], [[4.0], []], [[5.0, 6.0]]]; s\n")
+        targetArray = [ [[1.0], [2.0, 3.0]], [[4.0], []], [[5.0, 6.0], []] ]
+        self.assertArrayEquals(ret, Type.FLOAT, targetArray)
+        ret = Interpreter.interpret("inteiro a[5], b <- [9,8,7,6,5], 69; a, b\n")
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 69)
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")

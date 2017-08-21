@@ -244,18 +244,8 @@ class langVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#trailerArgs.
-    def visitTrailerArgs(self, ctx:langParser.TrailerArgsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#trailerSubs.
-    def visitTrailerSubs(self, ctx:langParser.TrailerSubsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#trailerDot.
-    def visitTrailerDot(self, ctx:langParser.TrailerDotContext):
+    # Visit a parse tree produced by langParser#trailer.
+    def visitTrailer(self, ctx:langParser.TrailerContext):
         return self.visitChildren(ctx)
 
 

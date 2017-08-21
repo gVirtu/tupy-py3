@@ -1,7 +1,8 @@
 # Generated from lang.g4 by ANTLR 4.7
 from Instance import Instance
 from Variable import Variable, Literal, Symbol
-from Type import Type
+from Subscript import Subscript
+from Type import TrailerType, Type
 
 from antlr4 import *
 if __name__ is not None and "." in __name__:
@@ -441,11 +442,15 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#power.
     def visitPower(self, ctx:langParser.PowerContext):
+        at = self.visitAtom(ctx.atom())
+        print(at)
+        for t in ctx.trailer():
+            at.trailers.append(self.visitTrailer(t))
+
         if ctx.POWER() is not None:
-            at = self.visitAtom(ctx.atom())
             rhs = self.visitFactor(ctx.factor())
             return at.power(rhs)
-        return self.visitChildren(ctx)
+        return at
 
 
     # Visit a parse tree produced by langParser#atom.
@@ -468,38 +473,42 @@ class evalVisitor(ParseTreeVisitor):
             if ctx.testOrExpressionList() is not None:
                 res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
             try:
-                return Literal(Instance(Type.ARRAY, res));
+                return Literal(Instance(Type.ARRAY, list(res)));
             except TypeError:
                 error(TypeError, "Types in array must be consistent!", ctx)
-
         else:
             return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by langParser#trailerArgs.
-    def visitTrailerArgs(self, ctx:langParser.TrailerArgsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#trailerSubs.
-    def visitTrailerSubs(self, ctx:langParser.TrailerSubsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#trailerDot.
-    def visitTrailerDot(self, ctx:langParser.TrailerDotContext):
-        return self.visitChildren(ctx)
+    def visitTrailer(self, ctx:langParser.TrailerContext):
+        if ctx.OPEN_PAREN() is not None:
+            trailerType = TrailerType.CALL
+            trailerId = None #TODO
+        elif ctx.OPEN_BRACK() is not None:
+            trailerType = TrailerType.SUBSCRIPT
+            trailerId = self.visitSubscriptList(ctx.subscriptList())
+        else:
+            trailerType = TrailerType.MEMBER
+            trailerId = None #TODO
+        return (trailerType, trailerId)
 
 
     # Visit a parse tree produced by langParser#subscriptList.
     def visitSubscriptList(self, ctx:langParser.SubscriptListContext):
-        return self.visitChildren(ctx)
+        return [self.visitSubscript(ss) for ss in ctx.subscript()]
 
 
     # Visit a parse tree produced by langParser#subscript.
     def visitSubscript(self, ctx:langParser.SubscriptContext):
-        return self.visitChildren(ctx)
-
+        if ctx.STAR() is not None:
+            return Subscript(isWildcard=True)
+        elif ctx.rangeDelimiter() is not None: #error check this
+            return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
+                             end=int(self.visitExpression(ctx.expression(1)).get().value))
+        else:
+            return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
+                             end=int(self.visitExpression(ctx.expression(0)).get().value))
 
     # Visit a parse tree produced by langParser#testOrExpressionList.
     def visitTestOrExpressionList(self, ctx:langParser.TestOrExpressionListContext):
@@ -570,4 +579,11 @@ class evalVisitor(ParseTreeVisitor):
 
     def doDeclare(self, lhs, decltype):
         for lval in lhs:
-            ii.Interpreter.declareSymbol(lval.name, decltype)
+            if len(lval.trailers) > 0:
+                if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
+                    subscriptList = lval.trailers[0][1]
+                else:
+                    raise SyntaxError("Invalid declaration!")
+            else:
+                subscriptList = []
+            ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList)

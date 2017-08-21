@@ -431,30 +431,12 @@ class langListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by langParser#trailerArgs.
-    def enterTrailerArgs(self, ctx:langParser.TrailerArgsContext):
+    # Enter a parse tree produced by langParser#trailer.
+    def enterTrailer(self, ctx:langParser.TrailerContext):
         pass
 
-    # Exit a parse tree produced by langParser#trailerArgs.
-    def exitTrailerArgs(self, ctx:langParser.TrailerArgsContext):
-        pass
-
-
-    # Enter a parse tree produced by langParser#trailerSubs.
-    def enterTrailerSubs(self, ctx:langParser.TrailerSubsContext):
-        pass
-
-    # Exit a parse tree produced by langParser#trailerSubs.
-    def exitTrailerSubs(self, ctx:langParser.TrailerSubsContext):
-        pass
-
-
-    # Enter a parse tree produced by langParser#trailerDot.
-    def enterTrailerDot(self, ctx:langParser.TrailerDotContext):
-        pass
-
-    # Exit a parse tree produced by langParser#trailerDot.
-    def exitTrailerDot(self, ctx:langParser.TrailerDotContext):
+    # Exit a parse tree produced by langParser#trailer.
+    def exitTrailer(self, ctx:langParser.TrailerContext):
         pass
 
 
