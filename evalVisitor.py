@@ -128,7 +128,7 @@ class evalVisitor(ParseTreeVisitor):
                     lval = lhs[ind]
                     rval = rhs[ind]
                     if isinstance(lval, Symbol):
-                        ii.Interpreter.storeSymbol(lval.name, rval.get())
+                        ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
                     else:
                         error(SyntaxError, "Cannot assign to literal!", ctx)
             else:
@@ -504,11 +504,17 @@ class evalVisitor(ParseTreeVisitor):
         if ctx.STAR() is not None:
             return Subscript(isWildcard=True)
         elif ctx.rangeDelimiter() is not None: #error check this
-            return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
-                             end=int(self.visitExpression(ctx.expression(1)).get().value))
+            begin_pos = int(self.visitExpression(ctx.expression(0)).get().value)
+            end_pos = int(self.visitExpression(ctx.expression(1)).get().value)
+            if begin_pos <= end_pos:
+                return Subscript(begin=begin_pos, 
+                                end=end_pos)
+            else:
+                raise SyntaxError("Invalid range!")
         else:
             return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
-                             end=int(self.visitExpression(ctx.expression(0)).get().value))
+                             end=int(self.visitExpression(ctx.expression(0)).get().value),
+                             isSingle=True)
 
     # Visit a parse tree produced by langParser#testOrExpressionList.
     def visitTestOrExpressionList(self, ctx:langParser.TestOrExpressionListContext):

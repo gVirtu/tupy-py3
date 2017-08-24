@@ -15,21 +15,59 @@ class Variable(object):
     def get(self):
         pass
 
-    def retrieveWithTrailers(self, inst):
+    @classmethod
+    def retrieveWithTrailers(cls, inst, trailers):
         ret = inst
-        for (ttype, tid) in self.trailers:
+        # Parent is useful when we want to assign ranges
+        # e.g.: A[5, 1..2] <- [10, 20]
+        # We retrieveWithTrailers(A) but we want to change A[5] specifically
+        # so we don't go down all the way to A[5, 1..2]
+        parent = (inst, None) 
+        for (ttype, tid) in trailers:
             if ttype == TrailerType.SUBSCRIPT:
                 # Parse subscript list
+                level = 0
                 for ss in tid:
+                    parent = (ret, ss)
                     if ss.isWildcard:
                         pass
-                    elif ss.begin == ss.end:
-                        ret = ret.array_get(ss.begin).get()
+                    elif ss.isSingle:
+                        ret = Instance(inst.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, level, True)) #ret = ret.array_get(ss.begin).get()
                     else:
-                        ret = Instance(inst.type, ret.array_get_range(ss.begin, ss.end))
+                        ret = Instance(inst.type, cls.get_array_range(ret, ss.begin, ss.end, level))
+                    level += 1
             else:
                 pass
-        return ret
+        return (ret, parent)
+
+    @classmethod
+    def get_array_range(cls, inst, begin, end, level, single=False):
+        print("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
+        if level == 0:
+            try:
+                if not inst.is_subscriptable_array():
+                    raise TypeError("{0} cannot be subscripted.".format(inst.type))
+                print("...returned {0}".format(inst.value[begin:(end+1)]))
+                if (single):
+                    return inst.value[begin].get().value
+                else:
+                    return inst.value[begin:(end+1)]
+            except TypeError:
+                raise
+        else:
+            ret = []
+            print("Welp, first gotta check {0}".format(inst.value))
+            for literal in inst.value:
+                lower_inst = literal.get()
+                lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)
+                if (single and level==1):
+                    new_inst = Instance(lower_inst.heldtype, lower_level)
+                else:
+                    new_inst = Instance(lower_inst.type, lower_level)
+                ret.append(Literal(new_inst))
+                
+            print("...returned {0}".format(ret))
+            return ret
 
     def power(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
@@ -171,11 +209,11 @@ class Literal(Variable):
         self.trailers = []
         self.inst = instance
 
-    def __str__(self):
-        return "LITERAL<{0}>".format(str(self.inst))
+    #def __str__(self):
+    #    return "LITERAL<{0}>".format(str(self.inst))
 
     def __repr__(self):
-        return "LITERAL<{0}>".format(str(self.inst))
+        return "{0}".format(str(self.inst))
 
     def call(self, params):
         raise TypeError("Literal object is not callable")
@@ -187,7 +225,7 @@ class Literal(Variable):
             raise
 
     def get(self):
-        return self.retrieveWithTrailers(self.inst)
+        return Variable.retrieveWithTrailers(self.inst, self.trailers)[0]
 
 class Symbol(Variable):
     __slots__ = [
@@ -215,4 +253,4 @@ class Symbol(Variable):
             raise
 
     def get(self):
-        return self.retrieveWithTrailers(ii.Interpreter.loadSymbol(self.name))
+        return Variable.retrieveWithTrailers(ii.Interpreter.loadSymbol(self.name), self.trailers)[0]

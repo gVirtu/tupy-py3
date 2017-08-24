@@ -35,9 +35,9 @@ class Interpreter(object):
             raise NameError(name+" is not defined!")
 
     @classmethod
-    def storeSymbol(cls, name, instance):
+    def storeSymbol(cls, name, instance, trailerList):
         print("Storing "+name+" as "+str(instance))
-        return cls.callStack.top().locals.put(name, instance)
+        return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList):

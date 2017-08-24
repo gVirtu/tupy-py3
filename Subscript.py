@@ -4,7 +4,9 @@ import Type as tm
 class Subscript(object):
     def __init__(self, begin=0, 
                        end=0, 
-                       isWildcard=False):
+                       isWildcard=False,
+                       isSingle=False):
         self.begin = begin
         self.end = end
         self.isWildcard = isWildcard
+        self.isSingle = isSingle

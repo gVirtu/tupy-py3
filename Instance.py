@@ -35,25 +35,17 @@ class Instance(object):
 
         self.collection_size = 1 if self.type == Type.STRING else self.size
 
-    def __str__(self):
-        return "INST({0}, {1})".format(self.type.name, self.value)
+    #def __str__(self):
+    #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "INST({0}, {1})".format(self.type.name, self.value)
+        return "{0}".format(self.value)
 
     def array_get(self, pos):
         try:
             if not self.is_subscriptable_array():
                 raise TypeError("{0} cannot be subscripted.".format(self.type))
             return self.value[pos]
-        except TypeError:
-            raise
-
-    def array_get_range(self, begin, end):
-        try:
-            if not self.is_subscriptable_array():
-                raise TypeError("{0} cannot be subscripted.".format(self.type))
-            return self.value[begin:(end+1)]
         except TypeError:
             raise
 
@@ -83,6 +75,10 @@ class Instance(object):
     def array_pad(self, size, literal):
         while self.array_length() < size:
             self.array_append(literal)
+
+    def array_merge(self, target, subscriptList):
+        something = 2;
+        #TODO: Merge
 
     def is_pure_array(self):
         return self.type == Type.ARRAY
