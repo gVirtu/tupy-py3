@@ -69,6 +69,28 @@ class Variable(object):
             print("...returned {0}".format(ret))
             return ret
 
+    @classmethod
+    def makeDefaultValue(cls, datatype, declSubscripts=[], heldType=None):
+        if datatype == Type.ARRAY:
+            return cls.array_init(declSubscripts, heldType)
+        elif datatype == Type.STRING:
+            return Instance(datatype, "")
+        else:
+            return Instance(datatype, 0)
+
+    @classmethod
+    def array_init(cls, declSubscripts, heldType):
+        if len(declSubscripts)==0:
+            # At lowest level, initialize an element
+            ret = cls.makeDefaultValue(heldType)
+            return ret
+        else:
+            subs = declSubscripts[0]
+            sz = subs.begin
+            ret = Instance(Type.ARRAY, 
+                           [Literal(cls.array_init(declSubscripts[1:], heldType))] * sz)
+            return ret
+
     def power(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
         return Literal(Instance(typ, self.get().value ** rhs.get().value))

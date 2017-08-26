@@ -128,7 +128,10 @@ class evalVisitor(ParseTreeVisitor):
                     lval = lhs[ind]
                     rval = rhs[ind]
                     if isinstance(lval, Symbol):
-                        ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
+                        if isDeclaration:
+                            ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
+                        else:
+                            ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
                     else:
                         error(SyntaxError, "Cannot assign to literal!", ctx)
             else:

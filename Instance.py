@@ -2,7 +2,7 @@ from Type import Type
 
 class Instance(object):
     __slots__ = [
-        'value', 'type', 'heldtype', 'size', 'collection_size', 'callable'
+        'value', 'type', 'heldtype', 'size', 'collection_size', 'callable', 'dynamic'
     ]
 
     # TODO: Scope?
@@ -75,6 +75,7 @@ class Instance(object):
     def array_pad(self, size, literal):
         while self.array_length() < size:
             self.array_append(literal)
+        self.heldtype = self.value[0].get().type
 
     def array_merge(self, target, subscriptList):
         something = 2;

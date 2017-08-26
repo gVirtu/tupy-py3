@@ -10,3 +10,8 @@ class Subscript(object):
         self.end = end
         self.isWildcard = isWildcard
         self.isSingle = isSingle
+
+    def __repr__(self):
+        if (self.isWildcard): return "*"
+        elif (self.isSingle): return "{0}".format(self.begin)
+        else: return "{0}..{1}".format(self.begin, self.end)

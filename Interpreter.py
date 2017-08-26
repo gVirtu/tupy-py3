@@ -36,12 +36,12 @@ class Interpreter(object):
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
-        print("Storing "+name+" as "+str(instance))
+        print("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
         return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList):
-        print("Declaring "+name+" as "+str(datatype))
+        print("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
         return cls.callStack.top().locals.declare(name, datatype, subscriptList)
 
     @classmethod

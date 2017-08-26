@@ -15,6 +15,8 @@ class TestEvalVisitor(unittest.TestCase):
         return Interpreter.interpret(expr, type(self).eex).get()
 
     def assertArrayEquals(self, ret, targetType, array):
+        print("assertArrayEquals({0}, {1}, {2})".format(ret, targetType, array))
+        self.assertEqual(len(ret.value), len(array))
         for ind in range(len(array)):
             if (isinstance(array[ind], list)):
                 self.assertEqual(ret.value[ind].get().type, Type.ARRAY)
@@ -288,6 +290,38 @@ class TestEvalVisitor(unittest.TestCase):
             self.assertEqual(ret_2.value[i].get().type, ret_1.value[i].get().type)
             self.assertEqual(ret_2.value[i].get().value, ret_1.value[i].get().value)
 
+
+    def test_declaration_defaults(self):
+        ret = Interpreter.interpret("inteiro a, b, c; a\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 0)
+        ret = Interpreter.interpret("real a, b, c; b\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, 0)
+        ret = Interpreter.interpret("caracter a, b, c; c\n")
+        self.assertEqual(ret.type, Type.CHAR)
+        self.assertEqual(ret.value, 0)
+        ret = Interpreter.interpret("logico a, b, c; a\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, False)
+        ret = Interpreter.interpret("cadeia a, b, c; b\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "")
+        ret = Interpreter.interpret("inteiro a[5]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [0, 0, 0, 0, 0])
+        ret = Interpreter.interpret("inteiro a[3,3,3]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [[[0,0,0], [0,0,0], [0,0,0]], 
+                                               [[0,0,0], [0,0,0], [0,0,0]],
+                                               [[0,0,0], [0,0,0], [0,0,0]]])
+        ret = Interpreter.interpret("inteiro a[*]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [])
+        ret = Interpreter.interpret("inteiro a[*,*,3]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [])
+        ret = Interpreter.interpret("inteiro a[3,*,*]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [[],[],[]])
+        ret = Interpreter.interpret("inteiro a[*,3,*]; a\n")
+        self.assertArrayEquals(ret, Type.INT, [])
+
     def test_assignment(self):
         ret = Interpreter.interpret("inteiro a <- 3; a\n")
         self.assertEqual(ret.type, Type.INT)
@@ -335,6 +369,9 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("cadeia s[3,2] <- [[\"oi\"], [\"tudo\"], [\"ok\"]]; s\n")
         targetArray = [["oi", ""], ["tudo", ""], ["ok", ""]]
         self.assertArrayEquals(ret, Type.STRING, targetArray)
+        ret = Interpreter.interpret("real s[3,2,2] <- [ [[1.0], [2.0, 3.0]], [[4.0], []], [[5.0, 6.0]]]; s\n")
+        targetArray = [ [[1.0, 0.0], [2.0, 3.0]], [[4.0, 0.0], [0.0, 0.0]], [[5.0, 6.0], [0.0, 0.0]] ]
+        self.assertArrayEquals(ret, Type.FLOAT, targetArray)
         ret = Interpreter.interpret("real s[3,2,*] <- [ [[1.0], [2.0, 3.0]], [[4.0], []], [[5.0, 6.0]]]; s\n")
         targetArray = [ [[1.0], [2.0, 3.0]], [[4.0], []], [[5.0, 6.0], []] ]
         self.assertArrayEquals(ret, Type.FLOAT, targetArray)
@@ -368,6 +405,16 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("inteiro a[5]; a[2] <- 1; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [0,0,1,0,0]
+        ret = Interpreter.interpret("inteiro a[5]; a[1..3] <- [2, 2, 2]; a[2] <- 1; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        targetArray = [0,2,1,2,0]
+        ret = Interpreter.interpret("inteiro a[5]; a[*] <- [1, 2, 3, 4]; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        targetArray = [1,2,3,4,0]
+        ret = Interpreter.interpret("inteiro a[5]; a[*] <- 4; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        targetArray = [4,4,4,4,4]
+    
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")
