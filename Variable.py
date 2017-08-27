@@ -1,6 +1,7 @@
 from Instance import Instance
 from Type import TrailerType, Type
 import Interpreter as ii
+import copy
 
 class Variable(object):
     def __init__(self):
@@ -47,11 +48,11 @@ class Variable(object):
             try:
                 if not inst.is_subscriptable_array():
                     raise TypeError("{0} cannot be subscripted.".format(inst.type))
-                print("...returned {0}".format(inst.value[begin:(end+1)]))
+                print("...returned {0}".format(inst.value[begin:end]))
                 if (single):
                     return inst.value[begin].get().value
                 else:
-                    return inst.value[begin:(end+1)]
+                    return inst.value[begin:end]
             except TypeError:
                 raise
         else:
@@ -87,8 +88,9 @@ class Variable(object):
         else:
             subs = declSubscripts[0]
             sz = subs.begin
-            ret = Instance(Type.ARRAY, 
-                           [Literal(cls.array_init(declSubscripts[1:], heldType))] * sz)
+            element = Literal(cls.array_init(declSubscripts[1:], heldType))
+            content = [(copy.deepcopy(element)) for i in range(sz)]
+            ret = Instance(Type.ARRAY, content)
             return ret
 
     def power(self, rhs:'Variable'):
@@ -235,7 +237,7 @@ class Literal(Variable):
     #    return "LITERAL<{0}>".format(str(self.inst))
 
     def __repr__(self):
-        return "{0}".format(str(self.inst))
+        return "L{0}".format(str(self.inst))
 
     def call(self, params):
         raise TypeError("Literal object is not callable")

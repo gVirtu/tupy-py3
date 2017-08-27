@@ -7,7 +7,8 @@ class Subscript(object):
                        isWildcard=False,
                        isSingle=False):
         self.begin = begin
-        self.end = end
+        self.end = end+1
+        if (self.end == 0): self.end = None
         self.isWildcard = isWildcard
         self.isSingle = isSingle
 

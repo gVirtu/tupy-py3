@@ -2,6 +2,7 @@ import Instance
 import Variable
 import Type
 import Subscript
+import copy
 
 class SymbolTable(object):
     def __init__(self, ctx):
@@ -42,46 +43,69 @@ class SymbolTable(object):
         # Only add the variables from outer scopes that were changed in inner scopes
         self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
 
-    def hasValidSizes(self, subscriptList, instance, rootType):
-        if instance.is_pure_array():
-            if len(subscriptList)==0:
-                # Going deeper than we expected
-                    return False;
-
+    def validateSizes(self, subscriptList, instance, rootType, sizeList):
+        if len(subscriptList)>0:
+            # We still aren't at the lowest level
             targetSubscript = subscriptList[0]
-            #TODO: FIX A[*] <- VALUE
+
             if targetSubscript.isWildcard:
-                return True
+                targetSize = sizeList[0].begin
+            elif targetSubscript.isSingle:
+                targetSize = 1
             else:
-                if targetSubscript.isSingle:
-                    targetSize = targetSubscript.end
-                else:
-                    targetSize = targetSubscript.end - targetSubscript.begin + 1
+                targetSize = targetSubscript.end - targetSubscript.begin
+
+            childSubscripts = subscriptList[1:]
+            childSizes = sizeList[1:]
+
+            if instance.is_pure_array():
                 levelSize = instance.array_length()
                 print("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
-                valid = (levelSize <= targetSize)
+                valid = (levelSize <= targetSize) or (sizeList[0].isWildcard)
                 if valid:
-                    childSubscripts = subscriptList[1:]
                     if (levelSize < targetSize):
                         if (instance.is_pure_array()):
                             childType = instance.heldtype
                             if childType is None: childType = rootType;
                             print("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
                             instance.array_pad(targetSize, 
-                                               Variable.Literal(Variable.Variable.makeDefaultValue(childType, 
-                                                                                                   childSubscripts,
-                                                                                                   heldType=rootType)))
+                                                Variable.Literal(Variable.Variable.makeDefaultValue(childType, 
+                                                                                                    childSubscripts,
+                                                                                                    heldType=rootType)))
 
                     for child in instance.value:
-                        valid = self.hasValidSizes(childSubscripts, child.get(), rootType)
+                        valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
                         if valid:
                             pass
                         else:
                             break
 
                 return valid
+            else:
+                # Primitive not at lowest level, let's clone it into an array
+                # e.g.: 4 -> [[4,4], [4,4]]
+
+                if targetSubscript.isSingle:
+                    valid = self.validateSizes(childSubscripts, instance, rootType, childSizes)
+                else:
+                    new_value = [Variable.Literal(Variable.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                    instance.__init__(Type.Type.ARRAY, new_value)
+                    for child in instance.value:
+                        valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
+                        if valid:
+                            pass
+                        else:
+                            break
+                
+                return valid;
         else:
-            return True; # Primitive type, is ok
+            # We are at the lowest level
+            if instance.is_pure_array():
+                # Going deeper than we expected
+                return False;
+            else:
+                # Primitive type at deepest level is ok
+                return True; 
 
     def hasValidType(self, name, instance):
         if instance.is_pure_array():
@@ -90,7 +114,7 @@ class SymbolTable(object):
             else:
                 return True
         else:
-            return instance.type == self.datatype[name]
+            return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
     def defaultPadding(self, datatype):
         if datatype == Type.Type.STRING:
@@ -103,11 +127,23 @@ class SymbolTable(object):
             return Variable.Literal(Instance.Instance(datatype, 0))
 
     def updateData(self, name, instance, trailers):
-        # Puts instance in name[trailers]
+        # This is a call to assign some INSTANCE to some NAME
+        # with a list of trailers. e.g.: A[5,5] <- 10
+        # A is the NAME, 10 is the INSTANCE, and [(subscript, 5), (subscript, 5)] are the trailers.
+        # Note that when a name is DECLARED, the trailers won't show up here.
+        # e.g.: inteiro A[5,5] <- ... # No trailers! Equivalent to inteiro A[5,5]; A <- ...
+
         depth = self.declaredDepth[name]
         current_data = self.data[(name, depth)]
         target_subscript = None
 
+        # Make sure we aren't overwriting anything important
+        old_instance = instance
+        instance = copy.deepcopy(old_instance)
+
+        # First, apply the trailers to the name to get what's currently stored there
+        # Also get "parent_pair", which contains the pair (DATA, SUBSCRIPT) which tells us
+        # where the child data is contained.
         current_data, parent_pair = Variable.Variable.retrieveWithTrailers(current_data, trailers)
         target_data, target_subscript = parent_pair
         
@@ -119,49 +155,46 @@ class SymbolTable(object):
         else:
             subscriptList = []
 
-        if is_subscripted:
-            if target_subscript.isSingle:
-                desired_depth = len(subscriptList)
-            else:
-                desired_depth = len(subscriptList)-1
-        else:
-            desired_depth = 0
-
-        applicable_subscripts = self.overrideSizes(name, subscriptList) #self.subscriptlist[name][desired_depth:]
+        # We need to be able to tell which sizes our INSTANCE should ideally have
+        applicable_subscripts = self.fillOmittedSizes(name, subscriptList) 
+        declared_sizes = self.subscriptlist[name]
 
         root_type = self.datatype[name]
         print("Applicable subscripts: {0}".format(applicable_subscripts))
 
-        if self.hasValidSizes(applicable_subscripts, instance, root_type): # might change instance (padding)            
+        if self.validateSizes(applicable_subscripts, instance, root_type, declared_sizes): # might change instance (padding) 
+            print("Instance turned into {0}".format(instance)) 
+            print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
                 if target_subscript.isSingle:
-                    target_data.value[target_subscript.begin] = instance
-                    #Variable.Variable.deepMerge(target_data[target_subscript.begin], instance)
+                    target_data.value[target_subscript.begin] = Variable.Literal(instance)
                 elif target_subscript.isWildcard:
-                    target_data.value[:] = instance.value
-                    #Variable.Variable.deepMerge(target_data[:], instance)
+                    self.deepMerge(target_data.value[:], instance.value)
+                    #target_data.value[:] = instance.value
                 else:
                     print("For the record, instance is {0}".format(instance))
-                    target_data.value[target_subscript.begin:target_subscript.end+1] = instance.value
-                    #Variable.Variable.deepMerge(target_data[target_subscript.begin:target_subscript.end+1], 
-                                                #instance)
-                # if target_subscript.isSingle:
-                    # target_element = target_data[target_subscript.begin]
-                    # if instance.type == target_element.get().type
-                # else:
-                    # target_data[target_subscript.begin, target_subscript.end] = 
+                    self.deepMerge(target_data.value[target_subscript.begin:target_subscript.end], instance.value)
+                    #target_data.value[target_subscript.begin:target_subscript.end] = instance.value
             else:
                 self.data[(name, depth)] = instance
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")
 
-    def overrideSizes(self, name, subscripts):
-        ret = self.subscriptlist[name]
-        override = subscripts
-        print("Do override between "+str(ret)+" and "+str(subscripts))
-        override_count = len(subscripts)
-        ret[:override_count] = subscripts
+    def deepMerge(self, target_value, source_value):
+        for ind in range(len(target_value)):
+            child = target_value[ind].inst
+            newchild = source_value[ind].inst
+            if isinstance(child.value, list):
+                self.deepMerge(child.value, newchild.value)
+            else:
+                target_value[ind].inst = source_value[ind].inst
+
+    def fillOmittedSizes(self, name, subscripts):
+        ret = subscripts
+        target = len(self.subscriptlist[name])
+        while len(ret) < target:
+            ret.append(Subscript.Subscript(isWildcard=True))
         return ret
 
     def __str__(self):

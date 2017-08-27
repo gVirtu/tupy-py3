@@ -2,7 +2,7 @@ from Type import Type
 
 class Instance(object):
     __slots__ = [
-        'value', 'type', 'heldtype', 'size', 'collection_size', 'callable', 'dynamic'
+        'value', 'type', 'heldtype', 'size', 'collection_size', 'callable'
     ]
 
     # TODO: Scope?
@@ -39,7 +39,7 @@ class Instance(object):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "{0}".format(self.value)
+        return "I<{1}> {0}".format(self.value, hex(id(self)))
 
     def array_get(self, pos):
         try:

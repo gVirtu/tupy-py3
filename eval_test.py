@@ -381,6 +381,11 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a[2,2] <- [[[2,2],[2,2]],[[2,2],[2,2]]]; a\n")
 
     def test_array_get(self):
+        ret = Interpreter.interpret("inteiro a[5] <- [1,2,3,4,5]; a[-1], a[-4..-1]\n")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 5)
+        self.assertEqual(ret[1].type, Type.ARRAY)
+        self.assertArrayEquals(ret[1], Type.INT, [2,3,4,5])
         ret = Interpreter.interpret("inteiro a[3,3] <- [[1,2,3], [4,5,6], [7,8,9]]; a[1..2, 1..2]\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [[5,6], [8,9]]
@@ -391,7 +396,6 @@ class TestEvalVisitor(unittest.TestCase):
                                   "[[21,22,23], [24,25,26], [27,28,29]]];"
                                   "a[1..2, *, 0]\n"))
         self.assertEqual(ret.type, Type.ARRAY)
-        print(ret)
         targetArray = [[11, 14, 17], [21, 24, 27]]
         self.assertArrayEquals(ret, Type.INT, targetArray)
 
@@ -399,22 +403,47 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("inteiro a[5]; a <- [1]; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [1,0,0,0,0]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
         ret = Interpreter.interpret("inteiro a[3,3]; a <- [[1,1], [1, 1]]; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [[1,1,0],[1,1,0],[0,0,0]]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
         ret = Interpreter.interpret("inteiro a[5]; a[2] <- 1; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [0,0,1,0,0]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
         ret = Interpreter.interpret("inteiro a[5]; a[1..3] <- [2, 2, 2]; a[2] <- 1; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [0,2,1,2,0]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
         ret = Interpreter.interpret("inteiro a[5]; a[*] <- [1, 2, 3, 4]; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [1,2,3,4,0]
+        self.assertArrayEquals(ret, Type.INT, targetArray)
         ret = Interpreter.interpret("inteiro a[5]; a[*] <- 4; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
-        targetArray = [4,4,4,4,4]
-    
+        self.assertArrayEquals(ret, Type.INT, [4,4,4,4,4])
+        ret = Interpreter.interpret("inteiro a[2,2,2]; a[*,*,*] <- 1; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [[[1,1], [1,1]], [[1,1], [1,1]]])
+        ret = Interpreter.interpret("inteiro a[2,2,2]; a[*,1,*] <- 1; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [[[0,0], [1,1]],
+                                               [[0,0], [1,1]]])
+        ret = Interpreter.interpret("inteiro a[3], b[4] <- nulo, [1, 2, 3]; a <- b[-3..-2]; a, b\n")
+        self.assertEqual(ret[0].type, Type.ARRAY)
+        self.assertArrayEquals(ret[0], Type.INT, [2,3,0])
+        self.assertEqual(ret[1].type, Type.ARRAY)
+        self.assertArrayEquals(ret[1], Type.INT, [1,2,3,0])
+
+    def test_dynamic_arrays(self):
+        ret = Interpreter.interpret("inteiro a[*]; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [])
+        #ret = Interpreter.interpret("inteiro a[*]; a[2] <- 5; a\n")
+        # self.assertEqual(ret.type, Type.ARRAY)
+        # self.assertArrayEquals(ret, Type.INT, [0,0,5])
+        #TODO: Fix dynamic arrays
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")
