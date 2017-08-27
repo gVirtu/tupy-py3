@@ -440,10 +440,17 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("inteiro a[*]; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         self.assertArrayEquals(ret, Type.INT, [])
-        #ret = Interpreter.interpret("inteiro a[*]; a[2] <- 5; a\n")
-        # self.assertEqual(ret.type, Type.ARRAY)
-        # self.assertArrayEquals(ret, Type.INT, [0,0,5])
-        #TODO: Fix dynamic arrays
+        ret = Interpreter.interpret("inteiro a[*]; inteiro b[2], c[2] <- [1,2], [3,4]; a[*] <- b + c; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [1,2,3,4])
+        ret = Interpreter.interpret("inteiro a[*]; a <- a + [0]; a <- a + [0]; a <- a + [5]; a, |a|\n")
+        self.assertEqual(ret[0].type, Type.ARRAY)
+        self.assertArrayEquals(ret[0], Type.INT, [0,0,5])
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 3)
+        ret = Interpreter.interpret("inteiro a[*,*]; a <- a + [[]]; a <- a + [[]]; a[0] <- [1, 2, 3]; a\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [[1, 2, 3], []])
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")

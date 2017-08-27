@@ -49,7 +49,10 @@ class SymbolTable(object):
             targetSubscript = subscriptList[0]
 
             if targetSubscript.isWildcard:
-                targetSize = sizeList[0].begin
+                if sizeList[0].isWildcard:
+                    targetSize = instance.array_length() if instance.is_pure_array() else 1
+                else:
+                    targetSize = sizeList[0].begin
             elif targetSubscript.isSingle:
                 targetSize = 1
             else:
@@ -73,12 +76,15 @@ class SymbolTable(object):
                                                                                                     childSubscripts,
                                                                                                     heldType=rootType)))
 
-                    for child in instance.value:
-                        valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
-                        if valid:
-                            pass
-                        else:
-                            break
+                    if targetSubscript.isSingle:
+                        valid = self.validateSizes(childSubscripts, instance, rootType, childSizes)
+                    else:
+                        for child in instance.value:
+                            valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
+                            if valid:
+                                pass
+                            else:
+                                break
 
                 return valid
             else:
@@ -116,16 +122,6 @@ class SymbolTable(object):
         else:
             return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
-    def defaultPadding(self, datatype):
-        if datatype == Type.Type.STRING:
-            return Variable.Literal(Instance.Instance(datatype, ""))
-        elif datatype == Type.Type.BOOL:
-            return Variable.Literal(Instance.Instance(datatype, False))
-        elif datatype == Type.Type.ARRAY: 
-            return Variable.Literal(Instance.Instance(datatype, []))
-        else:
-            return Variable.Literal(Instance.Instance(datatype, 0))
-
     def updateData(self, name, instance, trailers):
         # This is a call to assign some INSTANCE to some NAME
         # with a list of trailers. e.g.: A[5,5] <- 10
@@ -146,7 +142,7 @@ class SymbolTable(object):
         # where the child data is contained.
         current_data, parent_pair = Variable.Variable.retrieveWithTrailers(current_data, trailers)
         target_data, target_subscript = parent_pair
-        
+
         is_subscripted = isinstance(target_subscript, Subscript.Subscript)
 
         # Copy only the very last trailer if it is a subscript list
@@ -169,11 +165,12 @@ class SymbolTable(object):
                 if target_subscript.isSingle:
                     target_data.value[target_subscript.begin] = Variable.Literal(instance)
                 elif target_subscript.isWildcard:
-                    self.deepMerge(target_data.value[:], instance.value)
+                    target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
                     #target_data.value[:] = instance.value
                 else:
                     print("For the record, instance is {0}".format(instance))
-                    self.deepMerge(target_data.value[target_subscript.begin:target_subscript.end], instance.value)
+                    target_data.value[target_subscript.begin:target_subscript.end] = \
+                        self.deepMerge(target_data.value[target_subscript.begin:target_subscript.end], instance.value)
                     #target_data.value[target_subscript.begin:target_subscript.end] = instance.value
             else:
                 self.data[(name, depth)] = instance
@@ -189,13 +186,17 @@ class SymbolTable(object):
                 self.deepMerge(child.value, newchild.value)
             else:
                 target_value[ind].inst = source_value[ind].inst
+        for ind in range(len(target_value), len(source_value)):
+            print("NEW ELEMENT {0}".format(source_value[ind]))
+            target_value.append(source_value[ind])
+        return target_value
 
     def fillOmittedSizes(self, name, subscripts):
         ret = subscripts
         target = len(self.subscriptlist[name])
         while len(ret) < target:
             ret.append(Subscript.Subscript(isWildcard=True))
-        return ret
+        return ret        
 
     def __str__(self):
         return str(self.data)

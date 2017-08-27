@@ -27,16 +27,15 @@ class Variable(object):
         for (ttype, tid) in trailers:
             if ttype == TrailerType.SUBSCRIPT:
                 # Parse subscript list
-                level = 0
-                for ss in tid:
+                for level in range(len(tid)):
+                    ss = tid[level]
                     parent = (ret, ss)
                     if ss.isWildcard:
                         pass
                     elif ss.isSingle:
-                        ret = Instance(inst.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, level, True)) #ret = ret.array_get(ss.begin).get()
+                        ret = Instance(inst.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, level, True))
                     else:
                         ret = Instance(inst.type, cls.get_array_range(ret, ss.begin, ss.end, level))
-                    level += 1
             else:
                 pass
         return (ret, parent)
@@ -202,6 +201,11 @@ class Variable(object):
             raise TypeError("Cannot operate on instance of type NULL!")
         elif (a == Type.RANGE or b == Type.RANGE):
             raise TypeError("Cannot operate on instance of type RANGE!")
+        elif (a == Type.ARRAY or b == Type.ARRAY):
+            if (a == Type.ARRAY and b == Type.ARRAY):
+                return Type.ARRAY
+            else:
+                raise TypeError("ARRAY cannot operate with other types!")
         else:
             if (a == Type.STRING or b == Type.STRING):
                 return Type.STRING

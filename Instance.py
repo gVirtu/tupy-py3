@@ -39,7 +39,7 @@ class Instance(object):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "I<{1}> {0}".format(self.value, hex(id(self)))
+        return "I<{1}> {0}".format(self.value, self.type)
 
     def array_get(self, pos):
         try:
