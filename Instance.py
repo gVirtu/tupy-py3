@@ -25,6 +25,7 @@ class Instance(object):
                 raise TypeError()
 
         if self.type == Type.STRING:
+            self.heldtype = Type.CHAR
             self.size = len(self.value)
         elif self.type == Type.ARRAY or self.type == Type.TUPLE:
             self.size = sum([element.get().collection_size for element in self.value])
@@ -39,7 +40,7 @@ class Instance(object):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "I<{1}> {0}".format(self.value, self.type)
+        return "I{0}".format(self.value)
 
     def array_get(self, pos):
         try:

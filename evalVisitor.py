@@ -595,4 +595,11 @@ class evalVisitor(ParseTreeVisitor):
                     raise SyntaxError("Invalid declaration!")
             else:
                 subscriptList = []
+
+            if any((not x.isSingle and not x.isWildcard) for x in subscriptList):
+                raise SyntaxError("Declaration subscripts cannot be ranges!")
+
+            if any((x.begin < 1 and not x.isWildcard) for x in subscriptList):
+                raise SyntaxError("Declaration subscripts must be greater than zero!")
+
             ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList)

@@ -23,19 +23,22 @@ class Variable(object):
         # e.g.: A[5, 1..2] <- [10, 20]
         # We retrieveWithTrailers(A) but we want to change A[5] specifically
         # so we don't go down all the way to A[5, 1..2]
-        parent = (inst, None) 
+        parent = (inst, None, 0) 
         for (ttype, tid) in trailers:
             if ttype == TrailerType.SUBSCRIPT:
                 # Parse subscript list
+                depth = 0
                 for level in range(len(tid)):
                     ss = tid[level]
-                    parent = (ret, ss)
+                    parent = (ret, ss, depth)
                     if ss.isWildcard:
+                        depth += 1
                         pass
                     elif ss.isSingle:
-                        ret = Instance(inst.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, level, True))
+                        ret = Instance(ret.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, depth, True))
                     else:
-                        ret = Instance(inst.type, cls.get_array_range(ret, ss.begin, ss.end, level))
+                        ret = Instance(ret.type, cls.get_array_range(ret, ss.begin, ss.end, depth))
+                        depth += 1
             else:
                 pass
         return (ret, parent)
@@ -49,7 +52,10 @@ class Variable(object):
                     raise TypeError("{0} cannot be subscripted.".format(inst.type))
                 print("...returned {0}".format(inst.value[begin:end]))
                 if (single):
-                    return inst.value[begin].get().value
+                    if inst.type == Type.STRING:
+                        return ord(inst.value[begin])
+                    else:
+                        return inst.value[begin].get().value
                 else:
                     return inst.value[begin:end]
             except TypeError:
