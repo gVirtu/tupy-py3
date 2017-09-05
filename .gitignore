@@ -99,3 +99,5 @@ ENV/
 .mypy_cache/
 .antlr
 __pycache__
+
+profile
