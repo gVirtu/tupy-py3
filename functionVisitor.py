@@ -1,13 +1,22 @@
 # Generated from lang.g4 by ANTLR 4.7
 from antlr4 import *
+from Type import TrailerType, Type
 if __name__ is not None and "." in __name__:
     from .langParser import langParser
 else:
     from langParser import langParser
 
+import Interpreter as ii
+import Argument
+import evalVisitor
+
 # This class defines a complete generic visitor for a parse tree produced by langParser.
 
-class langVisitor(ParseTreeVisitor):
+class functionVisitor(ParseTreeVisitor):
+
+    def __init__(self, parser):
+        self.parser = parser
+        self.evalV = ii.Interpreter.visitor
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
@@ -16,27 +25,56 @@ class langVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
-        return self.visitChildren(ctx)
+        function_name = str(ctx.NAME().getText())
+        codeTree = ctx.block()
+        return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
+        if return_type == Type.NULL:
+            array_dimensions = 0
+        else:
+            array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
+        argumentList = self.visitParameters(ctx.parameters())
+        ii.Interpreter.defineFunction(function_name, return_type, argumentList, codeTree)
+        return True
 
 
     # Visit a parse tree produced by langParser#parameters.
     def visitParameters(self, ctx:langParser.ParametersContext):
-        return self.visitChildren(ctx)
+        ret = [] if ctx.typedArgsList() is None \
+                 else self.visitTypedArgsList(ctx.typedArgsList())
+        return ret
 
 
     # Visit a parse tree produced by langParser#typedArgsList.
     def visitTypedArgsList(self, ctx:langParser.TypedArgsListContext):
-        return self.visitChildren(ctx)
+        ret = []
+        op = self.parser.COMMA
+        for c in iter(ctx.getChildren()):
+            if isinstance(c, TerminalNode): 
+                op = c.getSymbol().type
+            else:
+                if op == self.parser.COMMA:
+                    element = self.visitTypedFunctionParam(c)
+                    ret.append(element)
+                elif op == self.parser.ASSIGN:
+                    ret[-1].defaultValue = self.evalV.visitExpression(c)
+        return ret
 
 
     # Visit a parse tree produced by langParser#typedFunctionParam.
     def visitTypedFunctionParam(self, ctx:langParser.TypedFunctionParamContext):
-        return self.visitChildren(ctx)
+        param_name = str(ctx.NAME().getText())
+        datatype = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
+        array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
+        if ctx.paramPassage() is not None: 
+            passByRef = self.visitParamPassage(ctx.paramPassage())
+        else:
+            passByRef = False
+        return Argument.Argument(param_name, datatype, array_dimensions, passByRef)
 
 
     # Visit a parse tree produced by langParser#paramPassage.
     def visitParamPassage(self, ctx:langParser.ParamPassageContext):
-        return self.visitChildren(ctx)
+        return True if ctx.REF() is not None else False
 
 
     # Visit a parse tree produced by langParser#importStatement.
@@ -293,6 +331,16 @@ class langVisitor(ParseTreeVisitor):
     def visitInteger(self, ctx:langParser.IntegerContext):
         return self.visitChildren(ctx)
 
+    def mapLexType(self, lextype):
+        return {
+            self.parser.INTEGER: Type.INT,
+            self.parser.REAL: Type.FLOAT,
+            self.parser.CHAR: Type.CHAR,
+            self.parser.STRING: Type.STRING,
+            self.parser.BOOLEAN: Type.BOOL,
+            self.parser.NAME: Type.REFERENCE
+        }.get(lextype, Type.NULL)
 
-
-del langParser
+    def getArrayLength(self, bracketList):
+        return 0 if bracketList is None \
+                 else len(bracketList)

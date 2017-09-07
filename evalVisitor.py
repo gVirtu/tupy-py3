@@ -27,15 +27,11 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
-        for s in ctx.statement():
-            res = self.visitStatement(s)
+        res = self.executeStatements(ctx.statement())
         print("ALL DONE!")
         print("CallStack top is {0}".format(str(ii.Interpreter.callStack.top())))
-        print("Returnin {0}".format(res[0]))
-        if (len(res)>1):
-            return tuple((c.get()) for c in res)
-        else:
-            return res[0].get()
+        print("Returnin {0}".format(res))
+        return res
 
     # Visit a parse tree produced by langParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
@@ -173,17 +169,24 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#breakStatement.
     def visitBreakStatement(self, ctx:langParser.BreakStatementContext):
-        return self.visitChildren(ctx)
+        ii.Interpreter.doBreak()
+        return None
 
 
     # Visit a parse tree produced by langParser#continueStatement.
     def visitContinueStatement(self, ctx:langParser.ContinueStatementContext):
-        return self.visitChildren(ctx)
+        ii.Interpreter.doContinue()
+        return None
 
 
     # Visit a parse tree produced by langParser#returnStatement.
     def visitReturnStatement(self, ctx:langParser.ReturnStatementContext):
-        return self.visitChildren(ctx)
+        try:
+            expr = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+        except Exception:
+            expr = None
+        finally: 
+            ii.Interpreter.doReturn(expr)
 
 
     # Visit a parse tree produced by langParser#nameList.
@@ -225,9 +228,17 @@ class evalVisitor(ParseTreeVisitor):
 
 
     # Visit a parse tree produced by langParser#block.
-    def visitBlock(self, ctx:langParser.BlockContext):
+    def visitBlock(self, ctx:langParser.BlockContext, injectList=[]):
         ii.Interpreter.pushFrame()
-        ret = self.visitChildren(ctx)
+        for (name, datatype, inst) in injectList:
+            # a series of:
+            #ii.Interpreter.declareSymbol(????? figure this out)
+            #ii.Interpreter.storeSymbol(name, inst, [])
+        if ctx.simpleStatement() is not None:
+            ret = self.visitSimpleStatement(ctx.simpleStatement())
+        else:
+            ret = self.executeStatements(ctx.statement())
+        #ret = self.visitChildren(ctx)
         ii.Interpreter.popFrame()
         return ret
 
@@ -487,7 +498,9 @@ class evalVisitor(ParseTreeVisitor):
     def visitTrailer(self, ctx:langParser.TrailerContext):
         if ctx.OPEN_PAREN() is not None:
             trailerType = TrailerType.CALL
-            trailerId = None #TODO
+            trailerId = []
+            if ctx.argList() is not None:
+                trailerId = self.visitArgList(ctx.argList())
         elif ctx.OPEN_BRACK() is not None:
             trailerType = TrailerType.SUBSCRIPT
             trailerId = self.visitSubscriptList(ctx.subscriptList())
@@ -531,12 +544,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#argList.
     def visitArgList(self, ctx:langParser.ArgListContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#argument.
-    def visitArgument(self, ctx:langParser.ArgumentContext):
-        return self.visitChildren(ctx)
+        return [self.visitTest(tt) for tt in ctx.test()]
 
 
     # Visit a parse tree produced by langParser#string.
@@ -603,3 +611,21 @@ class evalVisitor(ParseTreeVisitor):
                 raise SyntaxError("Declaration subscripts must be greater than zero!")
 
             ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList)
+
+    def executeStatements(self, statementList):
+        ret = None
+        for s in statementList:
+            ret = self.visitStatement(s)
+            flow = ii.Interpreter.flow
+            ii.Interpreter.doStep()
+            if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
+                #TODO: handle CONTINUE with ii.Interpreter.lastEvent
+                break 
+            elif flow == ii.FlowEvent.RETURN:
+                ret = ii.Interpreter.returnData
+                break
+        #TODO: Double check whether this is intended
+        if (len(ret)>1):
+            return tuple((c.get()) for c in ret)
+        else:
+            return ret[0].get()

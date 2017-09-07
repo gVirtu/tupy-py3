@@ -39,6 +39,11 @@ class Variable(object):
                     else:
                         ret = Instance(ret.type, cls.get_array_range(ret, ss.begin, ss.end, depth))
                         depth += 1
+            elif ttype == TrailerType.CALL:
+                try:
+                    ret = ii.Interpreter.executeBlock(ret.value, tid)
+                except Exception:
+                    raise TypeError(ret.type + " is not callable")
             else:
                 pass
         return (ret, parent)
@@ -259,6 +264,7 @@ class Literal(Variable):
             raise
 
     def get(self):
+        # retrieveWithTrailers returns a tuple of (instance, parent)
         return Variable.retrieveWithTrailers(self.inst, self.trailers)[0]
 
 class Symbol(Variable):

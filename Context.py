@@ -4,6 +4,7 @@ class Context(object):
     def __init__(self, depth):
         self.depth = depth;
         self.locals = SymbolTable(self)
+        self.functions = []
 
     def setDepth(self, depth):
         self.depth = depth;

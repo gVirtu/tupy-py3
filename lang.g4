@@ -109,7 +109,7 @@ r
 /* DEFINIÇÃO DE FUNÇÃO */
 /// functionDefinition: NAME parameters ':' block
 functionDefinition
- : dataType? NAME parameters COLON block
+ : (dataType (OPEN_BRACK CLOSE_BRACK)*)? NAME parameters COLON block
  ;
 
 /* LISTA DE PARÂMETROS */
@@ -129,7 +129,7 @@ typedArgsList
 
 /// typedFunctionParam: NAME [':' test]
 typedFunctionParam
- : (paramPassage)? dataType NAME
+ : (paramPassage)? dataType (OPEN_BRACK CLOSE_BRACK)* NAME
  ;
 
 /* PASSAGEM DE PARÂMETRO */
@@ -426,15 +426,7 @@ classDefinition
 ///                          |'*' test (',' argument)* [',' '**' test]
 ///                          |'**' test)
 argList
- : ( argument COMMA )* argument
- ;
-
-/// # The reason that keywords are test nodes instead of NAME is that using NAME
-/// # results in an ambiguity. ast.c makes sure it's a NAME.
-/// argument: test [comp_for] | test '=' test  # Really [keyword '='] test
-argument
- : test
- | test ASSIGN test
+ : ( test COMMA )* test
  ;
 
 string

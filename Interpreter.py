@@ -4,12 +4,23 @@ from antlr4 import *
 from langLexer import langLexer
 from langParser import langParser
 from evalVisitor import evalVisitor
+from functionVisitor import functionVisitor
 from CallStack import CallStack
 from Context import Context
+from enum import Enum
+
+class FlowEvent(Enum):
+    STEP = 0
+    BREAK = 1
+    CONTINUE = 2
+    RETURN = 3
 
 class Interpreter(object):
     visitor = evalVisitor()
     callStack = CallStack()
+    flow = FlowEvent.STEP
+    lastEvent = FlowEvent.STEP
+    returnData = None
 
     @classmethod
     def interpret(cls, input, rule="r"):
@@ -21,11 +32,19 @@ class Interpreter(object):
         tree = treenode()
         cls.visitor = evalVisitor()
         cls.visitor.setParser(parser)
-        #print(tree.toStringTree())
+        funcscanner = functionVisitor(parser)
         print("Using rule " + rule)
+        funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
+        funcvisit(tree)
+        #print(tree.toStringTree())
         visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
         #print(visit)
         return visit(tree)
+
+    @classmethod
+    def executeBlock(cls, function, callArgs):
+        codeblock = function.get_code(callArgs)
+        return cls.visitor.visitBlock(codeblock)
 
     @classmethod
     def loadSymbol(cls, name):
@@ -45,9 +64,33 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList)
 
     @classmethod
+    def defineFunction(cls, name, returntype, argumentList, codeTree):
+        print("Declaring function "+name+" that returns "+str(returntype)+" with arguments "+str(argumentList))
+        return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree)
+
+    @classmethod
+    def registerCodeTree(cls, codeTree):
+        funcIndex = len(cls.callStack.top().functions)
+        cls.callStack.top().functions.append(codeTree)
+        return funcIndex
+
+    @classmethod
+    def retrieveCodeTree(cls, functionIndex):
+        return cls.callStack.top().functions[functionIndex]
+
+    @classmethod
     def pushFrame(cls):
-        newContext = copy.deepcopy(cls.callStack.top())
-        newContext.setDepth(cls.callStack.size())
+        print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
+        newContext = Context(cls.callStack.size())
+        #import pdb; pdb.set_trace()
+        # hack: Deepcopy would leak to the Context reference
+        cls.callStack.top().locals.context = None 
+        newContext.locals = copy.deepcopy(cls.callStack.top().locals)
+        cls.callStack.top().locals.context = cls.callStack.top()
+
+        newContext.locals.context = newContext
+        # Code trees don't need deep copying
+        newContext.functions = copy.copy(cls.callStack.top().functions)
         cls.callStack.push(newContext)
 
     @classmethod
@@ -58,6 +101,28 @@ class Interpreter(object):
         cls.callStack.top().locals.merge(prev.locals)
         print("Top after:\n{0}".format(str(cls.callStack.top())))
         return prev
+
+    @classmethod
+    def doStep(cls):
+        cls.lastEvent = cls.flow
+        cls.flow = FlowEvent.STEP
+
+    @classmethod
+    def doBreak(cls):
+        cls.lastEvent = cls.flow
+        cls.flow = FlowEvent.BREAK
+
+    @classmethod
+    def doContinue(cls):
+        cls.lastEvent = cls.flow
+        cls.flow = FlowEvent.CONTINUE
+
+    @classmethod
+    def doReturn(cls, data):
+        cls.lastEvent = cls.flow
+        cls.flow = FlowEvent.RETURN
+        cls.returnData = data #testOrExpressionList (tuple of Literal)
+
 
 def main(argv):
     if len(argv)>1:

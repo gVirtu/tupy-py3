@@ -517,6 +517,28 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
+
+    def test_return(self):
+        ret = Interpreter.interpret(("inteiro a <- 5\n"
+                                     "retornar a\n"
+                                     "a <- 6\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
+
+    def test_function(self):
+        ret = Interpreter.interpret(("inteiro func():\n"
+                                     "    retornar 5\n"
+                                     "func()\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
+        ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b):\n"
+                                     "    retornar a+b\n"
+                                     "func(1,4)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
         
 if __name__ == '__main__':
     unittest.main()

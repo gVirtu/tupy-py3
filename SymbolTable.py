@@ -1,5 +1,6 @@
 import Instance
 import Variable
+import Function
 import Type
 import Subscript
 import copy
@@ -22,6 +23,22 @@ class SymbolTable(object):
         else:
             data = Variable.Variable.makeDefaultValue(datatype)
         self.data[(name, depth)] = data
+
+    def defineFunction(self, name, returnType, argumentList, code):
+        self.datatype[name] = Type.Type.FUNCTION
+        self.subscriptlist[name] = None
+        depth = self.context.depth
+        self.declaredDepth[name] = depth
+        try:
+            entry = self.data[(name, depth)].value
+        except Exception:
+            entry = Function.Function(name)
+            self.data[(name, depth)] = Instance.Instance(Type.Type.FUNCTION, entry)
+        finally:
+            if entry.is_ambiguous(argumentList):
+                raise NameError("Overloaded function {0} is ambiguous!".format(name))
+            else:
+                entry.put(argumentList, returnType, code)
 
     def put(self, name, instance, trailerList):
         if self.hasKey(name):
@@ -87,7 +104,7 @@ class SymbolTable(object):
                 if targetSubscript.isSingle:
                     valid = self.validateSizes(childSubscripts, instance, rootType, childSizes)
                 else:
-                    new_value = [Variable.Literal(Variable.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                    new_value = [Variable.Literal(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
                     instance.__init__(Type.Type.ARRAY, new_value)
                     for child in instance.value:
                         valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
