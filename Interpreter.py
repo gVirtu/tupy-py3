@@ -91,9 +91,9 @@ class Interpreter(object):
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
-    def pushFrame(cls):
+    def pushFrame(cls, returnable=False):
         print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
-        newContext = Context(cls.callStack.size())
+        newContext = Context(cls.callStack.size(), returnable)
         #import pdb; pdb.set_trace()
         # hack: Deepcopy would leak to the Context reference
         cls.callStack.top().locals.context = None 
@@ -109,9 +109,9 @@ class Interpreter(object):
     def popFrame(cls):
         prev = cls.callStack.pop()
         print("Dropped context:\n{0}".format(str(prev)))
-        print("Top before:\n{0}".format(str(cls.callStack.top())))
+        print("Top before merge:\n{0}".format(str(cls.callStack.top())))
         cls.callStack.top().locals.merge(prev.locals)
-        print("Top after:\n{0}".format(str(cls.callStack.top())))
+        print("Top after merge:\n{0}".format(str(cls.callStack.top())))
         return prev
 
     @classmethod
@@ -129,11 +129,16 @@ class Interpreter(object):
         cls.lastEvent = cls.flow
         cls.flow = FlowEvent.CONTINUE
 
+    # Is true for function contexts and the global context only
+    @classmethod
+    def canReturn(cls):
+        return cls.callStack.top().returnable
+
     @classmethod
     def doReturn(cls, data):
         cls.lastEvent = cls.flow
         cls.flow = FlowEvent.RETURN
-        cls.returnData = data #testOrExpressionList (tuple of Literal)
+        cls.returnData = data #testOrExpressionList (tuple of Instance)
 
 
 def main(argv):

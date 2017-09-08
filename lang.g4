@@ -431,7 +431,6 @@ argList
 
 string
  : STRING_LITERAL
- | BYTES_LITERAL
  ;
 
 character
@@ -567,12 +566,6 @@ STRING_LITERAL
 
 CHAR_LITERAL
  : '\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n"] ) '\''    {self.text = self.text[1:-1]}
- ;
-
-/// bytesliteral   ::=  bytesprefix(shortbytes | longbytes)
-/// bytesprefix    ::=  "b" | "B" | "br" | "Br" | "bR" | "BR"
-BYTES_LITERAL
- : [bB] [rR]? ( SHORT_BYTES | LONG_BYTES )
  ;
 
 /// decimalinteger ::=  nonzerodigit digit* | "0"+

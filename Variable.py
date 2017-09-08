@@ -4,18 +4,6 @@ import Interpreter as ii
 import copy
 
 class Variable(object):
-    def __init__(self):
-        self.trailers = []
-
-    def call(self, params):
-        pass
-
-    def subscript(self, subscript):
-        pass
-
-    def get(self):
-        pass
-
     @classmethod
     def retrieveWithTrailers(cls, inst, trailers):
         ret = inst
@@ -52,19 +40,16 @@ class Variable(object):
     def get_array_range(cls, inst, begin, end, level, single=False):
         print("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
         if level == 0:
-            try:
-                if not inst.is_subscriptable_array():
-                    raise TypeError("{0} cannot be subscripted.".format(inst.type))
-                print("...returned {0}".format(inst.value[begin:end]))
-                if (single):
-                    if inst.type == Type.STRING:
-                        return ord(inst.value[begin])
-                    else:
-                        return inst.value[begin].get().value
+            if not inst.is_subscriptable_array():
+                raise TypeError("{0} cannot be subscripted.".format(inst.type))
+            print("...returned {0}".format(inst.value[begin:end]))
+            if (single):
+                if inst.type == Type.STRING:
+                    return ord(inst.value[begin])
                 else:
-                    return inst.value[begin:end]
-            except TypeError:
-                raise
+                    return inst.value[begin].get().value
+            else:
+                return inst.value[begin:end]
         else:
             ret = []
             print("Welp, first gotta check {0}".format(inst.value))
@@ -210,8 +195,8 @@ class Variable(object):
             raise TypeError("Cannot operate on instance of type REFERENCE!")
         elif (a == Type.NULL or b == Type.NULL):
             raise TypeError("Cannot operate on instance of type NULL!")
-        elif (a == Type.RANGE or b == Type.RANGE):
-            raise TypeError("Cannot operate on instance of type RANGE!")
+        # elif (a == Type.RANGE or b == Type.RANGE):
+            # raise TypeError("Cannot operate on instance of type RANGE!")
         elif (a == Type.ARRAY or b == Type.ARRAY):
             if (a == Type.ARRAY and b == Type.ARRAY):
                 return Type.ARRAY
@@ -225,9 +210,9 @@ class Variable(object):
             elif (a == Type.INT or b == Type.INT):
                 return Type.INT
             elif (a == Type.CHAR or b == Type.CHAR):
-                return Type.CHAR
+                return Type.INT
             elif (a == Type.BOOL or b == Type.BOOL):
-                return Type.BOOL
+                return Type.INT
 
     def stringConcat(self, lhs, rhs):
         if (lhs.type == Type.CHAR): a = chr(lhs.value)
@@ -254,15 +239,6 @@ class Literal(Variable):
     def __repr__(self):
         return "L{0}".format(str(self.inst))
 
-    def call(self, params):
-        raise TypeError("Literal object is not callable")
-
-    def subscript(self, subscript):
-        try:
-            return self.inst.array_get(subscript)
-        except TypeError:
-            raise
-
     def get(self):
         # retrieveWithTrailers returns a tuple of (instance, parent)
         return Variable.retrieveWithTrailers(self.inst, self.trailers)[0]
@@ -278,19 +254,6 @@ class Symbol(Variable):
 
     def __str__(self):
         return "SYMBOL<{0}>".format(str(self.name))
-
-    #TODO
-    def call(self, params):
-        if (self.get().callable):
-            return 0 #AST here?
-        else:
-            raise TypeError(self.name + " is not callable")
-
-    def subscript(self, subscript):
-        try:
-            return self.inst.array_get(subscript)
-        except TypeError:
-            raise
 
     def get(self):
         return Variable.retrieveWithTrailers(ii.Interpreter.loadSymbol(self.name), self.trailers)[0]

@@ -108,10 +108,6 @@ class SymbolTable(object):
                     instance.__init__(Type.Type.ARRAY, new_value)
                     for child in instance.value:
                         valid = self.validateSizes(childSubscripts, child.get(), rootType, childSizes)
-                        if valid:
-                            pass
-                        else:
-                            break
                 
                 return valid;
         else:
@@ -196,6 +192,8 @@ class SymbolTable(object):
             print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
                 self.updateChildren(target_data, target_subscript, target_depth, instance)
+                print("hellooooo")
+                self.data[(name, depth)].update_size(deep=True)
             else:
                 self.data[(name, depth)] = instance
             return True
@@ -242,4 +240,10 @@ class SymbolTable(object):
         return ret        
 
     def __str__(self):
-        return str(self.data)
+        ret = ""
+        for key in self.data:
+            ret += str(key)
+            ret += " -> "
+            ret += str(self.data[key])
+            ret += "\n"
+        return ret

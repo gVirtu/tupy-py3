@@ -140,6 +140,9 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("2+-1\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 1)
+        ret = self.evalExpression("+-10\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, -10)
         ret = self.evalExpression("2+7.5\n")
         self.assertEqual(ret.type, Type.FLOAT)
         self.assertEqual(ret.value, 9.5)
@@ -161,6 +164,21 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("6*2-4\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 8)
+
+    def test_typed_arithmetic(self):
+        ret = self.evalExpression("verdadeiro + falso\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1)
+        ret = self.evalExpression("\'9\' - \'0\'\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 9)
+        self.assertRaises(TypeError, self.evalExpression, "5 - [4]\n")
+        
+
+    def test_arithmetic_parenthesis(self):
+        ret = self.evalExpression("((1-2)*(3+4)-7)/-((2^3)-(10^(128 && 32)))\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 2)
     
     def test_shift_expr(self):
         ret = self.evalExpression("1<<4\n")
@@ -170,17 +188,34 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 25)
         self.assertRaises(TypeError, self.evalExpression, "1.0<<4\n")
-        self.assertRaises(TypeError, self.evalExpression, "200<<3.0\n")
+        self.assertRaises(TypeError, self.evalExpression, "200>>3.0\n")
 
     def test_bitwise_and_expr(self):
         ret = self.evalExpression("3 && 5 && 9\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 1)
+        self.assertRaises(TypeError, self.evalExpression, "3.0 && 5\n")
+        self.assertRaises(TypeError, self.evalExpression, "3 && 5.0\n")
+
+    def test_bitwise_or_expr(self):
+        ret = self.evalExpression("1 || 2 || 13 || 16\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 31)
+        self.assertRaises(TypeError, self.evalExpression, "1.0 || 2\n")
+        self.assertRaises(TypeError, self.evalExpression, "2 || 13.0\n")
 
     def test_bitwise_xor_expr(self):
         ret = self.evalExpression("4287 xor 1200\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5135)
+        self.assertRaises(TypeError, self.evalExpression, "4287 xor \"1200\"\n")
+        self.assertRaises(TypeError, self.evalExpression, "4287.0 xor 1200\n")
+
+    def test_bitwise_not_expr(self):
+        ret = self.evalExpression("~(100+73)\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, -174)
+        self.assertRaises(TypeError, self.evalExpression, "~verdadeiro\n")
 
     def test_comparison(self):
         ret = self.evalExpression("3 < 4\n")
@@ -199,6 +234,12 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
         ret = self.evalExpression("0 >= 0.1\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, False)
+        ret = self.evalExpression("\"a\" <= \"b\"\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        ret = self.evalExpression("\'a\' <= \'A\'\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
         ret = self.evalExpression("1 ~= 0\n")
@@ -289,6 +330,7 @@ class TestEvalVisitor(unittest.TestCase):
         for i in range(len(ret_1.value)):
             self.assertEqual(ret_2.value[i].get().type, ret_1.value[i].get().type)
             self.assertEqual(ret_2.value[i].get().value, ret_1.value[i].get().value)
+        self.assertRaises(TypeError, Interpreter.interpret, "2[0]\n")
 
 
     def test_declaration_defaults(self):
@@ -350,6 +392,15 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a; real b <- 3.0; a <- b; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a <- 3.01; a\n")
         self.assertRaises(TypeError, Interpreter.interpret, "inteiro a, b <- 3, 3.01; a, b\n")
+        self.assertRaises(SyntaxError, Interpreter.interpret, "2 <- b\n")
+        self.assertRaises(SyntaxError, Interpreter.interpret, "inteiro a(2) <- [1, 2]\n")
+        self.assertRaises(ValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2\n")
+        self.assertRaises(ValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2, 3, 4\n")
+
+    def test_unicode_identifier(self):
+        ret = Interpreter.interpret("inteiro ímã <- 333; ímã\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 333)
 
     def test_array_declaration(self):
         ret = Interpreter.interpret("inteiro a[5] <- [9,8,7,6,5]; a\n")
@@ -418,6 +469,7 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("cadeia S[3] <- [\"Hello\", \"World\"]; S[1,2..3]\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "rl")
+        self.assertRaises(SyntaxError, Interpreter.interpret, "inteiro a[5] <- [1,2,3,4,5]; a[2..1]\n")
 
     def test_array_assignment(self):
         ret = Interpreter.interpret("inteiro a[5]; a <- [1]; a\n")
@@ -485,6 +537,13 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("inteiro a[2,*]; a[0] <- a[0] + [1, 2]; a[1] <- a[0] + [3, 4]; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         self.assertArrayEquals(ret, Type.INT, [[1, 2], [1, 2, 3, 4]])
+        ret = Interpreter.interpret(("inteiro a[*,*] <- [[1, 2, 3], [4, 5], [6]]\n"
+                                     "a[1..2] <- [[4, 5, 6], [7, 8, 9, 0]]\n"
+                                     "a, |a|\n"))
+        self.assertEqual(ret[0].type, Type.ARRAY)
+        self.assertArrayEquals(ret[0], Type.INT, [[1, 2, 3], [4, 5, 6], [7, 8, 9, 0]])
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 10)
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")
@@ -547,16 +606,38 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, 6)
         self.assertEqual(ret[1].type, Type.INT)
         self.assertEqual(ret[1].value, 15)
+        self.assertRaises(TypeError, Interpreter.interpret, ("inteiro func():\n"
+                                                             "\t retornar 5\n"
+                                                             "func(5)\n"
+                                                            ))
+        self.assertRaises(TypeError, Interpreter.interpret, ("inteiro func(inteiro a):\n"
+                                                             "\t retornar a\n"
+                                                             "func(\"5\")\n"
+                                                            ))
+        self.assertRaises(TypeError, Interpreter.interpret, ("inteiro func(inteiro a):\n"
+                                                             "\t retornar a\n"
+                                                             "func()\n"
+                                                            ))
 
-    def test_function_no_return(self): #wip
+    def test_function_no_return(self):
         ret = Interpreter.interpret(("inteiro a <- 1\n"
                                      "func(inteiro b):\n"
                                      "\t a <- a + b\n"
                                      "func(5)\n"
                                      "a\n"
                                     ))
-        # self.assertEqual(ret.type, Type.INT)
-        # self.assertEqual(ret.value, 6)
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 6)
+        ret = Interpreter.interpret(("inteiro a <- 1\n"
+                                     "func(inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "\t retornar\n"
+                                     "\t a <- 0\n"
+                                     "func(10)\n"
+                                     "a\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 11)
 
     def test_function_overload(self):
         ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b):\n"
@@ -569,6 +650,20 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, 5)
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, "aaaaa")
+        self.assertRaises(NameError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a, inteiro b):\n"
+                          "\t retornar a+b\n"
+                          "inteiro func(inteiro a, inteiro b <- 1):\n"
+                          "\t retornar a*b\n"
+                          "func(5,2)\n"
+                         ))
+        self.assertRaises(NameError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a):\n"
+                          "\t retornar a*a\n"
+                          "inteiro func(inteiro a, inteiro b <- 1):\n"
+                          "\t retornar a*b\n"
+                          "func(5)\n"
+                         ))
 
     def test_function_array(self):
         ret = Interpreter.interpret(("inteiro tamanho(inteiro[] a):\n"
@@ -577,6 +672,19 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
+
+    def test_recursion(self):
+        ret = Interpreter.interpret(("inteiro fat(inteiro n):\n"
+                                     "\t se n = 1:\n"
+                                     "\t\t retornar n\n"
+                                     "\t senão:\n"
+                                     "\t\t retornar n * fat(n-1)\n"
+                                     "fat(5)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 120)
+
+        
         
 if __name__ == '__main__':
     unittest.main()

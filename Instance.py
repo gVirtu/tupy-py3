@@ -29,15 +29,8 @@ class Instance(object):
 
         if self.type == Type.STRING:
             self.heldtype = Type.CHAR
-            self.size = len(self.value)
-        elif self.type == Type.ARRAY or self.type == Type.TUPLE:
-            self.size = sum([element.get().collection_size for element in self.value])
-        elif self.type == Type.NULL:
-            self.size = 0
-        else:
-            self.size = 1
 
-        self.collection_size = 1 if self.type == Type.STRING else self.size
+        self.update_size()
 
     #def __str__(self):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
@@ -45,33 +38,37 @@ class Instance(object):
     def __repr__(self):
         return "I{0}".format(self.value)
 
-    def array_get(self, pos):
-        try:
-            if not self.is_subscriptable_array():
-                raise TypeError("{0} cannot be subscripted.".format(self.type))
-            return self.value[pos]
-        except TypeError:
-            raise
+    def update_size(self, deep=False):
+        if self.type == Type.STRING:
+            self.size = len(self.value)
+        elif self.type == Type.ARRAY or self.type == Type.TUPLE:
+            if deep:
+                self.size = sum([element.get().update_size() for element in self.value])
+            else:
+                self.size = sum([element.get().collection_size for element in self.value])
+        elif self.type == Type.NULL:
+            self.size = 0
+        else:
+            self.size = 1
 
-    def array_update(self, pos, literal):
-        try:
-            if not self.is_mutable_array():
-                raise TypeError("{0} is immutable.".format(self.type))
-            self.size -= self.value[pos].size
-            self.value[pos] = literal
-            self.size += literal.get().size
-        except TypeError:
-            raise
+        self.collection_size = 1 if self.type == Type.STRING else self.size
+        return self.collection_size
+
+    def array_get(self, pos):
+        return self.value[pos]
+
+    # UNUSED
+    # def array_update(self, pos, literal):
+        # if not self.is_mutable_array():
+            # raise TypeError("{0} is immutable.".format(self.type))
+        # self.size -= self.value[pos].size
+        # self.value[pos] = literal
+        # self.size += literal.get().size
 
     def array_append(self, literal):
-        try:
-            if not self.is_mutable_array():
-                raise TypeError("{0} cannot be appended.".format(self.type))
-            self.value += [literal]
-            self.size += literal.get().size
-            self.collection_size += 1
-        except TypeError:
-            raise
+        self.value += [literal]
+        self.size += literal.get().size
+        self.collection_size += 1
 
     def array_length(self):
         return len(self.value)
@@ -85,7 +82,8 @@ class Instance(object):
         return self.type == Type.ARRAY
 
     def is_subscriptable_array(self):
-        return self.type in [Type.ARRAY, Type.STRING, Type.RANGE, Type.TUPLE]
+        return self.type in [Type.ARRAY, Type.STRING, Type.TUPLE]
 
-    def is_mutable_array(self):
-        return self.type in [Type.ARRAY, Type.STRING]
+    # UNUSED
+    # def is_mutable_array(self):
+        # return self.type in [Type.ARRAY, Type.STRING]

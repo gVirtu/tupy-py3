@@ -131,10 +131,16 @@ class evalVisitor(ParseTreeVisitor):
                     else:
                         error(SyntaxError, "Cannot assign to literal!", ctx)
             else:
-                error(SyntaxError, "Cannot assign expression lists of different sizes!", ctx)
+                error(ValueError, "Cannot assign expression lists of different sizes!", ctx)
             rhs = lhs
             
-        return lhs
+        if isDeclaration:
+            # Bypass trailers during Instance retrieval. e.g.:
+            # inteiro A[2] <- [10, 20]
+            # Would return A instead of A[2] (which is invalid)
+            return tuple(ii.Interpreter.loadSymbol(literal.name) for literal in lhs)
+        else:
+            return tuple(literal.get() for literal in lhs)
 
 
     # Visit a parse tree produced by langParser#expressionList.
@@ -182,7 +188,7 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#returnStatement.
     def visitReturnStatement(self, ctx:langParser.ReturnStatementContext):
         try:
-            expr = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+            expr = [literal.get() for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList())]
         except Exception:
             expr = None
         finally: 
@@ -230,7 +236,8 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext, injectList=[]):
-        ii.Interpreter.pushFrame()
+        returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
+        ii.Interpreter.pushFrame(returnable=returnable)
         print("INJECT LIST IS: {0}".format(injectList))
         for (name, datatype, literal) in injectList:
             inst = literal.get()
@@ -485,7 +492,10 @@ class evalVisitor(ParseTreeVisitor):
             res = ()
             if ctx.testOrExpressionList() is not None:
                 res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
-            return Literal(Instance(Type.TUPLE, tuple(res)));
+            if len(res)==1:
+                return res[0]
+            else:
+                return Literal(Instance(Type.TUPLE, tuple(res)));
         elif ctx.OPEN_BRACK() is not None:
             res = []
             if ctx.testOrExpressionList() is not None:
@@ -622,21 +632,23 @@ class evalVisitor(ParseTreeVisitor):
             print("visiting {0}".format(s))
             ret = self.visitStatement(s)
             flow = ii.Interpreter.flow
-            ii.Interpreter.doStep()
             if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
                 #TODO: handle CONTINUE with ii.Interpreter.lastEvent
-                print("BREAKING 1")
+                print("BREAKING OR CONTINUING")
+                ii.Interpreter.doStep()
                 break 
             elif flow == ii.FlowEvent.RETURN:
-                print("BREAKING 2")
                 ret = ii.Interpreter.returnData
+                print("RETURNING {0}".format(ret))
+                if ii.Interpreter.canReturn():
+                    ii.Interpreter.doStep()
                 break
         #TODO: Double check whether this is intended
         # try:
-        if (len(ret)>1):
-            return tuple((c.get()) for c in ret)
+        if (ret is None or len(ret)>1):
+            return ret
         else:
-            return ret[0].get()
+            return ret[0]
         # except Exception as e:
             # print("Poop, returning {0}. Got {1}".format(ret,e))
             # return ret
