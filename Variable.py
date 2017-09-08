@@ -40,10 +40,10 @@ class Variable(object):
                         ret = Instance(ret.type, cls.get_array_range(ret, ss.begin, ss.end, depth))
                         depth += 1
             elif ttype == TrailerType.CALL:
-                try:
-                    ret = ii.Interpreter.executeBlock(ret.value, tid)
-                except Exception:
-                    raise TypeError(ret.type + " is not callable")
+                # try:
+                ret = ii.Interpreter.executeBlock(ret.value, tid)
+                # except Exception:
+                    # raise TypeError("{0} is not callable!".format(ret.type))
             else:
                 pass
         return (ret, parent)

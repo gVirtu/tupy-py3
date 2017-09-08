@@ -8,6 +8,8 @@ from functionVisitor import functionVisitor
 from CallStack import CallStack
 from Context import Context
 from enum import Enum
+import Variable
+import Instance
 
 class FlowEvent(Enum):
     STEP = 0
@@ -43,8 +45,18 @@ class Interpreter(object):
 
     @classmethod
     def executeBlock(cls, function, callArgs):
-        codeblock = function.get_code(callArgs)
-        return cls.visitor.visitBlock(codeblock)
+        (codeIndex, argumentList, returnType) = function.get(callArgs)
+        print("codeIndex = {0}; argList = {1}; return = {2}".format(codeIndex, argumentList, returnType))
+        codeBlock = cls.retrieveCodeTree(codeIndex)
+        argNames = [a.name for a in argumentList]
+        argTypes = [a.type for a in argumentList]
+        argValues = callArgs
+        for a in argumentList[len(callArgs):]:
+            argValues.append(a.defaultValue)
+        
+        finalArgs = list(zip(argNames, argTypes, argValues))
+        print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
+        return cls.visitor.visitBlock(codeBlock, finalArgs)
 
     @classmethod
     def loadSymbol(cls, name):

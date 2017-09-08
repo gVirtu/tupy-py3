@@ -15,5 +15,5 @@ class Argument(object):
 
     def __repr__(self):
         strr = "{0} {1} {2}".format(self.name, self.type, "[]" * self.arrayDimensions)
-        if (self.passByRef): return "ref" + strr
-        else: return "val" + strr
+        if (self.passByRef): return "ref " + strr
+        else: return "val " + strr

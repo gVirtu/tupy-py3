@@ -27,7 +27,13 @@ class functionVisitor(ParseTreeVisitor):
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
         function_name = str(ctx.NAME().getText())
         codeTree = ctx.block()
-        return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
+        return_type = Type.NULL
+        try:
+            return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
+        except Exception: 
+            # Is a function with no return
+            pass
+
         if return_type == Type.NULL:
             array_dimensions = 0
         else:

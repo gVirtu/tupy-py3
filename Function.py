@@ -18,21 +18,20 @@ class Function(object):
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
             if arg.defaultValue is not None:
-                current_level[_args_end] = (codeIndex, returnType)
+                current_level[_args_end] = (codeIndex, argumentList, returnType)
             current_level = current_level.setdefault(arg.type, {})
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, returnType)
+        current_level[_args_end] = (codeIndex, argumentList, returnType)
 
-    def get_code(self, callArgs):
+    def get(self, callArgs):
         current_level = self.argumentTree
         for literal in callArgs:
             try:
-                current_level = current_level[literal.get().type]
+                current_level = current_level[literal.get().roottype]
             except Exception:
                 raise TypeError("Unexpected argument {0}!".format(literal.get().value))
         try:
-            codeIndex = current_level[_args_end][0]
-            return ii.Interpreter.retrieveCodeTree(codeIndex)
+            return current_level[_args_end]
         except Exception:
             raise TypeError("Missing arguments for function {0}!".format(self.name))
 

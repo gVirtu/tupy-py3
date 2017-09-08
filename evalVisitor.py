@@ -35,7 +35,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
-        return self.visitChildren(ctx)
+        return None
 
 
     # Visit a parse tree produced by langParser#parameters.
@@ -187,6 +187,7 @@ class evalVisitor(ParseTreeVisitor):
             expr = None
         finally: 
             ii.Interpreter.doReturn(expr)
+        return None
 
 
     # Visit a parse tree produced by langParser#nameList.
@@ -230,10 +231,13 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext, injectList=[]):
         ii.Interpreter.pushFrame()
-        for (name, datatype, inst) in injectList:
-            # a series of:
-            #ii.Interpreter.declareSymbol(????? figure this out)
-            #ii.Interpreter.storeSymbol(name, inst, [])
+        print("INJECT LIST IS: {0}".format(injectList))
+        for (name, datatype, literal) in injectList:
+            inst = literal.get()
+            subscriptList = [Subscript(isWildcard=True)] * inst.array_dimensions
+            ii.Interpreter.declareSymbol(name, datatype, subscriptList)
+            ii.Interpreter.storeSymbol(name, inst, [])
+            
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
         else:
@@ -615,17 +619,24 @@ class evalVisitor(ParseTreeVisitor):
     def executeStatements(self, statementList):
         ret = None
         for s in statementList:
+            print("visiting {0}".format(s))
             ret = self.visitStatement(s)
             flow = ii.Interpreter.flow
             ii.Interpreter.doStep()
             if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
                 #TODO: handle CONTINUE with ii.Interpreter.lastEvent
+                print("BREAKING 1")
                 break 
             elif flow == ii.FlowEvent.RETURN:
+                print("BREAKING 2")
                 ret = ii.Interpreter.returnData
                 break
         #TODO: Double check whether this is intended
+        # try:
         if (len(ret)>1):
             return tuple((c.get()) for c in ret)
         else:
             return ret[0].get()
+        # except Exception as e:
+            # print("Poop, returning {0}. Got {1}".format(ret,e))
+            # return ret

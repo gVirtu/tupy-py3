@@ -528,14 +528,52 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_function(self):
         ret = Interpreter.interpret(("inteiro func():\n"
-                                     "    retornar 5\n"
+                                     "\t retornar 5\n"
                                      "func()\n"
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
         ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b):\n"
-                                     "    retornar a+b\n"
-                                     "func(1,4)\n"
+                                     "\t retornar a+b\n"
+                                     "func(10,-5)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
+        ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b <- 5):\n"
+                                     "\t retornar a+b\n"
+                                     "func(-4, 10), func(10)\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 6)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 15)
+
+    def test_function_no_return(self): #wip
+        ret = Interpreter.interpret(("inteiro a <- 1\n"
+                                     "func(inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "func(5)\n"
+                                     "a\n"
+                                    ))
+        # self.assertEqual(ret.type, Type.INT)
+        # self.assertEqual(ret.value, 6)
+
+    def test_function_overload(self):
+        ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b):\n"
+                                     "\t retornar a+b\n"
+                                     "cadeia func(cadeia a, inteiro b):\n"
+                                     "\t retornar a*b\n"
+                                     "func(10,-5), func(\"a\",5)\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 5)
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, "aaaaa")
+
+    def test_function_array(self):
+        ret = Interpreter.interpret(("inteiro tamanho(inteiro[] a):\n"
+                                     "\t retornar |a|\n"
+                                     "tamanho([1,3,5,7,9])\n"
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
