@@ -23,12 +23,15 @@ class Variable(object):
                         depth += 1
                         pass
                     elif ss.isSingle:
-                        ret = Instance(ret.heldtype, cls.get_array_range(ret, ss.begin, ss.begin, depth, True))
+                        (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
+                        ret = Instance(newtype, newvalue)
                     else:
-                        ret = Instance(ret.type, cls.get_array_range(ret, ss.begin, ss.end, depth))
+                        (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
+                        ret = Instance(newtype, newvalue)
                         depth += 1
             elif ttype == TrailerType.CALL:
                 # try:
+                print("tid {0}".format(tid))
                 ret = ii.Interpreter.executeBlock(ret.value, tid)
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
@@ -42,20 +45,23 @@ class Variable(object):
         if level == 0:
             if not inst.is_subscriptable_array():
                 raise TypeError("{0} cannot be subscripted.".format(inst.type))
-            print("...returned {0}".format(inst.value[begin:end]))
+            
             if (single):
                 if inst.type == Type.STRING:
-                    return ord(inst.value[begin])
+                    print("...returned {0}".format(inst.value[begin]))
+                    return (ord(inst.value[begin]), Type.CHAR)
                 else:
-                    return inst.value[begin].get().value
+                    print("...returned {0}".format(inst.value[begin].get().value))
+                    return (inst.value[begin].get().value, inst.value[begin].get().type)
             else:
-                return inst.value[begin:end]
+                print("...returned {0}".format(inst.value[begin:end]))
+                return (inst.value[begin:end], inst.type)
         else:
             ret = []
             print("Welp, first gotta check {0}".format(inst.value))
             for literal in inst.value:
                 lower_inst = literal.get()
-                lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)
+                lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)[0] #Not interested in type
                 if (single and level==1):
                     new_inst = Instance(lower_inst.heldtype, lower_level)
                 else:
@@ -63,7 +69,7 @@ class Variable(object):
                 ret.append(Literal(new_inst))
                 
             print("...returned {0}".format(ret))
-            return ret
+            return (ret, inst.heldtype)
 
     @classmethod
     def makeDefaultValue(cls, datatype, declSubscripts=[], heldType=None):
@@ -71,6 +77,8 @@ class Variable(object):
             return cls.array_init(declSubscripts, heldType)
         elif datatype == Type.STRING:
             return Instance(datatype, "")
+        elif datatype == Type.TUPLE:
+            return Instance(datatype, ())
         else:
             return Instance(datatype, 0)
 

@@ -57,6 +57,10 @@ class functionVisitor(ParseTreeVisitor):
         for c in iter(ctx.getChildren()):
             if isinstance(c, TerminalNode): 
                 op = c.getSymbol().type
+                # Variadic param
+                if op == self.parser.NAME:
+                    param_name = str(c.getText())
+                    ret.append(Argument.Argument(param_name, Type.TUPLE))
             else:
                 if op == self.parser.COMMA:
                     element = self.visitTypedFunctionParam(c)

@@ -17,7 +17,11 @@ class Function(object):
         codeIndex = ii.Interpreter.registerCodeTree(code)
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
-            if arg.defaultValue is not None:
+            if arg.defaultValue is None:
+                if arg.type == Type.TUPLE:
+                    # Variadic
+                    current_level[arg.type] = current_level
+            else:
                 current_level[_args_end] = (codeIndex, argumentList, returnType)
             current_level = current_level.setdefault(arg.type, {})
         # Entry point for the function with all arguments
@@ -29,7 +33,10 @@ class Function(object):
             try:
                 current_level = current_level[literal.get().roottype]
             except Exception:
-                raise TypeError("Unexpected argument {0}!".format(literal.get().value))
+                try:
+                    current_level = current_level[Type.TUPLE]
+                except Exception:
+                    raise TypeError("Unexpected argument {0}!".format(literal.get().value))
         try:
             return current_level[_args_end]
         except Exception:

@@ -8,6 +8,7 @@ from functionVisitor import functionVisitor
 from CallStack import CallStack
 from Context import Context
 from enum import Enum
+from Type import Type
 import Variable
 import Instance
 
@@ -50,9 +51,27 @@ class Interpreter(object):
         codeBlock = cls.retrieveCodeTree(codeIndex)
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
-        argValues = callArgs
+        argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
             argValues.append(a.defaultValue)
+
+        # Variadic handling
+        if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
+            # The last argument is just a tuple packing all the extra args
+            # The fixed arguments are all the ones before it (thus we subtract 1 from len)
+            fixedCount = len(argTypes)-1
+            if (len(callArgs) > fixedCount):
+                extraArgs = argValues[fixedCount:]
+                argValues = argValues[:fixedCount]
+                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple(extraArgs)))
+                argValues.append(packed)
+            else:
+                # This is to prevent extraArgs from having Nones which cause
+                # errors when instantiating, and come from the appending of defaultValues
+                # from the argumentList. (variadic args won't have them so None ends up
+                # being added to argValues)
+                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple()))
+                argValues[-1] = packed
         
         finalArgs = list(zip(argNames, argTypes, argValues))
         print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))

@@ -123,6 +123,8 @@ parameters
 ///              |  '*' [typedFunctionParam] (',' typedFunctionParam ['=' test])* [',' '**' typedFunctionParam] | '**' typedFunctionParam)
 typedArgsList
  : 
+  NAME VARIADIC |
+  typedFunctionParam ( COMMA typedFunctionParam )* COMMA NAME VARIADIC |
  	typedFunctionParam ( COMMA typedFunctionParam )* ( COMMA typedFunctionParam ASSIGN expression)* |
  	typedFunctionParam ASSIGN expression ( COMMA typedFunctionParam ASSIGN expression)* 			
  ;
@@ -277,8 +279,7 @@ block
 /* TESTE: E, OU, NÃO, COMPARAÇÕES DE EXPRESSÕES*/
 /// orTest: andTest ('or' andTest)*
 test
- : CARDINALITY_OP orTest CARDINALITY_OP		
- | orTest
+ : orTest
  ;
 
 orTest
@@ -384,6 +385,7 @@ power
 atom
  : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN 
  | OPEN_BRACK (testOrExpressionList)? CLOSE_BRACK
+ | CARDINALITY_OP testOrExpression CARDINALITY_OP
  | NAME 
  | number 
  | string+ 
@@ -516,6 +518,7 @@ REAL: 'real';
 CHAR: 'caracter';
 STRING: 'cadeia';
 BOOLEAN: 'lógico' | 'logico';
+VARIADIC: '...';
 
 CONSTANT: 'constante';
 

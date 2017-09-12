@@ -257,10 +257,7 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#test.
     def visitTest(self, ctx:langParser.TestContext):
         res = self.visitOrTest(ctx.orTest())
-        if ctx.CARDINALITY_OP(0) is not None:
-            return res.cardinality()
-        else:
-            return res
+        return res
 
 
     # Visit a parse tree produced by langParser#orTest.
@@ -488,6 +485,9 @@ class evalVisitor(ParseTreeVisitor):
             return Literal(Instance(Type.BOOL, False));
         elif ctx.NULL() is not None:
             return Literal(Instance(Type.NULL, 0));
+        elif len(ctx.CARDINALITY_OP()) == 2:
+            res = self.visitTestOrExpression(ctx.testOrExpression())
+            return res.cardinality()
         elif ctx.OPEN_PAREN() is not None:
             res = ()
             if ctx.testOrExpressionList() is not None:

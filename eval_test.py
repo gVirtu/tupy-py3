@@ -1,4 +1,5 @@
 import unittest
+import pytest
 from antlr4 import InputStream
 from Instance import Instance
 from Type import Type
@@ -672,6 +673,35 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
+
+    def test_function_variadic(self):
+        ret = Interpreter.interpret(("inteiro teste(args...):\n"
+                                     "\t se |args|>1:\n"
+                                     "\t\t retornar args[0] + args[1]\n"
+                                     "\t senão:\n"
+                                     "\t\t retornar 0\n"
+                                     "teste(2,2), teste(2), teste()\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 4)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 0)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 0)
+        ret = Interpreter.interpret(("inteiro teste(inteiro a, args...):\n"
+                                     "\t retornar a+|args|\n"
+                                     "teste(10,4,5,6,7)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 14)
+        ret = Interpreter.interpret(("inteiro teste(inteiro a, args...):\n"
+                                     "\t retornar a+|args|\n"
+                                     "inteiro teste(inteiro a, cadeia b):\n"
+                                     "\t retornar b*a\n"
+                                     "teste(5,\"c\")\n"
+                                    ))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ccccc")
 
     def test_recursion(self):
         ret = Interpreter.interpret(("inteiro fat(inteiro n):\n"
