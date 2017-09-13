@@ -714,7 +714,18 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 120)
 
-        
+    
+    def test_builtin_function(self):
+        ret = Interpreter.interpret("escrever(5)\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "5\n")
+        ret = Interpreter.interpret("escrever(5,\"cinco\",\'a\')\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "5 cinco a\n")
+        ret = Interpreter.interpret(("inteiro escrever(inteiro n):\n"
+                                     "\t retornar 100\n"
+                                     "escrever(5)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 100)
         
 if __name__ == '__main__':
     unittest.main()

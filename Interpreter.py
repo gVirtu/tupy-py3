@@ -9,8 +9,10 @@ from CallStack import CallStack
 from Context import Context
 from enum import Enum
 from Type import Type
+from io import StringIO
 import Variable
 import Instance
+import Builtins
 
 class FlowEvent(Enum):
     STEP = 0
@@ -24,10 +26,14 @@ class Interpreter(object):
     flow = FlowEvent.STEP
     lastEvent = FlowEvent.STEP
     returnData = None
+    outStream = StringIO()
 
     @classmethod
     def interpret(cls, input, rule="r"):
         cls.callStack = CallStack()
+        cls.outStream.close()
+        cls.outStream = StringIO()
+        Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = langParser(stream)
@@ -46,9 +52,8 @@ class Interpreter(object):
 
     @classmethod
     def executeBlock(cls, function, callArgs):
-        (codeIndex, argumentList, returnType) = function.get(callArgs)
-        print("codeIndex = {0}; argList = {1}; return = {2}".format(codeIndex, argumentList, returnType))
-        codeBlock = cls.retrieveCodeTree(codeIndex)
+        (codeIndex, argumentList, returnType, isBuiltIn) = function.get(callArgs)
+        print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}".format(codeIndex, argumentList, returnType, isBuiltIn))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
         argValues = copy.copy(callArgs)
@@ -75,7 +80,13 @@ class Interpreter(object):
         
         finalArgs = list(zip(argNames, argTypes, argValues))
         print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
-        return cls.visitor.visitBlock(codeBlock, finalArgs)
+        if (isBuiltIn):
+            print("CodeIndex is {0}".format(codeIndex))
+            builtInFunc = getattr(Builtins, codeIndex)
+            return builtInFunc(*argValues)
+        else:
+            codeBlock = cls.retrieveCodeTree(codeIndex)
+            return cls.visitor.visitBlock(codeBlock, finalArgs)
 
     @classmethod
     def loadSymbol(cls, name):
@@ -95,9 +106,9 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList)
 
     @classmethod
-    def defineFunction(cls, name, returntype, argumentList, codeTree):
+    def defineFunction(cls, name, returntype, argumentList, codeTree, builtIn=False):
         print("Declaring function "+name+" that returns "+str(returntype)+" with arguments "+str(argumentList))
-        return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree)
+        return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree, builtIn)
 
     @classmethod
     def registerCodeTree(cls, codeTree):
@@ -158,6 +169,12 @@ class Interpreter(object):
         cls.lastEvent = cls.flow
         cls.flow = FlowEvent.RETURN
         cls.returnData = data #testOrExpressionList (tuple of Instance)
+
+    @classmethod
+    def output(cls, string):
+        print(string)
+        cls.outStream.write(string)
+        cls.outStream.write("\n")
 
 
 def main(argv):

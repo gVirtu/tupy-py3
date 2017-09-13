@@ -12,9 +12,14 @@ class Function(object):
     def __repr__(self):
         return "F->{0}".format(str(self.argumentTree))
 
-    def put(self, argumentList, returnType, code):
+    def put(self, argumentList, returnType, code, builtIn=False):
         current_level = self.argumentTree
-        codeIndex = ii.Interpreter.registerCodeTree(code)
+
+        if builtIn:
+            codeIndex = code
+        else:
+            codeIndex = ii.Interpreter.registerCodeTree(code)
+
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
             if arg.defaultValue is None:
@@ -22,10 +27,11 @@ class Function(object):
                     # Variadic
                     current_level[arg.type] = current_level
             else:
-                current_level[_args_end] = (codeIndex, argumentList, returnType)
+                current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn)
             current_level = current_level.setdefault(arg.type, {})
+            
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, argumentList, returnType)
+        current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn)
 
     def get(self, callArgs):
         current_level = self.argumentTree

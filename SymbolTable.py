@@ -24,7 +24,7 @@ class SymbolTable(object):
             data = Variable.Variable.makeDefaultValue(datatype)
         self.data[(name, depth)] = data
 
-    def defineFunction(self, name, returnType, argumentList, code):
+    def defineFunction(self, name, returnType, argumentList, code, builtIn=False):
         self.datatype[name] = Type.Type.FUNCTION
         self.subscriptlist[name] = None
         depth = self.context.depth
@@ -38,7 +38,7 @@ class SymbolTable(object):
             if entry.is_ambiguous(argumentList):
                 raise NameError("Overloaded function {0} is ambiguous!".format(name))
             else:
-                entry.put(argumentList, returnType, code)
+                entry.put(argumentList, returnType, code, builtIn)
 
     def put(self, name, instance, trailerList):
         if self.hasKey(name):
