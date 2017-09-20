@@ -1,4 +1,5 @@
 from Type import Type
+import Variable
 
 class Instance(object):
     __slots__ = [
@@ -36,7 +37,7 @@ class Instance(object):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "I{0} {1}".format(self.type, self.value)
+        return "I{0}".format(self.value)
 
     def update_size(self, deep=False):
         if self.type == Type.STRING:
@@ -73,10 +74,11 @@ class Instance(object):
     def array_length(self):
         return len(self.value)
 
-    def array_pad(self, size, literal):
+    def array_pad(self, size, generator, args):
         while self.array_length() < size:
-            self.array_append(literal)
-        self.heldtype = self.value[0].get().type
+            self.array_append(Variable.Literal(generator(*args)))
+        if len(self.value) > 0:
+            self.heldtype = self.value[0].get().type
 
     def is_pure_array(self):
         return self.type == Type.ARRAY

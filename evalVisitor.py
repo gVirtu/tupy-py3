@@ -1,6 +1,4 @@
 # Generated from lang.g4 by ANTLR 4.7
-from Instance import Instance
-from Variable import Variable, Literal, Symbol
 from Subscript import Subscript
 from Type import TrailerType, Type
 
@@ -12,8 +10,10 @@ else:
 
 from errorHelper import error
 
+import Instance
 import Interpreter as ii
 import traceback
+import Variable as v
 
 # This class defines a complete generic visitor for a parse tree produced by langParser.
 
@@ -123,7 +123,7 @@ class evalVisitor(ParseTreeVisitor):
                     print("ind="+str(ind))
                     lval = lhs[ind]
                     rval = rhs[ind]
-                    if isinstance(lval, Symbol):
+                    if isinstance(lval, v.Symbol):
                         if isDeclaration:
                             ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
                         else:
@@ -135,7 +135,7 @@ class evalVisitor(ParseTreeVisitor):
             rhs = lhs
             
         if isDeclaration:
-            # Bypass trailers during Instance retrieval. e.g.:
+            # Bypass trailers during Instance.Instance retrieval. e.g.:
             # inteiro A[2] <- [10, 20]
             # Would return A instead of A[2] (which is invalid)
             return tuple(ii.Interpreter.loadSymbol(literal.name) for literal in lhs)
@@ -483,13 +483,13 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):
         if ctx.NAME() is not None:
-            return Symbol(str(ctx.NAME().getText()))
+            return v.Symbol(str(ctx.NAME().getText()))
         elif ctx.TRUE() is not None:
-            return Literal(Instance(Type.BOOL, True));
+            return v.Literal(Instance.Instance(Type.BOOL, True));
         elif ctx.FALSE() is not None:
-            return Literal(Instance(Type.BOOL, False));
+            return v.Literal(Instance.Instance(Type.BOOL, False));
         elif ctx.NULL() is not None:
-            return Literal(Instance(Type.NULL, 0));
+            return v.Literal(Instance.Instance(Type.NULL, 0));
         elif len(ctx.CARDINALITY_OP()) == 2:
             res = self.visitTestOrExpression(ctx.testOrExpression())
             return res.cardinality()
@@ -500,13 +500,13 @@ class evalVisitor(ParseTreeVisitor):
             if len(res)==1:
                 return res[0]
             else:
-                return Literal(Instance(Type.TUPLE, tuple(res)));
+                return v.Literal(Instance.Instance(Type.TUPLE, tuple(res)));
         elif ctx.OPEN_BRACK() is not None:
             res = []
             if ctx.testOrExpressionList() is not None:
                 res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
             try:
-                return Literal(Instance(Type.ARRAY, list(res)));
+                return v.Literal(Instance.Instance(Type.ARRAY, list(res)));
             except TypeError:
                 error(TypeError, "Types in array must be consistent!", ctx)
         else:
@@ -568,25 +568,25 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#string.
     def visitString(self, ctx:langParser.StringContext):
-        return Literal(Instance(Type.STRING, str(self.visitChildren(ctx))))
+        return v.Literal(Instance.Instance(Type.STRING, str(self.visitChildren(ctx))))
 
 
     # Visit a parse tree produced by langParser#character.
     def visitCharacter(self, ctx:langParser.StringContext):
-        return Literal(Instance(Type.CHAR, ord(self.visitChildren(ctx))))
+        return v.Literal(Instance.Instance(Type.CHAR, ord(self.visitChildren(ctx))))
 
 
     # Visit a parse tree produced by langParser#number.
     def visitNumber(self, ctx:langParser.NumberContext):
         if ctx.integer() is None:
-            return Literal(Instance(Type.FLOAT, float(self.visitChildren(ctx))))
+            return v.Literal(Instance.Instance(Type.FLOAT, float(self.visitChildren(ctx))))
         else:
             return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by langParser#integer.
     def visitInteger(self, ctx:langParser.IntegerContext):
-        return Literal(Instance(Type.INT, int(self.visitChildren(ctx))))
+        return v.Literal(Instance.Instance(Type.INT, int(self.visitChildren(ctx))))
 
 
     def visitTerminal(self, node):

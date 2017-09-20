@@ -1,7 +1,7 @@
-from Instance import Instance
 from Type import TrailerType, Type
 import Interpreter as ii
 import copy
+import Instance
 
 class Variable(object):
     @classmethod
@@ -24,10 +24,10 @@ class Variable(object):
                         pass
                     elif ss.isSingle:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
-                        ret = Instance(newtype, newvalue)
+                        ret = Instance.Instance(newtype, newvalue)
                     else:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
-                        ret = Instance(newtype, newvalue)
+                        ret = Instance.Instance(newtype, newvalue)
                         depth += 1
             elif ttype == TrailerType.CALL:
                 # try:
@@ -63,9 +63,9 @@ class Variable(object):
                 lower_inst = literal.get()
                 lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)[0] #Not interested in type
                 if (single and level==1):
-                    new_inst = Instance(lower_inst.heldtype, lower_level)
+                    new_inst = Instance.Instance(lower_inst.heldtype, lower_level)
                 else:
-                    new_inst = Instance(lower_inst.type, lower_level)
+                    new_inst = Instance.Instance(lower_inst.type, lower_level)
                 ret.append(Literal(new_inst))
                 
             print("...returned {0}".format(ret))
@@ -76,11 +76,11 @@ class Variable(object):
         if datatype == Type.ARRAY:
             return cls.array_init(declSubscripts, heldType)
         elif datatype == Type.STRING:
-            return Instance(datatype, "")
+            return Instance.Instance(datatype, "")
         elif datatype == Type.TUPLE:
-            return Instance(datatype, ())
+            return Instance.Instance(datatype, ())
         else:
-            return Instance(datatype, 0)
+            return Instance.Instance(datatype, 0)
 
     @classmethod
     def array_init(cls, declSubscripts, heldType):
@@ -93,110 +93,110 @@ class Variable(object):
             sz = subs.begin
             element = Literal(cls.array_init(declSubscripts[1:], heldType))
             content = [(copy.deepcopy(element)) for i in range(sz)]
-            ret = Instance(Type.ARRAY, content)
+            ret = Instance.Instance(Type.ARRAY, content)
             return ret
 
     def power(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value ** rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value ** rhs.get().value))
 
     def positive(self):
-        return Literal(Instance(self.get().type, +self.get().value))
+        return Literal(Instance.Instance(self.get().type, +self.get().value))
 
     def negative(self):
-        return Literal(Instance(self.get().type, -self.get().value))
+        return Literal(Instance.Instance(self.get().type, -self.get().value))
 
     def bitwise_flip(self):
         if (self.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise NOT with non-integer type!")
-        return Literal(Instance(Type.INT, ~self.get().value))
+        return Literal(Instance.Instance(Type.INT, ~self.get().value))
 
     def multiply(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value * rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value * rhs.get().value))
 
     def divide(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value / rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value / rhs.get().value))
 
     def modulo(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value % rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value % rhs.get().value))
 
     def integer_divide(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value // rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value // rhs.get().value))
 
     def add(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
         if typ == Type.STRING:
-            return Literal(Instance(typ, self.stringConcat(self.get(), rhs.get())))
+            return Literal(Instance.Instance(typ, self.stringConcat(self.get(), rhs.get())))
         else:
-            return Literal(Instance(typ, self.get().value + rhs.get().value))
+            return Literal(Instance.Instance(typ, self.get().value + rhs.get().value))
 
     def subtract(self, rhs:'Variable'):
         typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(Instance(typ, self.get().value - rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value - rhs.get().value))
 
     def left_shift(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise shift with non-integer types!")
         typ = Type.INT
-        return Literal(Instance(typ, self.get().value << rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value << rhs.get().value))
 
     def right_shift(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise shift with non-integer types!")
         typ = Type.INT
-        return Literal(Instance(typ, self.get().value >> rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value >> rhs.get().value))
 
     def bitwise_and(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise AND with non-integer types!")
         typ = Type.INT
-        return Literal(Instance(typ, self.get().value & rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value & rhs.get().value))
 
     def bitwise_or(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise OR with non-integer types!")
         typ = Type.INT
-        return Literal(Instance(typ, self.get().value | rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value | rhs.get().value))
 
     def bitwise_xor(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
             raise TypeError("Cannot do bit-wise XOR with non-integer types!")
         typ = Type.INT
-        return Literal(Instance(typ, self.get().value ^ rhs.get().value))
+        return Literal(Instance.Instance(typ, self.get().value ^ rhs.get().value))
 
     def gt(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value > rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value > rhs.get().value))
 
     def lt(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value < rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value < rhs.get().value))
 
     def gt_eq(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value >= rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value >= rhs.get().value))
 
     def lt_eq(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value <= rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value <= rhs.get().value))
 
     def eq(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value == rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value == rhs.get().value))
 
     def neq(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value != rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value != rhs.get().value))
 
     def logic_not(self):
-        return Literal(Instance(Type.BOOL, not self.get().value))
+        return Literal(Instance.Instance(Type.BOOL, not self.get().value))
 
     def logic_and(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value and rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value and rhs.get().value))
 
     def logic_or(self, rhs:'Variable'):
-        return Literal(Instance(Type.BOOL, self.get().value or rhs.get().value))
+        return Literal(Instance.Instance(Type.BOOL, self.get().value or rhs.get().value))
 
     def cardinality(self):
-        return Literal(Instance(Type.INT, self.get().size))
+        return Literal(Instance.Instance(Type.INT, self.get().size))
 
     def resultType(self, a, b):
         if (a == Type.REFERENCE or b == Type.REFERENCE):

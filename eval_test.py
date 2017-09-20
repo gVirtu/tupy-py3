@@ -673,22 +673,12 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
-
-    def testy(self):
-        #TODO: Something bugged at a[*,1] <- 0
         ret = Interpreter.interpret(("inteiro[][] matriz(inteiro[][] a):\n"
                                      "\t a[*,1] <- 0\n"
                                      "\t retornar a\n"
                                      "matriz([[1,2,3],[4,5,6]])\n"
                                     ))
-        self.assertArrayEquals(ret, Type.INT, [[1, 2, 3], [4, 5, 6]])
-
-    def testo(self):
-        ret = Interpreter.interpret(("inteiro a[2,3] <- [[1,2,3],[4,5,6]]\n"
-                                     "a[*,1] <- 0\n"
-                                     "a\n"
-                                    ))
-        self.assertArrayEquals(ret, Type.INT, [[1, 0, 3], [4, 1, 6]])
+        self.assertArrayEquals(ret, Type.INT, [[1, 0, 3], [4, 0, 6]])        
 
     def test_function_variadic(self):
         ret = Interpreter.interpret(("inteiro teste(args...):\n"
