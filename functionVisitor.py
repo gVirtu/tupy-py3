@@ -39,7 +39,7 @@ class functionVisitor(ParseTreeVisitor):
         else:
             array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
         argumentList = self.visitParameters(ctx.parameters())
-        ii.Interpreter.defineFunction(function_name, return_type, argumentList, codeTree)
+        ii.Interpreter.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree)
         return True
 
 

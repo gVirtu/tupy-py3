@@ -1,10 +1,11 @@
 from SymbolTable import SymbolTable
 
 class Context(object):
-    def __init__(self, depth, returnable=False):
+    def __init__(self, depth, returnable=False, returnType=(None, 0)):
         self.depth = depth
         self.locals = SymbolTable(self)
         self.returnable = returnable
+        self.returnType = returnType
         self.functions = []
 
     def __str__(self):

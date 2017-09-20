@@ -674,6 +674,22 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
 
+    def testy(self):
+        #TODO: Something bugged at a[*,1] <- 0
+        ret = Interpreter.interpret(("inteiro[][] matriz(inteiro[][] a):\n"
+                                     "\t a[*,1] <- 0\n"
+                                     "\t retornar a\n"
+                                     "matriz([[1,2,3],[4,5,6]])\n"
+                                    ))
+        self.assertArrayEquals(ret, Type.INT, [[1, 2, 3], [4, 5, 6]])
+
+    def testo(self):
+        ret = Interpreter.interpret(("inteiro a[2,3] <- [[1,2,3],[4,5,6]]\n"
+                                     "a[*,1] <- 0\n"
+                                     "a\n"
+                                    ))
+        self.assertArrayEquals(ret, Type.INT, [[1, 0, 3], [4, 1, 6]])
+
     def test_function_variadic(self):
         ret = Interpreter.interpret(("inteiro teste(args...):\n"
                                      "\t se |args|>1:\n"
@@ -696,7 +712,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 14)
         ret = Interpreter.interpret(("inteiro teste(inteiro a, args...):\n"
                                      "\t retornar a+|args|\n"
-                                     "inteiro teste(inteiro a, cadeia b):\n"
+                                     "cadeia teste(inteiro a, cadeia b):\n"
                                      "\t retornar b*a\n"
                                      "teste(5,\"c\")\n"
                                     ))
@@ -726,6 +742,29 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 100)
+
+
+    def test_function_errors(self):
+        self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("inteiro func():\n"
+                          "\t retornar 2.3\n"
+                          "func()\n"
+                         ))
+        self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a):\n"
+                          "\t retornar 200\n"
+                          "func(\"xyz\")\n"
+                         ))
+        self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("inteiro[] func(inteiro a):\n"
+                          "\t retornar a\n"
+                          "func(2)\n"
+                         ))
+        self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("inteiro func(inteiro[][] a):\n"
+                          "\t retornar |a|\n"
+                          "func([1,2,3])\n"
+                         ))
         
 if __name__ == '__main__':
     unittest.main()

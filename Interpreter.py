@@ -21,25 +21,27 @@ class FlowEvent(Enum):
     RETURN = 3
 
 class Interpreter(object):
-    visitor = evalVisitor()
-    callStack = CallStack()
-    flow = FlowEvent.STEP
-    lastEvent = FlowEvent.STEP
-    returnData = None
     outStream = StringIO()
 
     @classmethod
-    def interpret(cls, input, rule="r"):
+    def initialize(cls):
+        cls.visitor = evalVisitor()
         cls.callStack = CallStack()
-        cls.outStream.close()
+        cls.flow = FlowEvent.STEP
+        cls.lastEvent = FlowEvent.STEP
+        cls.returnData = None
         cls.outStream = StringIO()
+
+    @classmethod
+    def interpret(cls, input, rule="r"):
+        cls.outStream.close()
+        cls.initialize()
         Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = langParser(stream)
         treenode = getattr(parser, rule)
         tree = treenode()
-        cls.visitor = evalVisitor()
         cls.visitor.setParser(parser)
         funcscanner = functionVisitor(parser)
         print("Using rule " + rule)
@@ -56,6 +58,7 @@ class Interpreter(object):
         print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}".format(codeIndex, argumentList, returnType, isBuiltIn))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
+        argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
             argValues.append(a.defaultValue)
@@ -78,7 +81,7 @@ class Interpreter(object):
                 packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple()))
                 argValues[-1] = packed
         
-        finalArgs = list(zip(argNames, argTypes, argValues))
+        finalArgs = list(zip(argNames, argTypes, argDimensions, argValues))
         print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             print("CodeIndex is {0}".format(codeIndex))
@@ -86,7 +89,7 @@ class Interpreter(object):
             return builtInFunc(*argValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
-            return cls.visitor.visitBlock(codeBlock, finalArgs)
+            return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
 
     @classmethod
     def loadSymbol(cls, name):
@@ -121,9 +124,9 @@ class Interpreter(object):
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
-    def pushFrame(cls, returnable=False):
+    def pushFrame(cls, returnable=False, returnType=None):
         print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
-        newContext = Context(cls.callStack.size(), returnable)
+        newContext = Context(cls.callStack.size(), returnable, returnType)
         #import pdb; pdb.set_trace()
         # hack: Deepcopy would leak to the Context reference
         cls.callStack.top().locals.context = None 
@@ -163,6 +166,10 @@ class Interpreter(object):
     @classmethod
     def canReturn(cls):
         return cls.callStack.top().returnable
+
+    @classmethod
+    def getReturnType(cls):
+        return cls.callStack.top().returnType
 
     @classmethod
     def doReturn(cls, data):

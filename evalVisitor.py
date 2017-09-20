@@ -235,13 +235,18 @@ class evalVisitor(ParseTreeVisitor):
 
 
     # Visit a parse tree produced by langParser#block.
-    def visitBlock(self, ctx:langParser.BlockContext, injectList=[]):
+    def visitBlock(self, ctx:langParser.BlockContext, injectList=[], returnType=None):
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
-        ii.Interpreter.pushFrame(returnable=returnable)
+        ii.Interpreter.pushFrame(returnable=returnable, returnType=returnType)
         print("INJECT LIST IS: {0}".format(injectList))
-        for (name, datatype, literal) in injectList:
+        for (name, datatype, arrayDimensions, literal) in injectList:
             inst = literal.get()
-            subscriptList = [Subscript(isWildcard=True)] * inst.array_dimensions
+            if inst.array_dimensions != arrayDimensions:
+                if arrayDimensions == 0:
+                    raise TypeError("Function was not expecting an array!")
+                else:
+                    raise TypeError("Function was expecting a {0}-dimensional array!".format(arrayDimensions))
+            subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
             ii.Interpreter.declareSymbol(name, datatype, subscriptList)
             ii.Interpreter.storeSymbol(name, inst, [])
             
@@ -641,7 +646,18 @@ class evalVisitor(ParseTreeVisitor):
                 ret = ii.Interpreter.returnData
                 print("RETURNING {0}".format(ret))
                 if ii.Interpreter.canReturn():
-                    ii.Interpreter.doStep()
+                    retType = Type.NULL
+                    retDimensions = 0
+                    if (ret is not None):
+                        retType = ret[0].roottype
+                        retDimensions = ret[0].array_dimensions
+                    (desiredType, arrayDimensions) = ii.Interpreter.getReturnType()
+                    #desiredType = None -> Don't care
+                    if desiredType is None or \
+                       (desiredType == retType and arrayDimensions == retDimensions):
+                        ii.Interpreter.doStep()
+                    else:
+                        raise TypeError("Function expected to return {0}!".format(ii.Interpreter.getReturnType()))
                 break
         #TODO: Double check whether this is intended
         # try:
