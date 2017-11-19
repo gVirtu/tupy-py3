@@ -239,8 +239,14 @@ class evalVisitor(ParseTreeVisitor):
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
         ii.Interpreter.pushFrame(returnable=returnable, returnType=returnType)
         print("INJECT LIST IS: {0}".format(injectList))
-        for (name, datatype, arrayDimensions, literal) in injectList:
+        for (name, datatype, arrayDimensions, passByRef, literal) in injectList:
+            if (passByRef):
+                try:
+                    ii.Interpreter.mapRefParam(name, literal.name)    
+                except Exception:
+                    raise SyntaxError("Invalid reference!")
             inst = literal.get()
+
             if inst.array_dimensions != arrayDimensions:
                 if arrayDimensions == 0:
                     raise TypeError("Function was not expecting an array!")

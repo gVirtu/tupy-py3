@@ -762,6 +762,48 @@ class TestEvalVisitor(unittest.TestCase):
                           "\t retornar |a|\n"
                           "func([1,2,3])\n"
                          ))
+
+    def test_function_param_passage(self):
+        ret = Interpreter.interpret(("inteiro x <- 1\n"
+                                     "func(inteiro a, inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "func(x, 10)\n"
+                                     "x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1)
+        ret = Interpreter.interpret(("inteiro x <- 1\n"
+                                     "func(val inteiro a, val inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "func(x, 10)\n"
+                                     "x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1)
+        ret = Interpreter.interpret(("inteiro x <- 1\n"
+                                     "func(ref inteiro a, val inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "func(x, 10)\n"
+                                     "x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 11)
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro x, y <- 1, 2\n"
+                          "func(ref inteiro a, val inteiro b):\n"
+                          "\t a <- a + b\n"
+                          "func(x+y, 10)\n"
+                          "x\n"
+                        ))
+
+    def test_function_param_passage2(self):
+        ret = Interpreter.interpret(("real x[3] <- 5.0\n"
+                                     "func(ref real[] a, val inteiro b):\n"
+                                     "\t a[1] <- a[1] * b\n"
+                                     "func(x, 5)\n"
+                                     "x\n"
+                                    ))
+        self.assertArrayEquals(ret, Type.FLOAT, [5.0, 25.0, 5.0])      
         
 if __name__ == '__main__':
     unittest.main()

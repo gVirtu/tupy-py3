@@ -58,6 +58,7 @@ class Interpreter(object):
         print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}".format(codeIndex, argumentList, returnType, isBuiltIn))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
+        argPassage = [a.passByRef for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
@@ -81,7 +82,7 @@ class Interpreter(object):
                 packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple()))
                 argValues[-1] = packed
         
-        finalArgs = list(zip(argNames, argTypes, argDimensions, argValues))
+        finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argValues))
         print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             print("CodeIndex is {0}".format(codeIndex))
@@ -112,6 +113,10 @@ class Interpreter(object):
     def defineFunction(cls, name, returntype, argumentList, codeTree, builtIn=False):
         print("Declaring function "+name+" that returns "+str(returntype)+" with arguments "+str(argumentList))
         return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree, builtIn)
+
+    @classmethod
+    def mapRefParam(cls, name, ref):
+        cls.callStack.top().refMappings[name] = ref
 
     @classmethod
     def registerCodeTree(cls, codeTree):
@@ -145,6 +150,13 @@ class Interpreter(object):
         print("Top before merge:\n{0}".format(str(cls.callStack.top())))
         cls.callStack.top().locals.merge(prev.locals)
         print("Top after merge:\n{0}".format(str(cls.callStack.top())))
+        # Iterate through mapped pass-by-reference symbol names
+        # and hand over their values to their referenced symbols
+        for name, ref in prev.refMappings.items():
+            print("REFMAPPING {0} TO {1}...".format(name, ref))
+            inst = prev.locals.get(name)
+            cls.callStack.top().locals.put(ref, inst, [])
+            
         return prev
 
     @classmethod

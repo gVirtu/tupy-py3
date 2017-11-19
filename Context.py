@@ -7,6 +7,7 @@ class Context(object):
         self.returnable = returnable
         self.returnType = returnType
         self.functions = []
+        self.refMappings = {}
 
     def __str__(self):
         return "CONTEXT<{0}> <<{1}>>".format(self.depth, str(self.locals))
