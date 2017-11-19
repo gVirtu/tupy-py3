@@ -226,7 +226,15 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#whileStatement.
     def visitWhileStatement(self, ctx:langParser.WhileStatementContext):
-        return self.visitChildren(ctx)
+        ret = None
+        testTree = ctx.test()
+        iterations = 0
+        while( bool(self.visitTest(testTree).get().value) ):
+            ret = self.visitBlock(ctx.block())
+            iterations += 1
+            if iterations > ii.Interpreter.iterationLimit:
+                raise RuntimeError("Iteration limit reached!")
+        return ret
 
 
     # Visit a parse tree produced by langParser#forStatement.

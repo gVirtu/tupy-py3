@@ -22,6 +22,7 @@ class FlowEvent(Enum):
 
 class Interpreter(object):
     outStream = StringIO()
+    iterationLimit = 10
 
     @classmethod
     def initialize(cls):
@@ -156,7 +157,7 @@ class Interpreter(object):
             print("REFMAPPING {0} TO {1}...".format(name, ref))
             inst = prev.locals.get(name)
             cls.callStack.top().locals.put(ref, inst, [])
-            
+
         return prev
 
     @classmethod

@@ -795,15 +795,29 @@ class TestEvalVisitor(unittest.TestCase):
                           "func(x+y, 10)\n"
                           "x\n"
                         ))
-
-    def test_function_param_passage2(self):
         ret = Interpreter.interpret(("real x[3] <- 5.0\n"
                                      "func(ref real[] a, val inteiro b):\n"
                                      "\t a[1] <- a[1] * b\n"
                                      "func(x, 5)\n"
                                      "x\n"
                                     ))
-        self.assertArrayEquals(ret, Type.FLOAT, [5.0, 25.0, 5.0])      
+        self.assertArrayEquals(ret, Type.FLOAT, [5.0, 25.0, 5.0])  
+
+    def test_while(self):
+        ret = Interpreter.interpret(("inteiro i, x <- 0, 1\n"
+                                     "enquanto i < 10:\n"
+                                     "\t x <- x * 2\n"
+                                     "\t i <- i + 1\n"
+                                     "x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1024)
+
+    def test_infinite_loop(self):
+        self.assertRaises(RuntimeError, Interpreter.interpret, 
+                         ("enquanto verdadeiro:\n"
+                          "\t 1\n"
+                         ))
         
 if __name__ == '__main__':
     unittest.main()
