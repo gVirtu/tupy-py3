@@ -6,8 +6,6 @@ class Instance(object):
         'value', 'type', 'heldtype', 'size', 'collection_size', 'array_dimensions', 'roottype'
     ]
 
-    # TODO: Scope?
-
     def __init__(self, datatype, value):
         self.type = datatype
         self.heldtype = None # For arrays

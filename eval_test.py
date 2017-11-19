@@ -515,7 +515,14 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("inteiro a[3,3] <- [[1,2,3], [4,5,6], [7,8,9]]; a[1][1] <- 2; a\n")
         self.assertEqual(ret.type, Type.ARRAY)
         targetArray = [[1,2,3], [4,2,6], [7,8,9]]
-        self.assertArrayEquals(ret, Type.INT, targetArray)      
+        self.assertArrayEquals(ret, Type.INT, targetArray)  
+        ret = Interpreter.interpret(("inteiro a[2,3,3]\n"
+                                     "a[1,0..1,1..2] <- [3, 4]\n"
+                                     "a\n"
+                                    ))
+        self.assertEqual(ret.type, Type.ARRAY)
+        self.assertArrayEquals(ret, Type.INT, [ [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                                [[0, 3, 3], [0, 4, 4], [0, 0, 0]] ])    
 
     def test_dynamic_arrays(self):
         ret = Interpreter.interpret("inteiro a[*]; a\n")

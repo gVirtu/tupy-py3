@@ -60,8 +60,8 @@ class SymbolTable(object):
         # Only add the variables from outer scopes that were changed in inner scopes
         self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
 
-    def validateSizes(self, subscriptList, instance, rootType, sizeList, currentData, instDepth):
-        print("validateSizes({0},{1},{2},{3},{4},{5})".format(subscriptList, instance, rootType, sizeList, currentData, instDepth))
+    def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData):
+        print("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
         # Because subscriptList tells us how the passed 'instance' will fit in
         # our current data, we need to verify it all the way to the end to make
         # sure our array dimensions are correct.
@@ -70,6 +70,16 @@ class SymbolTable(object):
         #
         # Means that [0,1,0] is placed with subscripts [2,*] into A.
         # (omitted subscripts from A in A[2] default to *)
+        #
+        # rootType is the stored type at the lowest possible level. It is the
+        # same as the instance type when it's not an array.
+        #
+        # sizeList and currentData describe the symbol that is going to be
+        # updated.
+        #TODO: Finish documenting this mess
+
+        # A positive length of subscriptList means we still haven't reached the lowest level of
+        # an array.
 
         if len(subscriptList)>0:
             targetSubscript = subscriptList[0]
@@ -79,49 +89,79 @@ class SymbolTable(object):
             childSizes = sizeList[1:]
 
             if instance.is_pure_array():
-                # We don't need to validate the passed instance's length when:
-                #   1. The current dimension is dynamic
-                #   2. We need to go deeper to find where the instance should be
+                if targetSubscript.isSingle:
+                    # Inserting an array, current subscript is a single index
+                    # means we need to go further before reaching the correct depth.
+                    # e.g.: inteiro A[2,2] <- [[0, 0], [0, 0]]
+                    #       A[0,*] <- [1,2]
+                    # Clearly we don't want [1,2] to override the top level, so we
+                    # retrieve A[0] (which is [0, 0]) before processing the assignment.
 
-                levelSize = instance.array_length()
-                print("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
-                valid = (levelSize <= targetSize) or (sizeList[0].isWildcard) or (instDepth > 0)
+                    targetIndex = targetSubscript.begin
+                    return self.processDimensions(childSubscripts, instance, rootType, 
+                                                   childSizes, currentData.value[targetIndex].get())
+                else:
+                    # Inserting an array, current subscript is a range or wildcard.
+                    #
+                    # e.g.: inteiro A[2,3,3]
+                    #       A[1,0..1,1..2] <- [[2, 4], [5, 6]]
+                    #   results in
+                    #       [ [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                    #         [[0, 2, 4], [0, 5, 6], [0, 0, 0]] ]
+                    levelSize = instance.array_length()
+                    isDynamicSize = sizeList[0].isWildcard
+                    print("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
 
-                if valid:
-                    childType = instance.heldtype
-                    if (levelSize < targetSize):
-                        if childType is None: childType = rootType;
-                        print("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
-                        instance.array_pad(targetSize, Variable.Variable.makeDefaultValue, (childType, 
+                    # We don't need to validate the passed instance's length when the current
+                    # dimension is dynamic, because in this case it can simply be updated
+                    # to the new length.
+                    valid = (levelSize <= targetSize) or (isDynamicSize)
+
+                    if valid:
+                        childType = instance.heldtype
+                        # Make sure we pad the instance so that it will have exactly the same
+                        # size as the target
+                        # e.g.: inteiro A[5]
+                        #       A <- [1, 2, 3]
+                        #           result is [1, 2, 3, 0, 0]
+                        if (levelSize < targetSize):
+                            if childType is None: childType = rootType;
+                            print("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
+                            instance.array_pad(targetSize, Variable.Variable.makeDefaultValue, (childType, 
                                                                                             childSubscripts,
                                                                                             rootType))
+                            levelSize = instance.array_length()
+                            print("Instance is now {0}".format(instance))
 
-                    if targetSubscript.isSingle:
-                        targetIndex = targetSubscript.begin
-                        valid = self.validateSizes(childSubscripts, instance, rootType, 
-                                                   childSizes, currentData.value[targetIndex].get(),
-                                                   instDepth-1)
-                    else:
-                        # We retrieve length() once more because it might have been padded
-                        newLen = instance.array_length()
-                        if targetSubscript.isWildcard:
-                            currentData.array_pad(newLen, Variable.Variable.makeDefaultValue, (childType, 
+                        # In some edge cases the currentData might not have the current size,
+                        # especially when dealing with dynamic-sized arrays. Most notably,
+                        # the bottommost size doesn't necessarily have to be dynamic, this also
+                        # happens in some scenarios such as:
+                        #   inteiro A[*,2]
+                        #   A <- A + [[1, 2]]
+                        # If we are in a dynamically-sized dimension, we have a free pass to
+                        # resize the currentData. Otherwise, we have made sure the levelSize is
+                        # not larger than the currentSize (aka our static size) and then padded
+                        # the instance so that our levelSize is equal to our capacity. Thus, all
+                        # we need to do in these cases is pad the currentData to levelSize.
+
+                        currentSize = currentData.array_length()
+                        if (isDynamicSize or currentSize < levelSize) and targetSubscript.isWildcard:
+                            currentData.array_pad(levelSize, Variable.Variable.makeDefaultValue, (childType, 
                                                                                                childSubscripts,
                                                                                                rootType))
 
-                        # This is just wrong
-                        for targetIndex in range(newLen):
-                            child = instance.value[targetIndex]
-                            offset = targetSubscript.begin
-                            valid = self.validateSizes(childSubscripts, child.get(), rootType, 
-                                                       childSizes, currentData.value[targetIndex+offset].get(),
-                                                       instDepth-1)
+                        offset = targetSubscript.begin
+                        for targetIndex in range(offset, offset + levelSize):
+                            child = instance.value[targetIndex - offset]
+                            valid = self.processDimensions(childSubscripts, child.get(), rootType, 
+                                                       childSizes, currentData.value[targetIndex].get())
                             if valid:
                                 pass
                             else:
                                 break
 
-                return valid
+                    return valid
             else:
                 # Primitive not at lowest level, let's clone it into an array
                 # e.g.: inteiro A[2,2]; A[*,*] <- 4
@@ -129,18 +169,16 @@ class SymbolTable(object):
 
                 if targetSubscript.isSingle:
                     targetIndex = targetSubscript.begin
-                    valid = self.validateSizes(childSubscripts, instance, rootType, 
-                                               childSizes, currentData.value[targetIndex].get(),
-                                               instDepth-1)
+                    valid = self.processDimensions(childSubscripts, instance, rootType, 
+                                               childSizes, currentData.value[targetIndex].get())
                 else:
                     new_value = [Variable.Literal(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
                     instance.__init__(Type.Type.ARRAY, new_value)
 
                     for targetIndex in range(len(instance.value)):
                         offset = targetSubscript.begin
-                        valid = self.validateSizes(childSubscripts, instance.value[targetIndex].get(), rootType, 
-                                                   childSizes, currentData.value[targetIndex+offset].get(),
-                                                   instDepth-1)
+                        valid = self.processDimensions(childSubscripts, instance.value[targetIndex].get(), rootType, 
+                                                   childSizes, currentData.value[targetIndex+offset].get())
                 
                 return valid;
         else:
@@ -152,7 +190,25 @@ class SymbolTable(object):
                 # Primitive type at deepest level is ok
                 return True; 
 
+    # Utility function for dimension processing. 
+    # It returns the desired size for the data to be inserted in the range/index
+    # given by the first element of subscriptList. Having currentData is useful
+    # in case we have variable (wildcard) dimensions, in which case we just
+    # use the current amount of stored items.
+    # Example: 
+    # inteiro A[2, 3]
+    # A[1] <- [2, 1]
+    #   the above line yields:
+    #       getTargetSize([1, *], [[0, 0, 0], [0, 0, 0]], [2, 3])
+    #           -> getTargetSize([*], [0, 0, 0], [3])
+    #               -> 3
+    #   so we know that [2,1] must be padded to have size 3.
+    #
+    # Finally, A will be [[0, 0, 0], [2, 1, 0]].
+    #
+
     def getTargetSize(self, subscriptList, currentData, sizeList):
+        print("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
         targetSubscript = subscriptList[0]
         if targetSubscript.isWildcard:
             if sizeList[0].isWildcard:
@@ -163,7 +219,10 @@ class SymbolTable(object):
             if len(subscriptList)==1:
                 return 1
             else:
-                return self.getTargetSize(subscriptList[1:], currentData, sizeList[1:])
+                targetIndex = targetSubscript.begin
+                return self.getTargetSize(subscriptList[1:], 
+                                          currentData.value[targetIndex].get(), 
+                                          sizeList[1:])
         else:
             return targetSubscript.end - targetSubscript.begin
 
@@ -187,19 +246,23 @@ class SymbolTable(object):
         full_data = self.data[(name, depth)]
         target_subscript = None
 
-        # Make sure we aren't overwriting anything important
+        # An assignment should be a copy. Otherwise if we assign B to A without copying,
+        # (i.e. a reference of B) whenever A is changed, B will also be.
         old_instance = instance
         instance = copy.deepcopy(old_instance)
 
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
-        # where the child data is contained.
+        # where the child data is contained. This is useful in range assignments so that we know
+        # exactly the locations where our new data will be placed.
         current_data, parent_triple = Variable.Variable.retrieveWithTrailers(full_data, trailers)
         target_data, target_subscript, target_depth = parent_triple
 
         is_subscripted = isinstance(target_subscript, Subscript.Subscript)
 
-        # Copy only the very last trailer if it is a subscript list
+        # The only trailers that matter for range assignments are the last ones, here we
+        # separate them from the rest.
+        # e.g.: alunos[5].listaNotas()[3][1] -> [1, 3]
         subscriptList = []
         for trailer in reversed(trailers):
             if trailer[0] == Type.TrailerType.SUBSCRIPT:
@@ -218,12 +281,14 @@ class SymbolTable(object):
         root_type = self.datatype[name]
         print("Applicable subscripts: {0}".format(applicable_subscripts))
 
-        # Next comes dimension validation. It digs inside instance's structure to find out
-        # if it has the correct sizes according to applicable_subscripts. Root_type indicates
-        # the primitive type being held at the lowest level of an array. The declared_sizes
-        # are used when the subscripts are wildcards (figure out how large the current level is),
-        # or single elements (figure out how large the next level is).
-        if self.validateSizes(applicable_subscripts, instance, root_type, declared_sizes, full_data, instDepth): 
+        # Next comes dimension validation and corrections. 
+        # It digs inside instance's structure to find out if it has the correct sizes according to 
+        # applicable_subscripts. Root_type indicates the primitive type being held at the lowest 
+        # level of an array. The declared_sizes are used when the subscripts are wildcards 
+        # (figure out how large the current level is), or single elements (figure out how large the
+        # next level is). Finally, full_data has the current value of NAME (without subscripts).
+
+        if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data): 
             print("Instance turned into {0}".format(instance)) 
             print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
