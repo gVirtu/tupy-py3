@@ -564,6 +564,17 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "ok")
 
+
+    def test_nested_if(self):
+        ret = Interpreter.interpret(("se verdadeiro:\n"
+                                     "\t se 2 > 3:\n"
+                                     "\t\t\"not ok\"\n"
+                                     "\t senao se verdadeiro:\n"
+                                     "\t\t\"ok\"\n"
+                                     "\t senão: \"not ok\"\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ok")
+
     def test_block(self):
         ret = Interpreter.interpret(("inteiro a <- 5\n"
                                      "se verdadeiro:\n"
@@ -813,6 +824,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 1024)
 
+    # SLOW!! : https://github.com/antlr/antlr4/issues/1219
     def test_infinite_loop(self):
         self.assertRaises(RuntimeError, Interpreter.interpret, 
                          ("enquanto verdadeiro:\n"

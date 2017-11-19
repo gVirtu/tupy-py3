@@ -22,7 +22,7 @@ class FlowEvent(Enum):
 
 class Interpreter(object):
     outStream = StringIO()
-    iterationLimit = 10
+    iterationLimit = 1000
 
     @classmethod
     def initialize(cls):

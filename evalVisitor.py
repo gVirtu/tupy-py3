@@ -650,6 +650,7 @@ class evalVisitor(ParseTreeVisitor):
         for s in statementList:
             print("visiting {0}".format(s))
             ret = self.visitStatement(s)
+            print("after visit I got {0}".format(ret))
             flow = ii.Interpreter.flow
             if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
                 #TODO: handle CONTINUE with ii.Interpreter.lastEvent
@@ -675,10 +676,14 @@ class evalVisitor(ParseTreeVisitor):
                 break
         #TODO: Double check whether this is intended
         # try:
-        if (ret is None or len(ret)>1):
+        try:
+            if (len(ret)<=1):
+                return ret[0]
+            else:
+                return ret
+        except TypeError:
             return ret
-        else:
-            return ret[0]
+            
         # except Exception as e:
             # print("Poop, returning {0}. Got {1}".format(ret,e))
             # return ret
