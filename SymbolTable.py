@@ -297,6 +297,10 @@ class SymbolTable(object):
                 self.data[(name, depth)].update_size(deep=True)
             else:
                 self.data[(name, depth)] = instance
+            # Update pass-by-reference mappings
+            if name in self.context.refMappings:
+                (refName, refDepth) = self.context.refMappings[name]
+                self.data[(refName, refDepth)] = self.data[(name, depth)]
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")

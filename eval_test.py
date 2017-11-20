@@ -799,6 +799,15 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 11)
+        ret = Interpreter.interpret(("inteiro x <- 1\n"
+                                     "func(ref inteiro a):\n"
+                                     "\t a <- a + 1\n"
+                                     "\t a <- a + x\n"
+                                     "func(x)\n"
+                                     "x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 4)
         self.assertRaises(SyntaxError, Interpreter.interpret, 
                          ("inteiro x, y <- 1, 2\n"
                           "func(ref inteiro a, val inteiro b):\n"

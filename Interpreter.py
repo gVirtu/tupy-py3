@@ -59,11 +59,18 @@ class Interpreter(object):
         print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}".format(codeIndex, argumentList, returnType, isBuiltIn))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
-        argPassage = [a.passByRef for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
             argValues.append(a.defaultValue)
+
+        try:
+            argPassage = [ ( cls.getDepth(argValues[ind].name) if (a.passByRef) else -1 ) 
+                            for ind, a in enumerate(argumentList) ]
+        except Exception:
+            # We can only access "name" in argValues above if it's a Symbol.
+            # Otherwise we are thrown an Exception.
+            raise SyntaxError("Invalid reference!")
 
         # Variadic handling
         if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
@@ -94,6 +101,10 @@ class Interpreter(object):
             return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
 
     @classmethod
+    def getDepth(cls, name):
+        return cls.callStack.top().locals.declaredDepth[name]
+
+    @classmethod
     def loadSymbol(cls, name):
         if cls.callStack.top().locals.hasKey(name):
             return cls.callStack.top().locals.get(name)
@@ -116,8 +127,8 @@ class Interpreter(object):
         return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree, builtIn)
 
     @classmethod
-    def mapRefParam(cls, name, ref):
-        cls.callStack.top().refMappings[name] = ref
+    def mapRefParam(cls, name, ref, depth):
+        cls.callStack.top().refMappings[name] = (ref, depth)
 
     @classmethod
     def registerCodeTree(cls, codeTree):
@@ -153,10 +164,10 @@ class Interpreter(object):
         print("Top after merge:\n{0}".format(str(cls.callStack.top())))
         # Iterate through mapped pass-by-reference symbol names
         # and hand over their values to their referenced symbols
-        for name, ref in prev.refMappings.items():
-            print("REFMAPPING {0} TO {1}...".format(name, ref))
-            inst = prev.locals.get(name)
-            cls.callStack.top().locals.put(ref, inst, [])
+        #for name, ref in prev.refMappings.items():
+        #    print("REFMAPPING {0} TO {1}...".format(name, ref))
+        #    inst = prev.locals.get(name)
+        #    cls.callStack.top().locals.put(ref, inst, [])
 
         return prev
 

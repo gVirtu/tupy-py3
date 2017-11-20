@@ -421,7 +421,7 @@ testOrExpressionList
 
 /// classDefinition: 'class' NAME ['(' [argList] ')'] ':' block
 classDefinition
- : CLASS NAME ( OPEN_PAREN NAME? CLOSE_PAREN )? COLON block
+ : CLASS NAME ( OPEN_PAREN NAME CLOSE_PAREN )? COLON block
  ;
 
 /// argList: (argument ',')* (argument [',']
