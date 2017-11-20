@@ -105,6 +105,10 @@ class Interpreter(object):
         return cls.callStack.top().locals.declaredDepth[name]
 
     @classmethod
+    def getClassContext(cls, name):
+        return cls.callStack.top().classes[name]
+
+    @classmethod
     def loadSymbol(cls, name):
         if cls.callStack.top().locals.hasKey(name):
             return cls.callStack.top().locals.get(name)
@@ -146,9 +150,9 @@ class Interpreter(object):
         newContext = Context(cls.callStack.size(), returnable, returnType)
         #import pdb; pdb.set_trace()
         # hack: Deepcopy would leak to the Context reference
-        cls.callStack.top().locals.context = None 
+        #cls.callStack.top().locals.context = None 
         newContext.locals = copy.deepcopy(cls.callStack.top().locals)
-        cls.callStack.top().locals.context = cls.callStack.top()
+        #cls.callStack.top().locals.context = cls.callStack.top()
 
         newContext.locals.context = newContext
         # Code trees don't need deep copying

@@ -13,6 +13,17 @@ class SymbolTable(object):
         self.declaredDepth = {}
         self.context = ctx
 
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        # Make sure we do not call deepcopy on our context
+        setattr(result, 'data', copy.deepcopy(self.data, memo))
+        setattr(result, 'datatype', copy.deepcopy(self.datatype, memo))
+        setattr(result, 'subscriptlist', copy.deepcopy(self.subscriptlist, memo))
+        setattr(result, 'declaredDepth', copy.deepcopy(self.declaredDepth, memo))
+        return result
+
     def declare(self, name, datatype, subscriptList):
         self.datatype[name] = datatype
         self.subscriptlist[name] = subscriptList
