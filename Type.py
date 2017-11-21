@@ -12,6 +12,7 @@ class Type(Enum):
     ARRAY = 8
     TUPLE = 9
     FUNCTION = 10
+    STRUCT = 11
 
 class TrailerType(Enum):
     SUBSCRIPT = 0

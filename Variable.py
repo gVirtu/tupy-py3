@@ -72,26 +72,35 @@ class Variable(object):
             return (ret, inst.heldtype)
 
     @classmethod
-    def makeDefaultValue(cls, datatype, declSubscripts=[], heldType=None):
+    def makeDefaultValue(cls, datatype, declSubscripts=[], heldType=None, className=None):
         if datatype == Type.ARRAY:
             return cls.array_init(declSubscripts, heldType)
         elif datatype == Type.STRING:
             return Instance.Instance(datatype, "")
         elif datatype == Type.TUPLE:
             return Instance.Instance(datatype, ())
+        elif datatype == Type.STRUCT:
+            objContext = Context(0, True, struct=className)
+            try:
+                classContext = ii.Interpreter.getClassContext(className)
+                objContext.locals = copy.deepcopy(classContext.locals)
+                objContext.functions = copy.copy(classContext.functions)
+            except e:
+                raise TypeError("Class {0} does not exist!".format(className))
+            return Instance.Instance(datatype, objContext)
         else:
             return Instance.Instance(datatype, 0)
 
     @classmethod
-    def array_init(cls, declSubscripts, heldType):
+    def array_init(cls, declSubscripts, heldType, className=None):
         if len(declSubscripts)==0:
             # At lowest level, initialize an element
-            ret = cls.makeDefaultValue(heldType)
+            ret = cls.makeDefaultValue(heldType, className=className)
             return ret
         else:
             subs = declSubscripts[0]
             sz = subs.begin
-            element = Literal(cls.array_init(declSubscripts[1:], heldType))
+            element = Literal(cls.array_init(declSubscripts[1:], heldType, className))
             content = [(copy.deepcopy(element)) for i in range(sz)]
             ret = Instance.Instance(Type.ARRAY, content)
             return ret

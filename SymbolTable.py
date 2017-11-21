@@ -9,6 +9,7 @@ class SymbolTable(object):
     def __init__(self, ctx):
         self.data = {}
         self.datatype = {}
+        self.classname = {}
         self.subscriptlist = {}
         self.declaredDepth = {}
         self.context = ctx
@@ -20,19 +21,21 @@ class SymbolTable(object):
         # Make sure we do not call deepcopy on our context
         setattr(result, 'data', copy.deepcopy(self.data, memo))
         setattr(result, 'datatype', copy.deepcopy(self.datatype, memo))
+        setattr(result, 'classname', copy.deepcopy(self.classname, memo))
         setattr(result, 'subscriptlist', copy.deepcopy(self.subscriptlist, memo))
         setattr(result, 'declaredDepth', copy.deepcopy(self.declaredDepth, memo))
         return result
 
-    def declare(self, name, datatype, subscriptList):
+    def declare(self, name, datatype, subscriptList, className):
         self.datatype[name] = datatype
+        self.classname[name] = className
         self.subscriptlist[name] = subscriptList
         depth = self.context.depth
         self.declaredDepth[name] = depth
         if len(subscriptList) > 0:
-            data = Variable.Variable.makeDefaultValue(Type.Type.ARRAY, subscriptList, datatype)
+            data = Variable.Variable.makeDefaultValue(Type.Type.ARRAY, subscriptList, datatype, className)
         else:
-            data = Variable.Variable.makeDefaultValue(datatype)
+            data = Variable.Variable.makeDefaultValue(datatype, className=className)
         self.data[(name, depth)] = data
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False):
@@ -71,7 +74,7 @@ class SymbolTable(object):
         # Only add the variables from outer scopes that were changed in inner scopes
         self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
 
-    def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData):
+    def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData, className):
         print("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
         # Because subscriptList tells us how the passed 'instance' will fit in
         # our current data, we need to verify it all the way to the end to make
@@ -110,7 +113,7 @@ class SymbolTable(object):
 
                     targetIndex = targetSubscript.begin
                     return self.processDimensions(childSubscripts, instance, rootType, 
-                                                   childSizes, currentData.value[targetIndex].get())
+                                                   childSizes, currentData.value[targetIndex].get(), className)
                 else:
                     # Inserting an array, current subscript is a range or wildcard.
                     #
@@ -140,7 +143,7 @@ class SymbolTable(object):
                             print("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
                             instance.array_pad(targetSize, Variable.Variable.makeDefaultValue, (childType, 
                                                                                             childSubscripts,
-                                                                                            rootType))
+                                                                                            rootType, className))
                             levelSize = instance.array_length()
                             print("Instance is now {0}".format(instance))
 
@@ -160,13 +163,13 @@ class SymbolTable(object):
                         if (isDynamicSize or currentSize < levelSize) and targetSubscript.isWildcard:
                             currentData.array_pad(levelSize, Variable.Variable.makeDefaultValue, (childType, 
                                                                                                childSubscripts,
-                                                                                               rootType))
+                                                                                               rootType, className))
 
                         offset = targetSubscript.begin
                         for targetIndex in range(offset, offset + levelSize):
                             child = instance.value[targetIndex - offset]
                             valid = self.processDimensions(childSubscripts, child.get(), rootType, 
-                                                       childSizes, currentData.value[targetIndex].get())
+                                                       childSizes, currentData.value[targetIndex].get(), className)
                             if valid:
                                 pass
                             else:
@@ -181,7 +184,7 @@ class SymbolTable(object):
                 if targetSubscript.isSingle:
                     targetIndex = targetSubscript.begin
                     valid = self.processDimensions(childSubscripts, instance, rootType, 
-                                               childSizes, currentData.value[targetIndex].get())
+                                               childSizes, currentData.value[targetIndex].get(), className)
                 else:
                     new_value = [Variable.Literal(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
                     instance.__init__(Type.Type.ARRAY, new_value)
@@ -189,7 +192,7 @@ class SymbolTable(object):
                     for targetIndex in range(len(instance.value)):
                         offset = targetSubscript.begin
                         valid = self.processDimensions(childSubscripts, instance.value[targetIndex].get(), rootType, 
-                                                   childSizes, currentData.value[targetIndex+offset].get())
+                                                   childSizes, currentData.value[targetIndex+offset].get(), className)
                 
                 return valid;
         else:
@@ -290,6 +293,7 @@ class SymbolTable(object):
         declared_sizes = self.subscriptlist[name]
 
         root_type = self.datatype[name]
+        class_name = self.classname[name]
         print("Applicable subscripts: {0}".format(applicable_subscripts))
 
         # Next comes dimension validation and corrections. 
@@ -299,7 +303,7 @@ class SymbolTable(object):
         # (figure out how large the current level is), or single elements (figure out how large the
         # next level is). Finally, full_data has the current value of NAME (without subscripts).
 
-        if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data): 
+        if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data, class_name): 
             print("Instance turned into {0}".format(instance)) 
             print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:

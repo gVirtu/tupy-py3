@@ -10,10 +10,13 @@ else:
 
 from errorHelper import error
 
+import copy
 import Instance
 import Interpreter as ii
 import traceback
+import Context
 import Variable as v
+import functionVisitor as fv
 
 # This class defines a complete generic visitor for a parse tree produced by langParser.
 
@@ -95,15 +98,19 @@ class evalVisitor(ParseTreeVisitor):
         childcount = len(ctx.testOrExpressionList())
         isDeclaration = isinstance(ctx.parentCtx, langParser.DeclarationStatementContext)
         decltype = Type.NULL
+        declaredClass = None
+
         if (isDeclaration):
-            decltype = self.mapLexType(ctx.parentCtx.dataType().getChild(0).getSymbol().type)
+            declaredDataType = ctx.parentCtx.dataType().getChild(0)
+            declaredClass = declaredDataType.getText()
+            decltype = self.mapLexType(declaredDataType.getSymbol().type)
 
         rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
         # Only for return purposes when no assignment is done
         lhs = rhs 
         current_child = 1
         if (isDeclaration and childcount == current_child):
-            self.doDeclare(lhs, decltype)
+            self.doDeclare(lhs, decltype, declaredClass)
         
         i_children = iter(reversed(list(ctx.testOrExpressionList())))
         next(i_children) # all except last
@@ -113,7 +120,7 @@ class evalVisitor(ParseTreeVisitor):
             lhs = self.visitTestOrExpressionList(c)
             current_child += 1
             if (isDeclaration and childcount == current_child):
-                self.doDeclare(lhs, decltype)
+                self.doDeclare(lhs, decltype, declaredClass)
 
             print("VISITTESTOREXPRESSIONSTATEMENT")
             print("LHS = "+str(lhs))
@@ -257,8 +264,14 @@ class evalVisitor(ParseTreeVisitor):
                     raise TypeError("Function was not expecting an array!")
                 else:
                     raise TypeError("Function was expecting a {0}-dimensional array!".format(arrayDimensions))
+
+            className = None
+
+            if inst.type == Type.STRUCT: # then inst.value contains a Context
+                className = inst.value.structName
+
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
-            ii.Interpreter.declareSymbol(name, datatype, subscriptList)
+            ii.Interpreter.declareSymbol(name, datatype, subscriptList, className)
             ii.Interpreter.storeSymbol(name, inst, [])
             
         if ctx.simpleStatement() is not None:
@@ -569,7 +582,19 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#classDefinition.
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
-        return self.visitChildren(ctx)
+        names = ctx.NAME()
+        className = names[0]
+        classContext = Context.Context(0, True, struct=className)
+
+        if (len(names) > 1):
+            inherited = ii.Interpreter.getClassContext(names[1]) 
+            classContext.locals = copy.deepcopy(inherited.locals)
+
+        ii.Interpreter.pushContext(classContext)
+
+        funcvisitor = fv.functionVisitor(self.parser)
+        funcvisitor.visitBlock(ctx.block())
+        return self.visitBlock(ctx.block())
 
 
     # Visit a parse tree produced by langParser#argList.
@@ -621,10 +646,10 @@ class evalVisitor(ParseTreeVisitor):
             self.parser.CHAR: Type.CHAR,
             self.parser.STRING: Type.STRING,
             self.parser.BOOLEAN: Type.BOOL,
-            self.parser.NAME: Type.REFERENCE
+            self.parser.NAME: Type.STRUCT
         }.get(lextype, Type.NULL)
 
-    def doDeclare(self, lhs, decltype):
+    def doDeclare(self, lhs, decltype, className=None):
         for lval in lhs:
             if len(lval.trailers) > 0:
                 if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
@@ -640,7 +665,7 @@ class evalVisitor(ParseTreeVisitor):
             if any((x.begin < 1 and not x.isWildcard) for x in subscriptList):
                 raise SyntaxError("Declaration subscripts must be greater than zero!")
 
-            ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList)
+            ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
 
     def executeStatements(self, statementList):
         ret = None

@@ -121,9 +121,9 @@ class Interpreter(object):
         return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
-    def declareSymbol(cls, name, datatype, subscriptList):
+    def declareSymbol(cls, name, datatype, subscriptList, className):
         print("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
-        return cls.callStack.top().locals.declare(name, datatype, subscriptList)
+        return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
     def defineFunction(cls, name, returntype, argumentList, codeTree, builtIn=False):
@@ -148,16 +148,17 @@ class Interpreter(object):
     def pushFrame(cls, returnable=False, returnType=None):
         print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         newContext = Context(cls.callStack.size(), returnable, returnType)
-        #import pdb; pdb.set_trace()
-        # hack: Deepcopy would leak to the Context reference
-        #cls.callStack.top().locals.context = None 
         newContext.locals = copy.deepcopy(cls.callStack.top().locals)
-        #cls.callStack.top().locals.context = cls.callStack.top()
-
         newContext.locals.context = newContext
-        # Code trees don't need deep copying
-        newContext.functions = copy.copy(cls.callStack.top().functions)
-        cls.callStack.push(newContext)
+        cls.pushContext(newContext)
+
+    @classmethod
+    def pushContext(cls, context):
+         # Code trees don't need deep copying
+        context.functions = copy.copy(cls.callStack.top().functions)
+        context.classes = copy.copy(cls.callStack.top().classes)
+
+        cls.callStack.push(context)
 
     @classmethod
     def popFrame(cls):
