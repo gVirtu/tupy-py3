@@ -252,8 +252,11 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext, injectList=[], returnType=None):
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
-        ii.Interpreter.pushFrame(returnable=returnable, returnType=returnType)
+        isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
+        if not isClassDef:
+            ii.Interpreter.pushFrame(returnable=returnable, returnType=returnType)
         print("INJECT LIST IS: {0}".format(injectList))
+
         for (name, datatype, arrayDimensions, referenceDepth, literal) in injectList:
             if (referenceDepth > -1): #Pass-by-reference only
                 ii.Interpreter.mapRefParam(name, literal.name, referenceDepth)    
@@ -549,7 +552,7 @@ class evalVisitor(ParseTreeVisitor):
             trailerId = self.visitSubscriptList(ctx.subscriptList())
         else:
             trailerType = TrailerType.MEMBER
-            trailerId = None #TODO
+            trailerId = ctx.NAME().getText()
         return (trailerType, trailerId)
 
 
@@ -583,13 +586,14 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#classDefinition.
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
         names = ctx.NAME()
-        className = names[0]
+        className = names[0].getText()
         classContext = Context.Context(0, True, struct=className)
 
         if (len(names) > 1):
-            inherited = ii.Interpreter.getClassContext(names[1]) 
+            inherited = ii.Interpreter.getClassContext(names[1].getText()) 
             classContext.locals = copy.deepcopy(inherited.locals)
 
+        ii.Interpreter.putClassContext(className, classContext)
         ii.Interpreter.pushContext(classContext)
 
         funcvisitor = fv.functionVisitor(self.parser)
@@ -664,6 +668,9 @@ class evalVisitor(ParseTreeVisitor):
 
             if any((x.begin < 1 and not x.isWildcard) for x in subscriptList):
                 raise SyntaxError("Declaration subscripts must be greater than zero!")
+
+            if decltype==Type.STRUCT and not ii.Interpreter.isValidClass(className):
+                raise TypeError("Class {0} was not declared!".format(className))
 
             ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
 

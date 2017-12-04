@@ -3,14 +3,15 @@ import Variable
 
 class Instance(object):
     __slots__ = [
-        'value', 'type', 'heldtype', 'size', 'collection_size', 'array_dimensions', 'roottype'
+        'value', 'type', 'heldtype', 'size', 'collection_size', 'array_dimensions', 'roottype', 'class_name'
     ]
 
-    def __init__(self, datatype, value):
+    def __init__(self, datatype, value, className=None):
         self.type = datatype
         self.heldtype = None # For arrays
-        self.roottype = self.type # For arrays
+        self.roottype = self.type # For arrays, set at declare time
         self.array_dimensions = 0 # For arrays
+        self.class_name = className # For structs
 
         if self.type == Type.INT:
             if not float(value).is_integer():
@@ -52,6 +53,19 @@ class Instance(object):
 
         self.collection_size = 1 if self.type == Type.STRING else self.size
         return self.collection_size
+
+    def update_roottype(self, new_type):
+        print("Updating root type of {0} to {1}".format(self.value, new_type))
+        self.roottype = new_type
+        if self.type == Type.ARRAY or self.type == Type.TUPLE:
+            for element in self.value:
+                element.get().update_roottype(new_type)
+
+    def print_roottype(self):
+        print("The root type of {0} is {1}".format(self.value, self.roottype))
+        if self.type == Type.ARRAY or self.type == Type.TUPLE:
+            for element in self.value:
+                element.get().print_roottype()
 
     def array_get(self, pos):
         return self.value[pos]

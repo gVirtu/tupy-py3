@@ -109,6 +109,15 @@ class Interpreter(object):
         return cls.callStack.top().classes[name]
 
     @classmethod
+    def putClassContext(cls, name, context):
+        cls.callStack.top().classes[name] = context;
+
+    @classmethod
+    def isValidClass(cls, name):
+        print(cls.callStack.top().classes)
+        return name in cls.callStack.top().classes
+
+    @classmethod
     def loadSymbol(cls, name):
         if cls.callStack.top().locals.hasKey(name):
             return cls.callStack.top().locals.get(name)
@@ -136,12 +145,14 @@ class Interpreter(object):
 
     @classmethod
     def registerCodeTree(cls, codeTree):
+        print("Current functions = {0}".format(cls.callStack.top().functions))
         funcIndex = len(cls.callStack.top().functions)
         cls.callStack.top().functions.append(codeTree)
         return funcIndex
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):
+        print("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top()))
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
@@ -164,9 +175,12 @@ class Interpreter(object):
     def popFrame(cls):
         prev = cls.callStack.pop()
         print("Dropped context:\n{0}".format(str(prev)))
-        print("Top before merge:\n{0}".format(str(cls.callStack.top())))
-        cls.callStack.top().locals.merge(prev.locals)
-        print("Top after merge:\n{0}".format(str(cls.callStack.top())))
+
+        # Only merge if dropped context is not a class context
+        if (prev.structName is None):
+            print("Top before merge:\n{0}".format(str(cls.callStack.top())))
+            cls.callStack.top().locals.merge(prev.locals)
+            print("Top after merge:\n{0}".format(str(cls.callStack.top())))
         # Iterate through mapped pass-by-reference symbol names
         # and hand over their values to their referenced symbols
         #for name, ref in prev.refMappings.items():

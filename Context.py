@@ -45,13 +45,13 @@ class Context(object):
         result = cls.__new__(cls)
         memo[id(self)] = result
         # Only locals needs deepcopying
-        setattr(result, 'depth', copy.copy(self.depth, memo))
+        setattr(result, 'depth', copy.copy(self.depth))
         setattr(result, 'locals', copy.deepcopy(self.locals, memo))
-        setattr(result, 'returnable', copy.copy(self.returnable, memo))
-        setattr(result, 'functions', copy.copy(self.functions, memo))
-        setattr(result, 'refMappings', copy.copy(self.refMappings, memo))
-        setattr(result, 'classes', copy.copy(self.classes, memo))
-        setattr(result, 'structName', copy.copy(self.structName, memo))
+        setattr(result, 'returnable', copy.copy(self.returnable))
+        setattr(result, 'functions', copy.copy(self.functions))
+        setattr(result, 'refMappings', copy.copy(self.refMappings))
+        setattr(result, 'classes', copy.copy(self.classes))
+        setattr(result, 'structName', copy.copy(self.structName))
         return result
 
     def __str__(self):

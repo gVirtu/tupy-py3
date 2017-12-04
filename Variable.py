@@ -2,11 +2,13 @@ from Type import TrailerType, Type
 import Interpreter as ii
 import copy
 import Instance
+import Context
 
 class Variable(object):
     @classmethod
     def retrieveWithTrailers(cls, inst, trailers):
         ret = inst
+        classContextsPushed = 0
         # Parent is useful when we want to assign ranges
         # e.g.: A[5, 1..2] <- [10, 20]
         # We retrieveWithTrailers(A) but we want to change A[5] specifically
@@ -24,10 +26,14 @@ class Variable(object):
                         pass
                     elif ss.isSingle:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
+                        orig_root_type = ret.roottype
                         ret = Instance.Instance(newtype, newvalue)
+                        ret.roottype = orig_root_type
                     else:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
+                        orig_root_type = ret.roottype
                         ret = Instance.Instance(newtype, newvalue)
+                        ret.roottype = orig_root_type
                         depth += 1
             elif ttype == TrailerType.CALL:
                 # try:
@@ -35,8 +41,16 @@ class Variable(object):
                 ret = ii.Interpreter.executeBlock(ret.value, tid)
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
+            elif ttype == TrailerType.MEMBER:
+                ret = ret.value.locals.get(tid)
+                ii.Interpreter.pushContext(ret.value)
+                classContextsPushed = classContextsPushed+1
             else:
                 pass
+
+        for i in range(classContextsPushed):
+            ii.Interpreter.popFrame()
+
         return (ret, parent)
 
     @classmethod
@@ -80,14 +94,15 @@ class Variable(object):
         elif datatype == Type.TUPLE:
             return Instance.Instance(datatype, ())
         elif datatype == Type.STRUCT:
-            objContext = Context(0, True, struct=className)
+            objContext = Context.Context(0, True, struct=className)
             try:
                 classContext = ii.Interpreter.getClassContext(className)
                 objContext.locals = copy.deepcopy(classContext.locals)
+                print("Now my locals are {0}".format(objContext.locals))
                 objContext.functions = copy.copy(classContext.functions)
             except e:
                 raise TypeError("Class {0} does not exist!".format(className))
-            return Instance.Instance(datatype, objContext)
+            return Instance.Instance(datatype, objContext, className=className)
         else:
             return Instance.Instance(datatype, 0)
 

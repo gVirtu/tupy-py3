@@ -839,6 +839,30 @@ class TestEvalVisitor(unittest.TestCase):
                          ("enquanto verdadeiro:\n"
                           "\t 1\n"
                          ))
+
+    def test_simple_class(self):
+        ret = Interpreter.interpret(("tipo Aluno:\n"
+                                     "\tcadeia nome\n"
+                                     "\n"
+                                     "Aluno a\n"
+                                     "a.nome <- \"Paulo\"\n"
+                                     "a.nome\n"
+                                    ))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "Paulo")
+
+    def test_class_method(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro func(inteiro a, inteiro b):\n"
+                                     "\t\tretornar a*a+b*b\n"
+                                     "Teste t\n"
+                                     "t.func(5,2)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 29)
+
+    def test_class_errors(self):
+        self.assertRaises(TypeError, Interpreter.interpret, "Aluno a\n")
         
 if __name__ == '__main__':
     unittest.main()

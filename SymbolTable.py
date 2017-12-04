@@ -24,6 +24,7 @@ class SymbolTable(object):
         setattr(result, 'classname', copy.deepcopy(self.classname, memo))
         setattr(result, 'subscriptlist', copy.deepcopy(self.subscriptlist, memo))
         setattr(result, 'declaredDepth', copy.deepcopy(self.declaredDepth, memo))
+        setattr(result, 'context', self.context)
         return result
 
     def declare(self, name, datatype, subscriptList, className):
@@ -36,6 +37,7 @@ class SymbolTable(object):
             data = Variable.Variable.makeDefaultValue(Type.Type.ARRAY, subscriptList, datatype, className)
         else:
             data = Variable.Variable.makeDefaultValue(datatype, className=className)
+        data.update_roottype(self.datatype[name])
         self.data[(name, depth)] = data
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False):
@@ -56,7 +58,7 @@ class SymbolTable(object):
 
     def put(self, name, instance, trailerList):
         if self.hasKey(name):
-            if self.hasValidType(name, instance):
+            if self.hasValidType(name, instance, trailerList):
                 self.updateData(name, instance, trailerList)
             else:
                 raise TypeError("Assignment types do not match!")
@@ -240,14 +242,30 @@ class SymbolTable(object):
         else:
             return targetSubscript.end - targetSubscript.begin
 
-    def hasValidType(self, name, instance):
-        if instance.is_pure_array():
-            if instance.array_length() > 0:
-                return self.hasValidType(name, instance.array_get(0).get())
-            else:
-                return True
+    def hasValidType(self, name, instance, trailerList):
+        if (instance.roottype == Type.Type.NULL):
+            return True
         else:
-            return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
+            depth = self.declaredDepth[name]
+            current_data = self.data[(name, depth)]
+            self.data[(name, depth)].print_roottype()
+
+            (inst, parent) = Variable.Variable.retrieveWithTrailers(current_data, trailerList)
+
+            # An instance will only keep its roottype as Type.ARRAY if it has no elements
+            if (instance.roottype == Type.Type.ARRAY and inst.is_pure_array()):
+                return True
+
+            print("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
+
+            return inst.roottype == instance.roottype
+            # if instance.is_pure_array():
+            #     if instance.array_length() > 0:
+            #         return self.hasValidType(name, instance.array_get(0).get())
+            #     else:
+            #         return True
+            # else:
+            #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
     def updateData(self, name, instance, trailers):
         # This is a call to assign some INSTANCE to some NAME
@@ -265,6 +283,15 @@ class SymbolTable(object):
         old_instance = instance
         instance = copy.deepcopy(old_instance)
 
+        for ind, trailer in enumerate(trailers):
+            if trailer[0] == Type.TrailerType.MEMBER:
+                # A special case is updating a member of some class instance.
+                # We'll cutoff the trailers list here and have that instance's
+                # SymbolTable take over.
+                print("Found call to member {0} at index {1}".format(trailer[1], ind))
+                class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
+                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):])
+
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
         # where the child data is contained. This is useful in range assignments so that we know
@@ -273,6 +300,7 @@ class SymbolTable(object):
         target_data, target_subscript, target_depth = parent_triple
 
         is_subscripted = isinstance(target_subscript, Subscript.Subscript)
+        root_type = current_data.roottype
 
         # The only trailers that matter for range assignments are the last ones, here we
         # separate them from the rest.
@@ -292,7 +320,6 @@ class SymbolTable(object):
         applicable_subscripts = self.fillOmittedSizes(name, subscriptList) 
         declared_sizes = self.subscriptlist[name]
 
-        root_type = self.datatype[name]
         class_name = self.classname[name]
         print("Applicable subscripts: {0}".format(applicable_subscripts))
 
@@ -304,6 +331,7 @@ class SymbolTable(object):
         # next level is). Finally, full_data has the current value of NAME (without subscripts).
 
         if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data, class_name): 
+            instance.update_roottype(root_type)
             print("Instance turned into {0}".format(instance)) 
             print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
@@ -316,6 +344,7 @@ class SymbolTable(object):
             if name in self.context.refMappings:
                 (refName, refDepth) = self.context.refMappings[name]
                 self.data[(refName, refDepth)] = self.data[(name, depth)]
+            self.data[(name, depth)].print_roottype()
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")
