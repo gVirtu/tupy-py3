@@ -12,13 +12,17 @@ class Function(object):
     def __repr__(self):
         return "F->{0}".format(str(self.argumentTree))
 
-    def put(self, argumentList, returnType, code, builtIn=False):
+    def put(self, context, argumentList, returnType, code, builtIn=False, isConstructor=False):
         current_level = self.argumentTree
 
         if builtIn:
             codeIndex = code
         else:
-            codeIndex = ii.Interpreter.registerCodeTree(code)
+            # Register code tree
+            print("Current functions = {0}".format(context.functions))
+            codeIndex = len(context.functions)
+            context.functions.append(code)
+            print("Updated functions = {0}".format(context.functions))
 
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
@@ -27,11 +31,11 @@ class Function(object):
                     # Variadic
                     current_level[arg.type] = current_level
             else:
-                current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn)
+                current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn, isConstructor)
             current_level = current_level.setdefault(arg.type, {})
             
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn)
+        current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn, isConstructor)
 
     def get(self, callArgs):
         current_level = self.argumentTree

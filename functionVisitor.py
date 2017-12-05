@@ -14,9 +14,15 @@ import evalVisitor
 
 class functionVisitor(ParseTreeVisitor):
 
-    def __init__(self, parser):
+    def __init__(self, parser, functionContext, className="", constructorContext=None):
         self.parser = parser
+        self.functionContext = functionContext
+        self.className = className
         self.evalV = ii.Interpreter.visitor
+        if (constructorContext is not None):
+            self.constructorContext = constructorContext
+        else:
+            self.constructorContext = functionContext
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
@@ -39,7 +45,10 @@ class functionVisitor(ParseTreeVisitor):
         else:
             array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
         argumentList = self.visitParameters(ctx.parameters())
-        ii.Interpreter.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree)
+        isConstructor = (function_name == self.className)
+
+        myContext = self.constructorContext if (isConstructor) else self.functionContext
+        myContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
         return True
 
 
@@ -349,7 +358,7 @@ class functionVisitor(ParseTreeVisitor):
             self.parser.CHAR: Type.CHAR,
             self.parser.STRING: Type.STRING,
             self.parser.BOOLEAN: Type.BOOL,
-            self.parser.NAME: Type.REFERENCE
+            self.parser.NAME: Type.STRUCT
         }.get(lextype, Type.NULL)
 
     def getArrayLength(self, bracketList):

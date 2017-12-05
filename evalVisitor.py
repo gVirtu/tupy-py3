@@ -587,16 +587,21 @@ class evalVisitor(ParseTreeVisitor):
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
         names = ctx.NAME()
         className = names[0].getText()
+        print("Visiting a class named {0}".format(className))
         classContext = Context.Context(0, True, struct=className)
 
         if (len(names) > 1):
             inherited = ii.Interpreter.getClassContext(names[1].getText()) 
+            print("Inheriting from {0}".format(names[1].getText()))
             classContext.locals = copy.deepcopy(inherited.locals)
+            classContext.locals.context = classContext
+            classContext.functions = copy.copy(inherited.functions)
 
         ii.Interpreter.putClassContext(className, classContext)
-        ii.Interpreter.pushContext(classContext)
+        originalContext = ii.Interpreter.callStack.top()
+        ii.Interpreter.callStack.push(classContext)
 
-        funcvisitor = fv.functionVisitor(self.parser)
+        funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
         funcvisitor.visitBlock(ctx.block())
         return self.visitBlock(ctx.block())
 

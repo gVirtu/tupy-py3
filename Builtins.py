@@ -24,7 +24,7 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
 
     argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, defaults))
     args = [Argument.Argument(*params) for params in argParamList]
-    ii.Interpreter.defineFunction(name, ret, args, name, True)
+    ii.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
 # BUILT-IN FUNCTIONS
 

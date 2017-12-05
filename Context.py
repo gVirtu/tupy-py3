@@ -55,4 +55,4 @@ class Context(object):
         return result
 
     def __str__(self):
-        return "CONTEXT<{0}> <<{1}>>".format(self.depth, str(self.locals))
+        return "CONTEXT<{0}> <<{1}>>".format(self.depth, str(self.functions))

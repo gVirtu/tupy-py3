@@ -861,8 +861,98 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 29)
 
+    def test_class_method_attribute(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro contador\n"
+                                     "\tincrementa():\n"
+                                     "\t\tcontador <- contador+1\n"
+                                     "Teste t\n"
+                                     "t.incrementa(); t.incrementa();\n"
+                                     "t.contador\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 2)
+
+    def test_class_inheritance(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro func(inteiro a, inteiro b):\n"
+                                     "\t\tretornar a*a+b*b\n"
+                                     "\n"
+                                     "tipo Teste2(Teste):\n"
+                                     "\tinteiro func2(inteiro a):\n"
+                                     "\t\tretornar a*a*a\n"
+                                     "\n"
+                                     "Teste2 t\n"
+                                     "t.func(5,2), t.func2(10)\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 29)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 1000)
+
+    def test_class_constructor(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro x, y\n"
+                                     "\tTeste(inteiro a, inteiro b):\n"
+                                     "\t\tx <- a\n"
+                                     "\t\ty <- b\n"
+                                     "\n"
+                                     "\tinteiro soma():\n"
+                                     "\t\tretornar x+y\n"
+                                     "Teste t <- Teste(10, 50)\n"
+                                     "t.soma()\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 60)
+
+    def test_class_multiple_constructors(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro x\n"
+                                     "\tTeste(inteiro a, inteiro b):\n"
+                                     "\t\tx <- a*b\n"
+                                     "\n"
+                                     "\tTeste():\n"
+                                     "\t\tx <- 10\n"
+                                     "Teste t, u <- Teste(5, 4), Teste()\n"
+                                     "t.x, u.x\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 20)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 10)
+
+    def test_function_class_parameters(self):
+        ret = Interpreter.interpret(("tipo Ponto:\n"
+                                     "\tinteiro x, y\n"
+                                     "\tPonto(inteiro a, inteiro b):\n"
+                                     "\t\tx, y <- a, b\n"
+                                     "\n"
+                                     "inteiro distancia(Ponto P, Ponto Q):\n"
+                                     "\tretornar (P.x - Q.x)^2 + (P.y - Q.y)^2\n"
+                                     "Ponto A, B <- Ponto(0, 0), Ponto(30, 40)\n"
+                                     "distancia(A, B)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 2500)
+
     def test_class_errors(self):
         self.assertRaises(TypeError, Interpreter.interpret, "Aluno a\n")
+        self.assertRaises(NameError, Interpreter.interpret, 
+                         ("tipo Teste:\n"
+                          "\tinteiro func(inteiro a, inteiro b):\n"
+                          "\t\tretornar a*a+b*b\n"
+                          "Teste t\n"
+                          "func(5,2)\n"
+                          ))
+        self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("tipo Quadrado:\n"
+                          "\tinteiro a <- 5\n"
+                          "tipo Círculo:\n"
+                          "\tinteiro b <- 6\n"
+                          "Quadrado Q\n"
+                          "Círculo C\n"
+                          "Q <- C\n"
+                          ))
         
 if __name__ == '__main__':
     unittest.main()

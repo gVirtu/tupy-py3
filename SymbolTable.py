@@ -40,7 +40,8 @@ class SymbolTable(object):
         data.update_roottype(self.datatype[name])
         self.data[(name, depth)] = data
 
-    def defineFunction(self, name, returnType, argumentList, code, builtIn=False):
+    def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
+        print("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
         self.datatype[name] = Type.Type.FUNCTION
         self.subscriptlist[name] = None
         depth = self.context.depth
@@ -54,7 +55,7 @@ class SymbolTable(object):
             if entry.is_ambiguous(argumentList):
                 raise NameError("Overloaded function {0} is ambiguous!".format(name))
             else:
-                entry.put(argumentList, returnType, code, builtIn)
+                entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
 
     def put(self, name, instance, trailerList):
         if self.hasKey(name):
@@ -248,7 +249,7 @@ class SymbolTable(object):
         else:
             depth = self.declaredDepth[name]
             current_data = self.data[(name, depth)]
-            self.data[(name, depth)].print_roottype()
+            # self.data[(name, depth)].print_roottype()
 
             (inst, parent) = Variable.Variable.retrieveWithTrailers(current_data, trailerList)
 
@@ -258,7 +259,11 @@ class SymbolTable(object):
 
             print("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
 
-            return inst.roottype == instance.roottype
+            equivalent_types = (inst.roottype == instance.roottype)
+            if (inst.roottype == Type.Type.STRUCT and equivalent_types):
+                return inst.value.structName == instance.value.structName
+            else:
+                return equivalent_types
             # if instance.is_pure_array():
             #     if instance.array_length() > 0:
             #         return self.hasValidType(name, instance.array_get(0).get())
@@ -344,7 +349,7 @@ class SymbolTable(object):
             if name in self.context.refMappings:
                 (refName, refDepth) = self.context.refMappings[name]
                 self.data[(refName, refDepth)] = self.data[(name, depth)]
-            self.data[(name, depth)].print_roottype()
+            # self.data[(name, depth)].print_roottype()
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")

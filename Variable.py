@@ -42,8 +42,8 @@ class Variable(object):
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
             elif ttype == TrailerType.MEMBER:
+                ii.Interpreter.callStack.push(ret.value)
                 ret = ret.value.locals.get(tid)
-                ii.Interpreter.pushContext(ret.value)
                 classContextsPushed = classContextsPushed+1
             else:
                 pass
@@ -94,15 +94,7 @@ class Variable(object):
         elif datatype == Type.TUPLE:
             return Instance.Instance(datatype, ())
         elif datatype == Type.STRUCT:
-            objContext = Context.Context(0, True, struct=className)
-            try:
-                classContext = ii.Interpreter.getClassContext(className)
-                objContext.locals = copy.deepcopy(classContext.locals)
-                print("Now my locals are {0}".format(objContext.locals))
-                objContext.functions = copy.copy(classContext.functions)
-            except e:
-                raise TypeError("Class {0} does not exist!".format(className))
-            return Instance.Instance(datatype, objContext, className=className)
+            return ii.Interpreter.newClassInstance(className)
         else:
             return Instance.Instance(datatype, 0)
 

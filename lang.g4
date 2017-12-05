@@ -524,7 +524,7 @@ CONSTANT: 'constante';
 
 NEWLINE
  : ( {self.atStartOfInput()}?   SPACES
-   | ( '\r'? '\n' | '\r' ) SPACES?
+   | ( '\r'? '\n' | '\r' )+ SPACES?
    )
    {
     newLine = re.sub(r"[^\r\n]+", "", self.text)

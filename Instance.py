@@ -55,17 +55,17 @@ class Instance(object):
         return self.collection_size
 
     def update_roottype(self, new_type):
-        print("Updating root type of {0} to {1}".format(self.value, new_type))
+        #print("Updating root type of {0} to {1}".format(self.value, new_type))
         self.roottype = new_type
         if self.type == Type.ARRAY or self.type == Type.TUPLE:
             for element in self.value:
                 element.get().update_roottype(new_type)
 
-    def print_roottype(self):
-        print("The root type of {0} is {1}".format(self.value, self.roottype))
-        if self.type == Type.ARRAY or self.type == Type.TUPLE:
-            for element in self.value:
-                element.get().print_roottype()
+    # def print_roottype(self):
+    #     print("The root type of {0} is {1}".format(self.value, self.roottype))
+    #     if self.type == Type.ARRAY or self.type == Type.TUPLE:
+    #         for element in self.value:
+    #             element.get().print_roottype()
 
     def array_get(self, pos):
         return self.value[pos]

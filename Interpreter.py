@@ -44,7 +44,7 @@ class Interpreter(object):
         treenode = getattr(parser, rule)
         tree = treenode()
         cls.visitor.setParser(parser)
-        funcscanner = functionVisitor(parser)
+        funcscanner = functionVisitor(parser, cls.callStack.top())
         print("Using rule " + rule)
         funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
         funcvisit(tree)
@@ -55,8 +55,9 @@ class Interpreter(object):
 
     @classmethod
     def executeBlock(cls, function, callArgs):
-        (codeIndex, argumentList, returnType, isBuiltIn) = function.get(callArgs)
-        print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}".format(codeIndex, argumentList, returnType, isBuiltIn))
+        (codeIndex, argumentList, returnType, isBuiltIn, isConstructor) = function.get(callArgs)
+        print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
+                codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
@@ -98,7 +99,14 @@ class Interpreter(object):
             return builtInFunc(*argValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
-            return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
+            if (isConstructor):
+                classInstance = cls.newClassInstance(function.name)
+                cls.callStack.push(classInstance.value)
+                cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
+                cls.callStack.pop()
+                return classInstance;
+            else:
+                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
 
     @classmethod
     def getDepth(cls, name):
@@ -118,6 +126,19 @@ class Interpreter(object):
         return name in cls.callStack.top().classes
 
     @classmethod
+    def newClassInstance(cls, name):
+        objContext = Context(0, True, struct=name)
+        try:
+            classContext = cls.getClassContext(name)
+            objContext.locals = copy.deepcopy(classContext.locals)
+            objContext.locals.context = objContext
+            print("Now my locals are {0}".format(objContext.locals))
+            objContext.functions = copy.copy(classContext.functions)
+        except e:
+            raise TypeError("Class {0} does not exist!".format(name))
+        return Instance.Instance(Type.STRUCT, objContext, className=name)
+
+    @classmethod
     def loadSymbol(cls, name):
         if cls.callStack.top().locals.hasKey(name):
             return cls.callStack.top().locals.get(name)
@@ -135,24 +156,12 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
-    def defineFunction(cls, name, returntype, argumentList, codeTree, builtIn=False):
-        print("Declaring function "+name+" that returns "+str(returntype)+" with arguments "+str(argumentList))
-        return cls.callStack.top().locals.defineFunction(name, returntype, argumentList, codeTree, builtIn)
-
-    @classmethod
     def mapRefParam(cls, name, ref, depth):
         cls.callStack.top().refMappings[name] = (ref, depth)
 
     @classmethod
-    def registerCodeTree(cls, codeTree):
-        print("Current functions = {0}".format(cls.callStack.top().functions))
-        funcIndex = len(cls.callStack.top().functions)
-        cls.callStack.top().functions.append(codeTree)
-        return funcIndex
-
-    @classmethod
     def retrieveCodeTree(cls, functionIndex):
-        print("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top()))
+        print("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top().functions))
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
