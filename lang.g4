@@ -470,7 +470,7 @@ NULL : 'nulo';
 TRUE : 'verdadeiro';
 FALSE : 'falso';
 CLASS : 'tipo';
-CONTINUE : 'continuar';
+CONTINUE : 'avançar' | 'avancar';
 BREAK : 'parar';
 ENUM : 'enumeração' | 'enumeracao';
 STEP : 'passo';

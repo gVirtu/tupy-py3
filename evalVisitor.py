@@ -238,6 +238,8 @@ class evalVisitor(ParseTreeVisitor):
         iterations = 0
         while( bool(self.visitTest(testTree).get().value) ):
             ret = self.visitBlock(ctx.block())
+            if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
+                    break
             iterations += 1
             if iterations > ii.Interpreter.iterationLimit:
                 raise RuntimeError("Iteration limit reached!")
@@ -280,6 +282,8 @@ class evalVisitor(ParseTreeVisitor):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
                 ret = self.visitBlock(block)
+                if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
+                    break
 
             currentLiteral = v.Literal(ii.Interpreter.loadSymbol(names[0]))
             currentInstance = (currentLiteral.add(steps[0])).get()
@@ -293,9 +297,13 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext, injectList=[], returnType=None):
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
+        breakable  = returnable \
+                  or isinstance(ctx.parentCtx, langParser.ForStatementContext) \
+                  or isinstance(ctx.parentCtx, langParser.WhileStatementContext)
         isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
         if not isClassDef:
-            ii.Interpreter.pushFrame(returnable=returnable, returnType=returnType)
+            ii.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
+                                     returnType=returnType)
         print("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceDepth, literal) in injectList:
@@ -730,9 +738,9 @@ class evalVisitor(ParseTreeVisitor):
             print("after visit I got {0}".format(ret))
             flow = ii.Interpreter.flow
             if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
-                #TODO: handle CONTINUE with ii.Interpreter.lastEvent
                 print("BREAKING OR CONTINUING")
-                ii.Interpreter.doStep()
+                if ii.Interpreter.canBreak():
+                    ii.Interpreter.doStep()
                 break 
             elif flow == ii.FlowEvent.RETURN:
                 ret = ii.Interpreter.returnData

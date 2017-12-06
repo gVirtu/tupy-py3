@@ -305,7 +305,7 @@ class langParser ( Parser ):
 
     literalNames = [ "<INVALID>", "'retornar'", "'usando'", "'se'", "<INVALID>", 
                      "'enquanto'", "'para'", "'ou'", "'e'", "<INVALID>", 
-                     "'nulo'", "'verdadeiro'", "'falso'", "'tipo'", "'continuar'", 
+                     "'nulo'", "'verdadeiro'", "'falso'", "'tipo'", "<INVALID>", 
                      "'parar'", "<INVALID>", "'passo'", "<INVALID>", "'.'", 
                      "'..'", "'|'", "'('", "')'", "','", "':'", "';'", "'^'", 
                      "'<-'", "'['", "']'", "'||'", "'xor'", "'&&'", "'<<'", 

@@ -165,9 +165,9 @@ class Interpreter(object):
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
-    def pushFrame(cls, returnable=False, returnType=None):
+    def pushFrame(cls, returnable=False, breakable=False, returnType=None):
         print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
-        newContext = Context(cls.callStack.size(), returnable, returnType)
+        newContext = Context(cls.callStack.size(), returnable, breakable, returnType)
         newContext.locals = copy.deepcopy(cls.callStack.top().locals)
         newContext.locals.context = newContext
         cls.pushContext(newContext)
@@ -218,6 +218,11 @@ class Interpreter(object):
     @classmethod
     def canReturn(cls):
         return cls.callStack.top().returnable
+
+    # Is true for for/while loops, function contexts and the global context
+    @classmethod
+    def canBreak(cls):
+        return cls.callStack.top().breakable
 
     @classmethod
     def getReturnType(cls):

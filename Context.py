@@ -7,7 +7,7 @@ import copy
 # They are stored in the Call Stack.
 
 class Context(object):
-    def __init__(self, depth, returnable=False, returnType=(None, 0), struct=None):
+    def __init__(self, depth, returnable=False, breakable=False, returnType=(None, 0), struct=None):
         # Depth describes how nested the current code block is.
         # Global context has a depth of 0.
         self.depth = depth
@@ -17,8 +17,11 @@ class Context(object):
 
         # When a RETURN is found, contexts are popped from the Call Stack
         # until a returnable context is found. An example of a non-returnable
-        # context is a code block inside an if/else clause.
+        # context is a code block inside an if/else clause. Similar handling
+        # is done for BREAK/CONTINUE: for/while loops are breakable but not
+        # returnable.
         self.returnable = returnable
+        self.breakable = breakable
 
         # When a returnable context (e.g. a function) is found, its returnType
         # is stored so that type checks can be made before returning.
@@ -48,6 +51,7 @@ class Context(object):
         setattr(result, 'depth', copy.copy(self.depth))
         setattr(result, 'locals', copy.deepcopy(self.locals, memo))
         setattr(result, 'returnable', copy.copy(self.returnable))
+        setattr(result, 'breakable', copy.copy(self.breakable))
         setattr(result, 'functions', copy.copy(self.functions))
         setattr(result, 'refMappings', copy.copy(self.refMappings))
         setattr(result, 'classes', copy.copy(self.classes))

@@ -84,7 +84,6 @@ DEDENT=75
 'verdadeiro'=11
 'falso'=12
 'tipo'=13
-'continuar'=14
 'parar'=15
 'passo'=17
 '.'=19

@@ -1013,6 +1013,30 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 126)
 
+    def test_break(self):
+        ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"
+                                     "enquanto verdadeiro:\n"
+                                     "\ti <- i + 1\n"
+                                     "\ttot <- tot + i\n"
+                                     "\tse tot > 10:\n"
+                                     "\t\tparar\n"
+                                     "\ttot <- tot - 1\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 11)
+
+    def test_continue(self):
+        ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"
+                                     "para i <- 1..10:\n"
+                                     "\ttot <- tot + 1\n"
+                                     "\tse i mod 2 > 0:\n"
+                                     "\t\tavançar\n"
+                                     "\ttot <- tot + i\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 40)
         
 if __name__ == '__main__':
     unittest.main()
