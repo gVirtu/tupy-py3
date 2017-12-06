@@ -839,6 +839,11 @@ class TestEvalVisitor(unittest.TestCase):
                          ("enquanto verdadeiro:\n"
                           "\t 1\n"
                          ))
+        self.assertRaises(RuntimeError, Interpreter.interpret, 
+                         ("inteiro i\n"
+                          "para i <- 1..0 passo 1\n"
+                          "\t1\n"
+                         ))
 
     def test_simple_class(self):
         ret = Interpreter.interpret(("tipo Aluno:\n"
@@ -953,6 +958,61 @@ class TestEvalVisitor(unittest.TestCase):
                           "Círculo C\n"
                           "Q <- C\n"
                           ))
+
+    def test_for_loop(self):
+        ret = Interpreter.interpret(("inteiro i\n"
+                                     "inteiro soma <- 0\n"
+                                     "para i <- 0..9:\n"
+                                     "\tsoma <- soma + i\n"
+                                     "soma\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 45)
+        ret = Interpreter.interpret(("inteiro i\n"
+                                     "inteiro fat <- 362880\n"
+                                     "para i <- 9..1 passo -1:\n"
+                                     "\tfat <- fat / i\n"
+                                     "fat\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1)
+        ret = Interpreter.interpret(("inteiro i, j\n"
+                                     "inteiro tot <- 0\n"
+                                     "para i, j <- 1..3, 1..3:\n"
+                                     "\ttot <- tot + i + j\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 36)
+        ret = Interpreter.interpret(("inteiro i, j\n"
+                                     "inteiro tot <- 0\n"
+                                     "para i <- 1..3:\n"
+                                     "\tpara j <- 1..i:\n"
+                                     "\t\ttot <- tot + j\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 10)
+        ret = Interpreter.interpret(("inteiro i\n"
+                                     "inteiro tot <- 0\n"
+                                     "para i <- 1..10 passo i:\n"
+                                     "\ttot <- tot + i\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 15)
+        ret = Interpreter.interpret(("inteiro i, j, k\n"
+                                     "inteiro tot <- 0\n"
+                                     "para i, j, k <- 1..3, 1..3, 1..3:\n"
+                                     "\tse i = j e j = k:\n"
+                                     "\t\ttot <- tot - (i+j+k)\n"
+                                     "\tsenao:\n"
+                                     "\t\ttot <- tot + (i+j+k)\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 126)
+
         
 if __name__ == '__main__':
     unittest.main()

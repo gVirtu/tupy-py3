@@ -152,7 +152,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#expressionList.
     def visitExpressionList(self, ctx:langParser.ExpressionListContext):
-        return self.visitChildren(ctx)
+        return tuple(self.visitExpression(expr) for expr in ctx.expression())
 
 
     # Visit a parse tree produced by langParser#testOrExpression.
@@ -205,7 +205,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#nameList.
     def visitNameList(self, ctx:langParser.NameListContext):
-        return self.visitChildren(ctx)
+        return tuple(name.getText() for name in ctx.NAME())
 
 
     # Visit a parse tree produced by langParser#compoundStatement.
@@ -246,8 +246,49 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#forStatement.
     def visitForStatement(self, ctx:langParser.ForStatementContext):
-        return self.visitChildren(ctx)
+        names = self.visitNameList(ctx.nameList())
+        ranges = self.visitRangeList(ctx.rangeList())
+        if (ctx.expressionList() is None):
+            steps = [v.Literal(Instance.Instance(Type.INT, 1))] * len(names)
+        else:
+            steps = self.visitExpressionList(ctx.expressionList())
+        stopFuncs = []
+        stopFuncGT = lambda iterator, limit : (iterator > limit)
+        stopFuncLT = lambda iterator, limit : (iterator < limit)
+        
+        if (len(names) == len(ranges) and len(ranges) == len(steps)):
+            for r in ranges:
+                if (r[1].value >= r[0].value):
+                    stopFuncs.append(stopFuncGT)
+                else:
+                    stopFuncs.append(stopFuncLT)
 
+            ret = self.handleInnerFor(None, names, ranges, steps, stopFuncs, ctx.block())
+
+            return ret
+        else:
+            raise SyntaxError("For loop must have the same number of iterators and ranges!")
+
+    def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block):
+        remaining = len(names)
+        ii.Interpreter.storeSymbol(names[0], ranges[0][0], [])
+        currentInstance = ranges[0][0]
+        iterations = 0
+        while (not stopFuncs[0](currentInstance.value, ranges[0][1].value)):
+            print("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
+            if (remaining > 1):
+                self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
+            else:
+                ret = self.visitBlock(block)
+
+            currentLiteral = v.Literal(ii.Interpreter.loadSymbol(names[0]))
+            currentInstance = (currentLiteral.add(steps[0])).get()
+            ii.Interpreter.storeSymbol(names[0], currentInstance, [])
+
+            iterations += 1
+            if iterations > ii.Interpreter.iterationLimit:
+                raise RuntimeError("Iteration limit reached!")  
+        return ret
 
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext, injectList=[], returnType=None):
@@ -364,7 +405,9 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#loopRange.
     def visitLoopRange(self, ctx:langParser.LoopRangeContext):
-        return self.visitChildren(ctx)
+        begin_inst = self.visitExpression(ctx.expression(0)).get()
+        end_inst = self.visitExpression(ctx.expression(1)).get()
+        return (begin_inst, end_inst)
 
 
     # Visit a parse tree produced by langParser#rangeDelimiter.
@@ -374,7 +417,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#rangeList.
     def visitRangeList(self, ctx:langParser.RangeListContext):
-        return self.visitChildren(ctx)
+        return tuple(self.visitLoopRange(rng) for rng in ctx.loopRange())
 
 
     # Visit a parse tree produced by langParser#expression.

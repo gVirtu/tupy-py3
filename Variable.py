@@ -217,6 +217,10 @@ class Variable(object):
     def resultType(self, a, b):
         if (a == Type.REFERENCE or b == Type.REFERENCE):
             raise TypeError("Cannot operate on instance of type REFERENCE!")
+        elif (a == Type.STRUCT or b == Type.STRUCT):
+            raise TypeError("Cannot operate on STRUCTS!")
+        elif (a == Type.FUNCTION or b == Type.FUNCTION):
+            raise TypeError("Cannot operate on FUNCTIONS!")
         elif (a == Type.NULL or b == Type.NULL):
             raise TypeError("Cannot operate on instance of type NULL!")
         # elif (a == Type.RANGE or b == Type.RANGE):
