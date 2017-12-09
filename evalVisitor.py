@@ -139,6 +139,13 @@ class evalVisitor(ParseTreeVisitor):
                                 ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
                             else:
                                 ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
+
+                            if (is_reference_assign):
+                                if isinstance(rval, v.Symbol):
+                                    ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), rval.trailers, lval.trailers)
+                                    ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), lval.trailers, rval.trailers)
+                                else:
+                                    error(SyntaxError, "Cannot reference a literal!", ctx)
                         else:
                             error(SyntaxError, "Cannot assign to literal!", ctx)
                 else:
@@ -312,9 +319,6 @@ class evalVisitor(ParseTreeVisitor):
         print("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceData, literal) in injectList:
-            (referenceDepth, referenceTrailers) = referenceData
-            if (referenceDepth > -1): #Pass-by-reference only
-                ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)    
             inst = literal.get()
 
             if inst.array_dimensions != arrayDimensions:
@@ -331,6 +335,11 @@ class evalVisitor(ParseTreeVisitor):
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
             ii.Interpreter.declareSymbol(name, datatype, subscriptList, className)
             ii.Interpreter.storeSymbol(name, inst, [])
+
+            (referenceDepth, referenceTrailers) = referenceData
+            
+            if (referenceDepth > -1): #Pass-by-reference only
+                ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
             
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())

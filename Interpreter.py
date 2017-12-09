@@ -23,6 +23,7 @@ class FlowEvent(Enum):
 class Interpreter(object):
     outStream = StringIO()
     iterationLimit = 1000
+    classContextDepth = 9999999
 
     @classmethod
     def initialize(cls):
@@ -128,7 +129,7 @@ class Interpreter(object):
 
     @classmethod
     def newClassInstance(cls, name):
-        objContext = Context(0, True, struct=name)
+        objContext = Context(cls.classContextDepth, True, struct=name)
         try:
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
@@ -157,12 +158,14 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
-    def mapRefParam(cls, name, ref, depth, trailers):
-        refData = (ref, depth, trailers)
-        if name in cls.callStack.top().refMappings:
-            cls.callStack.top().refMappings[name].append(refData)
+    def mapRefParam(cls, name, ref, depth, trailers, sourceTrailers = []):
+        srcDepth = cls.getDepth(name)
+        entry = (name, srcDepth)
+        refData = (ref, depth, trailers, sourceTrailers)
+        if entry in cls.callStack.top().refMappings:
+            cls.callStack.top().refMappings[entry].append(refData)
         else:
-            cls.callStack.top().refMappings[name] = [refData]
+            cls.callStack.top().refMappings[entry] = [refData]
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):

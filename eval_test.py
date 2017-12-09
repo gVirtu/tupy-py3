@@ -1047,14 +1047,25 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertArrayEquals(ret, Type.INT, [1, 2, 10, 4, 5])  
 
-    # def test_reference_assign(self):
-    #     ret = Interpreter.interpret(("inteiro a, b\n"
-    #                                  "b <- ref a\n"
-    #                                  "a <- 5\n"
-    #                                  "b\n"
-    #                                 ))
-    #     self.assertEqual(ret.type, Type.INT)
-    #     self.assertEqual(ret.value, 5)
+    def test_reference_assign(self):
+        ret = Interpreter.interpret(("inteiro a, b\n"
+                                     "b <- ref a\n"
+                                     "a <- 5\n"
+                                     "b\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
+
+    def test_reference_assign_pow(self):
+        ret = Interpreter.interpret(("inteiro a <- 100\n"
+                                     "inteiro func(inteiro x):\n"
+                                     "\tinteiro y <- ref a\n"
+                                     "\tinteiro a <- 10\n"
+                                     "\tretornar x+y\n"
+                                     "func(a)\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 200)
         
 if __name__ == '__main__':
     unittest.main()
