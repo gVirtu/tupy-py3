@@ -136,9 +136,9 @@ class evalVisitor(ParseTreeVisitor):
                         rval = rhs[ind]
                         if isinstance(lval, v.Symbol):
                             if isDeclaration:
-                                ii.Interpreter.storeSymbol(lval.name, rval.get(), [], is_reference_assign)
+                                ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
                             else:
-                                ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers, is_reference_assign)
+                                ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
                         else:
                             error(SyntaxError, "Cannot assign to literal!", ctx)
                 else:
@@ -311,9 +311,10 @@ class evalVisitor(ParseTreeVisitor):
                                      returnType=returnType)
         print("INJECT LIST IS: {0}".format(injectList))
 
-        for (name, datatype, arrayDimensions, referenceDepth, literal) in injectList:
+        for (name, datatype, arrayDimensions, referenceData, literal) in injectList:
+            (referenceDepth, referenceTrailers) = referenceData
             if (referenceDepth > -1): #Pass-by-reference only
-                ii.Interpreter.mapRefParam(name, literal.name, referenceDepth)    
+                ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)    
             inst = literal.get()
 
             if inst.array_dimensions != arrayDimensions:

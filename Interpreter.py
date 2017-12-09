@@ -66,8 +66,9 @@ class Interpreter(object):
             argValues.append(a.defaultValue)
 
         try:
-            argPassage = [ ( cls.getDepth(argValues[ind].name) if (a.passByRef) else -1 ) 
-                            for ind, a in enumerate(argumentList) ]
+            argPassage = [ ( (cls.getDepth(argValues[ind].name), argValues[ind].trailers)
+                              if (a.passByRef) else (-1, []) ) 
+                                for ind, a in enumerate(argumentList) ]
         except Exception:
             # We can only access "name" in argValues above if it's a Symbol.
             # Otherwise we are thrown an Exception.
@@ -146,9 +147,9 @@ class Interpreter(object):
             raise NameError(name+" is not defined!")
 
     @classmethod
-    def storeSymbol(cls, name, instance, trailerList, isReference=False):
+    def storeSymbol(cls, name, instance, trailerList):
         print("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
-        return cls.callStack.top().locals.put(name, instance, trailerList, isReference)
+        return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className):
@@ -156,8 +157,12 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
-    def mapRefParam(cls, name, ref, depth):
-        cls.callStack.top().refMappings[name] = (ref, depth)
+    def mapRefParam(cls, name, ref, depth, trailers):
+        refData = (ref, depth, trailers)
+        if name in cls.callStack.top().refMappings:
+            cls.callStack.top().refMappings[name].append(refData)
+        else:
+            cls.callStack.top().refMappings[name] = [refData]
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):
@@ -190,12 +195,6 @@ class Interpreter(object):
             print("Top before merge:\n{0}".format(str(cls.callStack.top())))
             cls.callStack.top().locals.merge(prev.locals)
             print("Top after merge:\n{0}".format(str(cls.callStack.top())))
-        # Iterate through mapped pass-by-reference symbol names
-        # and hand over their values to their referenced symbols
-        #for name, ref in prev.refMappings.items():
-        #    print("REFMAPPING {0} TO {1}...".format(name, ref))
-        #    inst = prev.locals.get(name)
-        #    cls.callStack.top().locals.put(ref, inst, [])
 
         return prev
 

@@ -57,10 +57,10 @@ class SymbolTable(object):
             else:
                 entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
 
-    def put(self, name, instance, trailerList, isReference=False):
+    def put(self, name, instance, trailerList):
         if self.hasKey(name):
             if self.hasValidType(name, instance, trailerList):
-                self.updateData(name, instance, trailerList, isReference)
+                self.updateData(name, instance, trailerList)
             else:
                 raise TypeError("Assignment types do not match!")
         else:
@@ -272,20 +272,23 @@ class SymbolTable(object):
             # else:
             #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
-    def updateData(self, name, instance, trailers, isReference):
+    def updateData(self, name, instance, trailers, forceDepth=None):
         # This is a call to assign some INSTANCE to some NAME
         # with a list of trailers. e.g.: A[5,5] <- 10
         # A is the NAME, 10 is the INSTANCE, and [(subscript, 5), (subscript, 5)] are the trailers.
         # Note that when a name is DECLARED, the trailers won't show up here.
         # e.g.: inteiro A[5,5] <- ... # No trailers! Equivalent to "inteiro A[5,5]; A <- ..."
 
-        depth = self.declaredDepth[name]
+        if (forceDepth is None):
+            depth = self.declaredDepth[name]
+        else:
+            depth = forceDepth
+
         full_data = self.data[(name, depth)]
         target_subscript = None
 
-        if (not isReference):
-            old_instance = instance
-            instance = copy.deepcopy(old_instance)
+        old_instance = instance
+        instance = copy.deepcopy(old_instance)
 
         for ind, trailer in enumerate(trailers):
             if trailer[0] == Type.TrailerType.MEMBER:
@@ -294,7 +297,7 @@ class SymbolTable(object):
                 # SymbolTable take over.
                 print("Found call to member {0} at index {1}".format(trailer[1], ind))
                 class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
-                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], isReference)
+                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):])
 
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
@@ -346,8 +349,10 @@ class SymbolTable(object):
                 self.data[(name, depth)] = instance
             # Update pass-by-reference mappings
             if name in self.context.refMappings:
-                (refName, refDepth) = self.context.refMappings[name]
-                self.data[(refName, refDepth)] = self.data[(name, depth)]
+                refsList = self.context.refMappings[name]
+                for (refName, refDepth, refTrailers) in refsList:
+                    self.updateData(refName, self.data[(name, depth)], refTrailers, forceDepth=refDepth)
+                # self.data[(refName, refDepth)] = self.data[(name, depth)]
             # self.data[(name, depth)].print_roottype()
             return True
         else:
