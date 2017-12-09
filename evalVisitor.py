@@ -109,37 +109,42 @@ class evalVisitor(ParseTreeVisitor):
         # Only for return purposes when no assignment is done
         lhs = rhs 
         current_child = 1
+        is_reference_assign = False
         if (isDeclaration and childcount == current_child):
             self.doDeclare(lhs, decltype, declaredClass)
         
-        i_children = iter(reversed(list(ctx.testOrExpressionList())))
+        i_children = iter(reversed(list(ctx.getChildren())))
         next(i_children) # all except last
         
         for c in i_children:
-            # Visit expression lists pairwise from right to left
-            lhs = self.visitTestOrExpressionList(c)
-            current_child += 1
-            if (isDeclaration and childcount == current_child):
-                self.doDeclare(lhs, decltype, declaredClass)
+            if isinstance(c, TerminalNode) and c.getSymbol().type == self.parser.REF:
+                is_reference_assign = True
+            elif isinstance(c, langParser.TestOrExpressionListContext):
+                # Visit expression lists pairwise from right to left
+                lhs = self.visitTestOrExpressionList(c)
+                current_child += 1
+                if (isDeclaration and childcount == current_child):
+                    self.doDeclare(lhs, decltype, declaredClass)
 
-            print("VISITTESTOREXPRESSIONSTATEMENT")
-            print("LHS = "+str(lhs))
-            print("RHS = "+str(rhs))
-            if (len(lhs) == len(rhs)):
-                for ind in range(0, len(lhs)):
-                    print("ind="+str(ind))
-                    lval = lhs[ind]
-                    rval = rhs[ind]
-                    if isinstance(lval, v.Symbol):
-                        if isDeclaration:
-                            ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
+                print("VISITTESTOREXPRESSIONSTATEMENT")
+                print("LHS = "+str(lhs))
+                print("RHS = "+str(rhs))
+                if (len(lhs) == len(rhs)):
+                    for ind in range(0, len(lhs)):
+                        print("ind="+str(ind))
+                        lval = lhs[ind]
+                        rval = rhs[ind]
+                        if isinstance(lval, v.Symbol):
+                            if isDeclaration:
+                                ii.Interpreter.storeSymbol(lval.name, rval.get(), [], is_reference_assign)
+                            else:
+                                ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers, is_reference_assign)
                         else:
-                            ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
-                    else:
-                        error(SyntaxError, "Cannot assign to literal!", ctx)
-            else:
-                error(ValueError, "Cannot assign expression lists of different sizes!", ctx)
-            rhs = lhs
+                            error(SyntaxError, "Cannot assign to literal!", ctx)
+                else:
+                    error(ValueError, "Cannot assign expression lists of different sizes!", ctx)
+                rhs = lhs
+                is_reference_assign = False
             
         if isDeclaration:
             # Bypass trailers during Instance.Instance retrieval. e.g.:

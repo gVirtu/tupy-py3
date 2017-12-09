@@ -186,7 +186,7 @@ dataType
 /// expressionStatement: expressionList (augassign (yield_expr|testList) |
 ///                      ('=' (yield_expr|expressionList))*)
 testOrExpressionStatement
- : testOrExpressionList ( ASSIGN testOrExpressionList )*                      
+ : testOrExpressionList ( ASSIGN REF? testOrExpressionList )*                      
  ;           
 
 /* LISTA DE EXPRESSÕES */

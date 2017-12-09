@@ -1037,6 +1037,15 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 40)
+
+    def test_reference_assign(self):
+        ret = Interpreter.interpret(("inteiro a, b\n"
+                                     "b <- ref a\n"
+                                     "a <- 5\n"
+                                     "b\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 5)
         
 if __name__ == '__main__':
     unittest.main()

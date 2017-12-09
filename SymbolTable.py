@@ -57,10 +57,10 @@ class SymbolTable(object):
             else:
                 entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
 
-    def put(self, name, instance, trailerList):
+    def put(self, name, instance, trailerList, isReference=False):
         if self.hasKey(name):
             if self.hasValidType(name, instance, trailerList):
-                self.updateData(name, instance, trailerList)
+                self.updateData(name, instance, trailerList, isReference)
             else:
                 raise TypeError("Assignment types do not match!")
         else:
@@ -272,7 +272,7 @@ class SymbolTable(object):
             # else:
             #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
-    def updateData(self, name, instance, trailers):
+    def updateData(self, name, instance, trailers, isReference):
         # This is a call to assign some INSTANCE to some NAME
         # with a list of trailers. e.g.: A[5,5] <- 10
         # A is the NAME, 10 is the INSTANCE, and [(subscript, 5), (subscript, 5)] are the trailers.
@@ -283,10 +283,9 @@ class SymbolTable(object):
         full_data = self.data[(name, depth)]
         target_subscript = None
 
-        # An assignment should be a copy. Otherwise if we assign B to A without copying,
-        # (i.e. a reference of B) whenever A is changed, B will also be.
-        old_instance = instance
-        instance = copy.deepcopy(old_instance)
+        if (not isReference):
+            old_instance = instance
+            instance = copy.deepcopy(old_instance)
 
         for ind, trailer in enumerate(trailers):
             if trailer[0] == Type.TrailerType.MEMBER:
@@ -295,7 +294,7 @@ class SymbolTable(object):
                 # SymbolTable take over.
                 print("Found call to member {0} at index {1}".format(trailer[1], ind))
                 class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
-                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):])
+                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], isReference)
 
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us

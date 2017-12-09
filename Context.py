@@ -43,6 +43,13 @@ class Context(object):
         # In Class Contexts, this is the name of the class this belongs to
         self.structName = struct
 
+    def inheritSymbolTable(self, otherContext):
+        self.locals.data = copy.copy(otherContext.locals.data)
+        self.locals.datatype = copy.copy(otherContext.locals.datatype)
+        self.locals.classname = copy.copy(otherContext.locals.classname)
+        self.locals.subscriptlist = copy.deepcopy(otherContext.locals.subscriptlist)
+        self.locals.declaredDepth = copy.copy(otherContext.locals.declaredDepth)
+
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)

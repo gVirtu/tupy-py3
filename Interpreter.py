@@ -146,9 +146,9 @@ class Interpreter(object):
             raise NameError(name+" is not defined!")
 
     @classmethod
-    def storeSymbol(cls, name, instance, trailerList):
+    def storeSymbol(cls, name, instance, trailerList, isReference=False):
         print("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
-        return cls.callStack.top().locals.put(name, instance, trailerList)
+        return cls.callStack.top().locals.put(name, instance, trailerList, isReference)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className):
@@ -168,8 +168,8 @@ class Interpreter(object):
     def pushFrame(cls, returnable=False, breakable=False, returnType=None):
         print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         newContext = Context(cls.callStack.size(), returnable, breakable, returnType)
-        newContext.locals = copy.deepcopy(cls.callStack.top().locals)
-        newContext.locals.context = newContext
+        newContext.inheritSymbolTable(cls.callStack.top())
+        # newContext.locals.context = newContext
         cls.pushContext(newContext)
 
     @classmethod
