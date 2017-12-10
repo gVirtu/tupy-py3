@@ -117,7 +117,7 @@ r
 /* DEFINIÇÃO DE FUNÇÃO */
 /// functionDefinition: NAME parameters ':' block
 functionDefinition
- : dataType? NAME parameters COLON block
+ : (dataType (OPEN_BRACK CLOSE_BRACK)*)? NAME parameters COLON block
  ;
 
 /* LISTA DE PARÂMETROS */
@@ -131,13 +131,15 @@ parameters
 ///              |  '*' [typedFunctionParam] (',' typedFunctionParam ['=' test])* [',' '**' typedFunctionParam] | '**' typedFunctionParam)
 typedArgsList
  : 
+  NAME VARIADIC |
+  typedFunctionParam ( COMMA typedFunctionParam )* COMMA NAME VARIADIC |
  	typedFunctionParam ( COMMA typedFunctionParam )* ( COMMA typedFunctionParam ASSIGN expression)* |
  	typedFunctionParam ASSIGN expression ( COMMA typedFunctionParam ASSIGN expression)* 			
  ;
 
 /// typedFunctionParam: NAME [':' test]
 typedFunctionParam
- : (paramPassage)? dataType NAME
+ : (paramPassage)? dataType (OPEN_BRACK CLOSE_BRACK)* NAME
  ;
 
 /* PASSAGEM DE PARÂMETRO */
@@ -192,7 +194,7 @@ dataType
 /// expressionStatement: expressionList (augassign (yield_expr|testList) |
 ///                      ('=' (yield_expr|expressionList))*)
 testOrExpressionStatement
- : testOrExpressionList ( ASSIGN testOrExpressionList )*                      
+ : testOrExpressionList ( ASSIGN REF? testOrExpressionList )*                      
  ;           
 
 /* LISTA DE EXPRESSÕES */
@@ -259,7 +261,11 @@ compoundStatement
 
 /// ifStatement: 'if' test ':' block ('elif' test ':' block)* ['else' ':' block]
 ifStatement
- : IF test COLON block ( ELSE IF test COLON block )* ( ELSE COLON block )?
+ : IF test COLON block ( elseIf test COLON block )* ( ELSE COLON block )?
+ ;
+
+elseIf
+ : ELSE IF
  ;
 
 /// whileStatement: 'while' test ':' block ['else' ':' block]
@@ -281,8 +287,7 @@ block
 /* TESTE: E, OU, NÃO, COMPARAÇÕES DE EXPRESSÕES*/
 /// orTest: andTest ('or' andTest)*
 test
- : CARDINALITY_OP orTest CARDINALITY_OP		
- | orTest
+ : orTest
  ;
 
 orTest
@@ -323,7 +328,7 @@ loopRange
  ;
 
 rangeDelimiter
- : UNTIL | COLON
+ : UNTIL | RANGE_OP
  ;
  
 rangeList
@@ -386,7 +391,9 @@ power
 ///        '{' [dictorsetmaker] '}' |				<- Not valid atom?
 ///        NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
 atom
- : OPEN_PAREN testOrExpressionList CLOSE_PAREN 
+ : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN 
+ | OPEN_BRACK (testOrExpressionList)? CLOSE_BRACK
+ | CARDINALITY_OP testOrExpression CARDINALITY_OP
  | NAME 
  | number 
  | string+ 
@@ -398,9 +405,9 @@ atom
 
 /// trailer: '(' [argList] ')' | '[' subscriptlist ']' | '.' NAME
 trailer
- : OPEN_PAREN argList? CLOSE_PAREN			# trailerArgs
- | OPEN_BRACK subscriptList CLOSE_BRACK		# trailerSubs
- | DOT NAME									# trailerDot
+ : OPEN_PAREN argList? CLOSE_PAREN	
+ | OPEN_BRACK subscriptList CLOSE_BRACK	
+ | DOT NAME									
  ;
 
 /// subscriptlist: subscript (',' subscript)* [',']
@@ -422,27 +429,18 @@ testOrExpressionList
 
 /// classDefinition: 'class' NAME ['(' [argList] ')'] ':' block
 classDefinition
- : CLASS NAME ( OPEN_PAREN NAME? CLOSE_PAREN )? COLON block
+ : CLASS NAME ( OPEN_PAREN NAME CLOSE_PAREN )? COLON block
  ;
 
 /// argList: (argument ',')* (argument [',']
 ///                          |'*' test (',' argument)* [',' '**' test]
 ///                          |'**' test)
 argList
- : ( argument COMMA )* argument
- ;
-
-/// # The reason that keywords are test nodes instead of NAME is that using NAME
-/// # results in an ambiguity. ast.c makes sure it's a NAME.
-/// argument: test [comp_for] | test '=' test  # Really [keyword '='] test
-argument
- : test
- | test ASSIGN test
+ : ( test COMMA )* test
  ;
 
 string
  : STRING_LITERAL
- | BYTES_LITERAL
  ;
 
 character
@@ -480,14 +478,14 @@ NULL : 'nulo';
 TRUE : 'verdadeiro';
 FALSE : 'falso';
 CLASS : 'tipo';
-CONTINUE : 'continuar';
+CONTINUE : 'avançar' | 'avancar';
 BREAK : 'parar';
 ENUM : 'enumeração' | 'enumeracao';
 STEP : 'passo';
 UNTIL : 'ate' | 'até';
 
 DOT : '.';
-//RANGE_OP : '..';
+RANGE_OP : '..';
 CARDINALITY_OP : '|';
 OPEN_PAREN : '(' {opened++;};
 CLOSE_PAREN : ')' {opened--;};
@@ -528,12 +526,13 @@ REAL: 'real';
 CHAR: 'caracter';
 STRING: 'cadeia';
 BOOLEAN: 'lógico' | 'logico';
+VARIADIC: '...';
 
 CONSTANT: 'constante';
 
 NEWLINE
  : ( {atStartOfInput()}?   SPACES
-   | ( '\r'? '\n' | '\r' ) SPACES?
+   | ( '\r'? '\n' | '\r' )+ SPACES?
    )
    {
     String newLine = getText().replaceAll("[^\r\n]+", "");
@@ -585,12 +584,6 @@ CHAR_LITERAL
  : '\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n"] ) '\''    
  ;
 
-/// bytesliteral   ::=  bytesprefix(shortbytes | longbytes)
-/// bytesprefix    ::=  "b" | "B" | "br" | "Br" | "bR" | "BR"
-BYTES_LITERAL
- : [bB] [rR]? ( SHORT_BYTES | LONG_BYTES )
- ;
-
 /// decimalinteger ::=  nonzerodigit digit* | "0"+
 DECIMAL_INTEGER
  : NON_ZERO_DIGIT DIGIT*
@@ -615,7 +608,6 @@ BIN_INTEGER
 /// floatnumber   ::=  pointfloat | exponentfloat
 FLOAT_NUMBER
  : POINT_FLOAT
- | EXPONENT_FLOAT
  ;
 
 /// imagnumber ::=  (floatnumber | intpart) ("j" | "J")
@@ -674,8 +666,7 @@ fragment BIN_DIGIT
 
 /// pointfloat    ::=  [intpart] fraction | intpart "."
 fragment POINT_FLOAT
- : INT_PART? FRACTION
- | INT_PART '.'
+ : INT_PART FRACTION
  ;
 
 /// exponentfloat ::=  (intpart | pointfloat) exponent

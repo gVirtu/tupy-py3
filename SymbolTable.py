@@ -1,4 +1,5 @@
 import Instance
+import Interpreter as ii
 import Variable
 import Function
 import Type
@@ -38,19 +39,19 @@ class SymbolTable(object):
         else:
             data = Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
-        self.data[(name, depth)] = data
+        self.data[(name, depth)] = ii.memalloc(data)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
-        print("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
+        ii.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
         self.datatype[name] = Type.Type.FUNCTION
         self.subscriptlist[name] = None
         depth = self.context.depth
         self.declaredDepth[name] = depth
         try:
-            entry = self.data[(name, depth)].value
+            entry = ii.memread(self.data[(name, depth)]).value
         except Exception:
             entry = Function.Function(name)
-            self.data[(name, depth)] = Instance.Instance(Type.Type.FUNCTION, entry)
+            self.data[(name, depth)] = ii.memalloc(Instance.Instance(Type.Type.FUNCTION, entry))
         finally:
             if entry.is_ambiguous(argumentList):
                 raise NameError("Overloaded function {0} is ambiguous!".format(name))
@@ -68,7 +69,7 @@ class SymbolTable(object):
 
     def get(self, name):
         depth = self.declaredDepth[name]
-        return self.data[(name, depth)]
+        return ii.memread(self.data[(name, depth)])
 
     def hasKey(self, name):
         return name in self.declaredDepth
@@ -78,7 +79,7 @@ class SymbolTable(object):
         self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
 
     def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData, className):
-        print("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
+        ii.logger.debug("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
         # Because subscriptList tells us how the passed 'instance' will fit in
         # our current data, we need to verify it all the way to the end to make
         # sure our array dimensions are correct.
@@ -127,7 +128,7 @@ class SymbolTable(object):
                     #         [[0, 2, 4], [0, 5, 6], [0, 0, 0]] ]
                     levelSize = instance.array_length()
                     isDynamicSize = sizeList[0].isWildcard
-                    print("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
+                    ii.logger.debug("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
 
                     # We don't need to validate the passed instance's length when the current
                     # dimension is dynamic, because in this case it can simply be updated
@@ -143,12 +144,12 @@ class SymbolTable(object):
                         #           result is [1, 2, 3, 0, 0]
                         if (levelSize < targetSize):
                             if childType is None: childType = rootType;
-                            print("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
+                            ii.logger.debug("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
                             instance.array_pad(targetSize, Variable.Variable.makeDefaultValue, (childType, 
                                                                                             childSubscripts,
                                                                                             rootType, className))
                             levelSize = instance.array_length()
-                            print("Instance is now {0}".format(instance))
+                            ii.logger.debug("Instance is now {0}".format(instance))
 
                         # In some edge cases the currentData might not have the current size,
                         # especially when dealing with dynamic-sized arrays. Most notably,
@@ -225,7 +226,7 @@ class SymbolTable(object):
     #
 
     def getTargetSize(self, subscriptList, currentData, sizeList):
-        print("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
+        ii.logger.debug("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
         targetSubscript = subscriptList[0]
         if targetSubscript.isWildcard:
             if sizeList[0].isWildcard:
@@ -248,7 +249,7 @@ class SymbolTable(object):
             return True
         else:
             depth = self.declaredDepth[name]
-            current_data = self.data[(name, depth)]
+            current_data = ii.memread(self.data[(name, depth)])
             # self.data[(name, depth)].print_roottype()
 
             (inst, parent) = Variable.Variable.retrieveWithTrailers(current_data, trailerList)
@@ -257,11 +258,12 @@ class SymbolTable(object):
             if (instance.roottype == Type.Type.ARRAY and inst.is_pure_array()):
                 return True
 
-            print("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
+            # ii.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
 
             equivalent_types = (inst.roottype == instance.roottype)
             if (inst.roottype == Type.Type.STRUCT and equivalent_types):
-                return inst.value.structName == instance.value.structName
+                # ii.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
+                return inst.class_name == instance.class_name
             else:
                 return equivalent_types
             # if instance.is_pure_array():
@@ -272,7 +274,9 @@ class SymbolTable(object):
             # else:
             #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
-    def updateData(self, name, instance, trailers, forceDepth=None, visited={}):
+    def updateData(self, name, instance, trailers, forceDepth=None, visited=None):
+        if visited is None: visited = {}
+        ii.logger.debug("Updating {0}{1} to {2} (visits={3})".format(name, trailers, instance, visited))
         # This is a call to assign some INSTANCE to some NAME
         # with a list of trailers. e.g.: A[5,5] <- 10
         # A is the NAME, 10 is the INSTANCE, and [(subscript, 5), (subscript, 5)] are the trailers.
@@ -284,20 +288,24 @@ class SymbolTable(object):
         else:
             depth = forceDepth
 
-        full_data = self.data[(name, depth)]
+        full_data = ii.memread(self.data[(name, depth)])
         target_subscript = None
 
         old_instance = instance
         instance = copy.deepcopy(old_instance)
+        if (self.datatype[name] == Type.Type.STRUCT):
+            instance.class_name = self.classname[name]
 
         for ind, trailer in enumerate(trailers):
             if trailer[0] == Type.TrailerType.MEMBER:
                 # A special case is updating a member of some class instance.
                 # We'll cutoff the trailers list here and have that instance's
                 # SymbolTable take over.
-                print("Found call to member {0} at index {1}".format(trailer[1], ind))
+                ii.logger.debug("Found call to member {0} at index {1}".format(trailer[1], ind))
                 class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
-                return class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
+                class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
+                self.updateRefs(name, depth, visited)
+                return True
 
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
@@ -328,7 +336,7 @@ class SymbolTable(object):
         declared_sizes = self.subscriptlist[name]
 
         class_name = self.classname[name]
-        print("Applicable subscripts: {0}".format(applicable_subscripts))
+        # ii.logger.debug("Applicable subscripts: {0}".format(applicable_subscripts))
 
         # Next comes dimension validation and corrections. 
         # It digs inside instance's structure to find out if it has the correct sizes according to 
@@ -339,30 +347,35 @@ class SymbolTable(object):
 
         if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data, class_name): 
             instance.update_roottype(root_type)
-            print("Instance turned into {0}".format(instance)) 
-            print("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
+            ii.logger.debug("Instance turned into {0}".format(instance)) 
+            ii.logger.debug("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
                 self.updateChildren(target_data, target_subscript, target_depth, instance)
-                print("hellooooo")
-                self.data[(name, depth)].update_size(deep=True)
+                full_data.update_size(deep=True)
             else:
-                self.data[(name, depth)] = instance
+                ii.memwrite(self.data[(name, depth)], instance)
             # Update pass-by-reference mappings
-            if (name, depth) in self.context.refMappings:
-                refsList = self.context.refMappings[(name, depth)]
-                for (refName, refDepth, refTrailers, sourceTrailers) in refsList:
-                    if not (refName, refDepth) in visited:
-                        (refSource, _) = Variable.Variable.retrieveWithTrailers(self.data[(name, depth)], sourceTrailers)
-                        visited[(name, depth)] = True
-                        self.updateData(refName, refSource, refTrailers, forceDepth=refDepth, visited=visited)
+            self.updateRefs(name, depth, visited)
                 # self.data[(refName, refDepth)] = self.data[(name, depth)]
             # self.data[(name, depth)].print_roottype()
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")
 
+    def updateRefs(self, name, depth, visited):
+        if (name, depth) in self.context.refMappings:
+            ii.logger.debug("{0} has refmappings!".format(name))
+            refsMap = self.context.refMappings[(name, depth)]
+            for (refName, refDepth), (refTrailers, sourceTrailers, _) in refsMap.items():
+                ii.logger.debug("Checking out {0}... (visits = {1})".format(refName, visited))
+                if (refName, refDepth) not in visited:
+                    (refSource, _) = Variable.Variable.retrieveWithTrailers(ii.memread(self.data[(name, depth)]), sourceTrailers)
+                    visited[(name, depth)] = True
+                    self.updateData(refName, refSource, refTrailers, forceDepth=refDepth, visited=visited)
+        return visited
+
     def updateChildren(self, target_data, target_subscript, depth, instance):
-        print("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
+        ii.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
         if depth == 0:
             if target_subscript.isSingle:
                 target_data.value[target_subscript.begin] = Variable.Literal(instance)
@@ -379,7 +392,7 @@ class SymbolTable(object):
                 self.updateChildren(child.get(), target_subscript, depth-1, inst_child.get())
 
     def deepMerge(self, target_value, source_value):
-        print("deepMerge({0}, {1})".format(target_value, source_value))
+        ii.logger.debug("deepMerge({0}, {1})".format(target_value, source_value))
         updateLength = min(len(target_value), len(source_value))
         for ind in range(updateLength):
             child = target_value[ind].inst
@@ -389,9 +402,9 @@ class SymbolTable(object):
             else:
                 target_value[ind].inst = source_value[ind].inst
         for ind in range(len(target_value), len(source_value)):
-            print("NEW ELEMENT {0}".format(source_value[ind]))
+            ii.logger.debug("NEW ELEMENT {0}".format(source_value[ind]))
             target_value.append(source_value[ind])
-        print("Merged and became {0}".format(target_value))
+        ii.logger.debug("Merged and became {0}".format(target_value))
         return target_value
 
     def fillOmittedSizes(self, name, subscripts):

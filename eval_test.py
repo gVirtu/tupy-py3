@@ -849,7 +849,7 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret(("tipo Aluno:\n"
                                      "\tcadeia nome\n"
                                      "\n"
-                                     "Aluno a\n"
+                                     "Aluno a <- Aluno()\n"
                                      "a.nome <- \"Paulo\"\n"
                                      "a.nome\n"
                                     ))
@@ -860,7 +860,7 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret(("tipo Teste:\n"
                                      "\tinteiro func(inteiro a, inteiro b):\n"
                                      "\t\tretornar a*a+b*b\n"
-                                     "Teste t\n"
+                                     "Teste t <- Teste()\n"
                                      "t.func(5,2)\n"
                                     ))
         self.assertEqual(ret.type, Type.INT)
@@ -871,7 +871,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\tinteiro contador\n"
                                      "\tincrementa():\n"
                                      "\t\tcontador <- contador+1\n"
-                                     "Teste t\n"
+                                     "Teste t <- Teste()\n"
                                      "t.incrementa(); t.incrementa();\n"
                                      "t.contador\n"
                                     ))
@@ -887,7 +887,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\tinteiro func2(inteiro a):\n"
                                      "\t\tretornar a*a*a\n"
                                      "\n"
-                                     "Teste2 t\n"
+                                     "Teste2 t <- Teste2()\n"
                                      "t.func(5,2), t.func2(10)\n"
                                     ))
         self.assertEqual(ret[0].type, Type.INT)
@@ -912,19 +912,21 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_class_multiple_constructors(self):
         ret = Interpreter.interpret(("tipo Teste:\n"
-                                     "\tinteiro x\n"
+                                     "\tinteiro x <- 10\n"
                                      "\tTeste(inteiro a, inteiro b):\n"
                                      "\t\tx <- a*b\n"
                                      "\n"
-                                     "\tTeste():\n"
-                                     "\t\tx <- 10\n"
-                                     "Teste t, u <- Teste(5, 4), Teste()\n"
-                                     "t.x, u.x\n"
+                                     "\tTeste(inteiro a):\n"
+                                     "\t\tx <- a*a\n"
+                                     "Teste t, u, v <- Teste(5, 4), Teste(), Teste(6)\n"
+                                     "t.x, u.x, v.x\n"
                                     ))
         self.assertEqual(ret[0].type, Type.INT)
         self.assertEqual(ret[0].value, 20)
         self.assertEqual(ret[1].type, Type.INT)
         self.assertEqual(ret[1].value, 10)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 36)
 
     def test_function_class_parameters(self):
         ret = Interpreter.interpret(("tipo Ponto:\n"
@@ -946,7 +948,7 @@ class TestEvalVisitor(unittest.TestCase):
                          ("tipo Teste:\n"
                           "\tinteiro func(inteiro a, inteiro b):\n"
                           "\t\tretornar a*a+b*b\n"
-                          "Teste t\n"
+                          "Teste t <- Teste()\n"
                           "func(5,2)\n"
                           ))
         self.assertRaises(TypeError, Interpreter.interpret, 
@@ -954,8 +956,8 @@ class TestEvalVisitor(unittest.TestCase):
                           "\tinteiro a <- 5\n"
                           "tipo Círculo:\n"
                           "\tinteiro b <- 6\n"
-                          "Quadrado Q\n"
-                          "Círculo C\n"
+                          "Quadrado Q <- Quadrado()\n"
+                          "Círculo C <- Círculo()\n"
                           "Q <- C\n"
                           ))
 
@@ -1056,7 +1058,25 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
 
-    def test_reference_assign_pow(self):
+    def test_reference_reassign(self):
+        ret = Interpreter.interpret(("inteiro a, b, c, d\n"
+                                     "a <- ref b\n"
+                                     "b <- 5\n"
+                                     "d <- a\n"
+                                     "a <- ref c\n"
+                                     "a <- 7\n"
+                                     "a, b, c, d\n"
+                                    ))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 7)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 5)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 7)
+        self.assertEqual(ret[3].type, Type.INT)
+        self.assertEqual(ret[3].value, 5)
+
+    def test_reference_assign_2(self):
         ret = Interpreter.interpret(("inteiro a <- 100\n"
                                      "inteiro func(inteiro x):\n"
                                      "\tinteiro y <- ref a\n"
@@ -1066,6 +1086,62 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 200)
+
+    def test_reference_assign_field(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro x\n"
+                                     "Teste t <- Teste()\n"
+                                     "inteiro a\n"
+                                     "t.x <- ref a\n"
+                                     "a <- 10\n"
+                                     "t.x\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 10)
+
+    def test_reference_assign_bridge(self):
+        ret = Interpreter.interpret(("func(ref inteiro a):\n"
+                                     "\tinteiro x <- ref a\n"
+                                     "\tx <- 55\n"
+                                     "inteiro y <- 100\n"
+                                     "func(y)\n"
+                                     "y\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 55)
+
+    def test_reference_assign_bridge_2(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tcadeia s\n"
+                                     "\tTeste x\n"
+                                     "Teste t, u <- Teste(), Teste()\n"
+                                     "t.x <- ref u\n"
+                                     "u.s <- \"OK!\"\n"
+                                     "t.x.s\n"
+                                    ))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "OK!")
+
+    def test_linked_list(self):
+        ret = Interpreter.interpret(("tipo Lista:\n"
+                                     "\tinteiro chave\n"
+                                     "\tLista prox\n"
+                                     "\tLista(inteiro c):\n"
+                                     "\t\tchave <- c\n"
+                                     "\t\tprox <- nulo\n"
+                                     "Lista cab <- Lista(10)\n"
+                                     "inteiro i\n"
+                                     "Lista atual <- ref cab\n"
+                                     "Lista p\n"
+                                     "para i <- 1..4:\n"
+                                     "\tp <- Lista(10-(i*2))\n"
+                                     "\tatual.prox <- ref p\n"
+                                     "\tatual <- ref p\n"
+                                     "enquanto cab ~= nulo:\n"
+                                     "\tescrever(cab.chave, \"\\n\")\n"
+                                     "\tcab <- ref cab.prox\n"
+                                    ))
+        self.assertEqual(Interpreter.outStream.getvalue(), "10\n8\n6\n4\n2\n")
         
 if __name__ == '__main__':
     unittest.main()

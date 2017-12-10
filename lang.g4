@@ -7,94 +7,105 @@ grammar lang;
 tokens { INDENT, DEDENT }
 
 @lexer::header {
-import re
-from Stack import Stack
-from langParser import langParser
 from antlr4.Token import CommonToken
+import re
+import importlib
+# Allow languages to extend the lexer and parser, by loading the parser dinamically
+module_path = __name__[:-5]
+language_name = __name__.split('.')[-1]
+language_name = language_name[:-5]  # Remove Lexer from name
+LanguageParser = getattr(importlib.import_module('{}Parser'.format(module_path)), '{}Parser'.format(language_name))
 }
 
 @lexer::members {
+@property
+def tokens(self):
+    try:
+        return self._tokens
+    except AttributeError:
+        self._tokens = []
+        return self._tokens
 
-    #Uma fila para tokens adicionais (ver a regra NEWLINE do lexer)
+@property
+def indents(self):
+    try:
+        return self._indents
+    except AttributeError:
+        self._indents = []
+        return self._indents
+
+@property
+def opened(self):
+    try:
+        return self._opened
+    except AttributeError:
+        self._opened = 0
+        return self._opened
+
+@opened.setter
+def opened(self, value):
+    self._opened = value
+
+@property
+def lastToken(self):
+    try:
+        return self._lastToken
+    except AttributeError:
+        self._lastToken = None
+        return self._lastToken
+
+@lastToken.setter
+def lastToken(self, value):
+    self._lastToken = value
+
+def reset(self):
+    super().reset()
     self.tokens = []
-
-    #A pilha para controlar o nível de indentação
-    self.indents = Stack()
-
-    #O número de colchetes e parênteses abertos
+    self.indents = []
     self.opened = 0
-
-    #A token produzida mais recente.
     self.lastToken = None
 
 def emitToken(self, t):
-    self._token = t
+    super().emitToken(t)
     self.tokens.append(t)
 
 def nextToken(self):
-    # Checar se atingimos o final do arquivo e faltam DEDENTS a serem emitidos
-    if self._input.LA(1) == Token.EOF and len(self.indents)>0:
-
-      # Remove tokens EOF por enquanto
-      for i in range(tokens.size() - 1, 0, -1):
-        if (self.tokens.get(i).getType() == EOF):
-          self.tokens.remove(i)
-
-      # Emite uma token de quebra de linha, que termina a declaração atual
-      self.emitToken(commonToken(langParser.NEWLINE, "\n"))
-
-      # Emite quantos DEDENTS necessários 
-      while (not self.indents.isEmpty()):
-        self.emitToken(createDedent())
-        self.indents.pop()
-
-      # Coloca o EOF de volta
-      self.emitToken(commonToken(langParser.EOF, "<EOF>"));
-
-    nextTok = super().nextToken()
-
-    if (nextTok.channel == Token.DEFAULT_CHANNEL):
-      # Atualizar a última token produzida caso tenha sido emitida para o canal padrão
-      self.lastToken = nextTok;
-
-    if len(self.tokens) == 0:
-      return nextTok
-    return self.tokens.pop(0)
+    if self._input.LA(1) == Token.EOF and self.indents:
+        for i in range(len(self.tokens)-1,-1,-1):
+            if self.tokens[i].type == Token.EOF:
+                self.tokens.pop(i)
+        self.emitToken(self.commonToken(LanguageParser.NEWLINE, '\n'))
+        while self.indents:
+            self.emitToken(self.createDedent())
+            self.indents.pop()
+        self.emitToken(self.commonToken(LanguageParser.EOF, "<EOF>"))
+    next = super().nextToken()
+    if next.channel == Token.DEFAULT_CHANNEL:
+        self.lastToken = next
+    return next if not self.tokens else self.tokens.pop(0)
 
 def createDedent(self):
-  dedent = self.commonToken(langParser.DEDENT, "")
-  dedent.line = self.lastToken.line
-  return dedent
+    dedent = self.commonToken(LanguageParser.DEDENT, "")
+    dedent.line = self.lastToken.line
+    return dedent
 
-def commonToken(self, mytype, text):
-  stop = self.getCharIndex() - 1
-  start = stop if len(text)==0 else (stop - len(text) + 1)
-  return CommonToken(self._tokenFactorySourcePair, mytype, super().DEFAULT_TOKEN_CHANNEL, start, stop)
+def commonToken(self, type, text):
+    stop = self.getCharIndex()-1
+    start = (stop - len(text) + 1) if text else stop
+    return CommonToken(self._tokenFactorySourcePair, type, super().DEFAULT_TOKEN_CHANNEL, start, stop)
 
-'''
-// Calcula a indentação correspondente aos espaços dados, levando as
-// seguintes regras em consideração:
-//
-// "Tabs are replaced (from left to right) by one to eight spaces
-//  such that the total number of characters up to and including
-//  the replacement is a multiple of eight [...]"
-//
-//  -- https://docs.python.org/3.1/reference/lexical_analysis.html#indentation
-'''
-
-def getIndentationCount(self, spaces):
-  count = 0
-
-  for ch in spaces:
-    if (ch == '\t'): #Tab
-      count += 8 - (count % 8)
-    else:             #Um espaço comum.
-      count += 1
-
-  return count
+@staticmethod
+def getIndentationCount(spaces):
+    count = 0
+    for ch in spaces:
+        if ch == '\t':
+            count += 8 - (count % 8)
+        else:
+            count += 1
+    return count
 
 def atStartOfInput(self):
-  return super().column == 0 and super().line == 1
+    return Lexer.column.fget(self) == 0 and Lexer.line.fget(self) == 1
 }
 
 /*
@@ -527,33 +538,27 @@ NEWLINE
    | ( '\r'? '\n' | '\r' )+ SPACES?
    )
    {
-    newLine = re.sub(r"[^\r\n]+", "", self.text)
-    spaces = re.sub(r"[\r\n]+", "", self.text)
-    nextTok = self._input.LA(1)
+tempt = Lexer.text.fget(self)
+newLine = re.sub("[^\r\n]+", "", tempt)
+spaces = re.sub("[\r\n]+", "", tempt)
+next = self._input.LA(1)
 
-    if (self.opened > 0 or nextTok == '\r' or nextTok == '\n' or nextTok == '#'):
-      # If we are inside a list or on a blank line, ignore all indents
-      # dedents and line breaks.
-      self.skip()
-    else:
-      self.emitToken(self.commonToken(langParser.NEWLINE, newLine))
-
-      indent = self.getIndentationCount(spaces)
-      previous = 0 if len(self.indents)==0 else self.indents.top()
-
-      if (indent == previous):
-        # skip indents of the same size as the present indent-size
+if self.opened > 0 or next == '\r' or next == '\n' or next == '#':
+    self.skip()
+else:
+    self.emitToken(self.commonToken(self.NEWLINE, newLine))
+    indent = self.getIndentationCount(spaces)
+    previous = self.indents[-1] if self.indents else 0
+    if indent == previous:
         self.skip()
-      elif (indent > previous):
-        self.indents.push(indent)
-        self.emitToken(self.commonToken(langParser.INDENT, spaces))
-      else:
-        # Possibly emit more than 1 DEDENT token.
-        while(len(self.indents)>0 and self.indents.top() > indent):
-          self.emitToken(self.createDedent())
-          self.indents.pop()
-          
-   }
+    elif indent > previous:
+        self.indents.append(indent)
+        self.emitToken(self.commonToken(LanguageParser.INDENT, spaces))
+    else:
+        while self.indents and self.indents[-1] > indent:
+            self.emitToken(self.createDedent())
+            self.indents.pop()
+    }
  ;
 
 /// identifier   ::=  id_start id_continue*

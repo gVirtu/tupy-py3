@@ -31,9 +31,9 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
         res = self.executeStatements(ctx.statement())
-        print("ALL DONE!")
-        print("CallStack top is {0}".format(str(ii.Interpreter.callStack.top())))
-        print("Returnin {0}".format(res))
+        ii.logger.debug("ALL DONE!")
+        ii.logger.debug("CallStack top is {0}".format(str(ii.Interpreter.callStack.top())))
+        ii.logger.debug("Returnin {0}".format(res))
         return res
 
     # Visit a parse tree produced by langParser#functionDefinition.
@@ -126,26 +126,35 @@ class evalVisitor(ParseTreeVisitor):
                 if (isDeclaration and childcount == current_child):
                     self.doDeclare(lhs, decltype, declaredClass)
 
-                print("VISITTESTOREXPRESSIONSTATEMENT")
-                print("LHS = "+str(lhs))
-                print("RHS = "+str(rhs))
+                ii.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
+                # ii.logger.debug("LHS = "+str(lhs))
+                # ii.logger.debug("RHS = "+str(rhs))
                 if (len(lhs) == len(rhs)):
                     for ind in range(0, len(lhs)):
-                        print("ind="+str(ind))
+                        # ii.logger.debug("ind="+str(ind))
                         lval = lhs[ind]
                         rval = rhs[ind]
                         if isinstance(lval, v.Symbol):
+                            # E.g: a <- ref b
+                            #      a <- ref c
+                            # These next few lines will stop a from tracking b and vice-versa.
+                            if (is_reference_assign):
+                                if isinstance(rval, v.Symbol):
+                                    ii.Interpreter.clearRefs(lval.name)
+                                else:
+                                    error(SyntaxError, "Cannot reference a literal!", ctx)
+
                             if isDeclaration:
                                 ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
                             else:
                                 ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
 
                             if (is_reference_assign):
-                                if isinstance(rval, v.Symbol):
-                                    ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), rval.trailers, lval.trailers)
-                                    ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), lval.trailers, rval.trailers)
-                                else:
-                                    error(SyntaxError, "Cannot reference a literal!", ctx)
+                                ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), 
+                                                            rval.trailers, sourceTrailers = lval.trailers)
+                                ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), 
+                                                            lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
+                                
                         else:
                             error(SyntaxError, "Cannot assign to literal!", ctx)
                 else:
@@ -289,7 +298,7 @@ class evalVisitor(ParseTreeVisitor):
         currentInstance = ranges[0][0]
         iterations = 0
         while (not stopFuncs[0](currentInstance.value, ranges[0][1].value)):
-            print("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
+            ii.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
             if (remaining > 1):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
@@ -307,7 +316,9 @@ class evalVisitor(ParseTreeVisitor):
         return ret
 
     # Visit a parse tree produced by langParser#block.
-    def visitBlock(self, ctx:langParser.BlockContext, injectList=[], returnType=None):
+    def visitBlock(self, ctx:langParser.BlockContext, injectList=None, returnType=None):
+        if (injectList is None): injectList = []
+
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
         breakable  = returnable \
                   or isinstance(ctx.parentCtx, langParser.ForStatementContext) \
@@ -316,7 +327,7 @@ class evalVisitor(ParseTreeVisitor):
         if not isClassDef:
             ii.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
                                      returnType=returnType)
-        print("INJECT LIST IS: {0}".format(injectList))
+        ii.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceData, literal) in injectList:
             inst = literal.get()
@@ -346,7 +357,8 @@ class evalVisitor(ParseTreeVisitor):
         else:
             ret = self.executeStatements(ctx.statement())
         #ret = self.visitChildren(ctx)
-        ii.Interpreter.popFrame()
+        if not isClassDef:
+            ii.Interpreter.popFrame()
         return ret
 
 
@@ -563,7 +575,7 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#power.
     def visitPower(self, ctx:langParser.PowerContext):
         at = self.visitAtom(ctx.atom())
-        print(at)
+        # ii.logger.debug(at)
         for t in ctx.trailer():
             at.trailers.append(self.visitTrailer(t))
 
@@ -653,23 +665,27 @@ class evalVisitor(ParseTreeVisitor):
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
         names = ctx.NAME()
         className = names[0].getText()
-        print("Visiting a class named {0}".format(className))
-        classContext = Context.Context(0, True, struct=className)
+        ii.logger.debug("Visiting a class named {0}".format(className))
+        classContext = Context.Context(7777777, True, struct=className)
 
         if (len(names) > 1):
             inherited = ii.Interpreter.getClassContext(names[1].getText()) 
-            print("Inheriting from {0}".format(names[1].getText()))
+            ii.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.locals = copy.deepcopy(inherited.locals)
             classContext.locals.context = classContext
             classContext.functions = copy.copy(inherited.functions)
 
         ii.Interpreter.putClassContext(className, classContext)
+        ii.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
         originalContext = ii.Interpreter.callStack.top()
         ii.Interpreter.callStack.push(classContext)
+        ii.Interpreter.putClassContext(className, classContext) # Make autoreferences possible
 
         funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
         funcvisitor.visitBlock(ctx.block())
-        return self.visitBlock(ctx.block())
+        ret = self.visitBlock(ctx.block())
+        ii.Interpreter.callStack.pop()
+        return ret
 
 
     # Visit a parse tree produced by langParser#argList.
@@ -701,17 +717,17 @@ class evalVisitor(ParseTreeVisitor):
 
 
     def visitTerminal(self, node):
-        # print("Got to terminal "+str(node))
+        # ii.logger.debug("Got to terminal "+str(node))
         return str(node)
 
 
     def aggregateResult(self, aggregate, nextResult):
-        # print("Aggregating "+str(aggregate)+" and "+str(nextResult))
+        # ii.logger.debug("Aggregating "+str(aggregate)+" and "+str(nextResult))
         if aggregate is not None:
             res = aggregate
         else:
             res = nextResult
-        # print("Gives us "+str(res))
+        # ii.logger.debug("Gives us "+str(res))
         return res
 
     def mapLexType(self, lextype):
@@ -748,18 +764,18 @@ class evalVisitor(ParseTreeVisitor):
     def executeStatements(self, statementList):
         ret = None
         for s in statementList:
-            print("visiting {0}".format(s))
+            # ii.logger.debug("visiting {0}".format(s))
             ret = self.visitStatement(s)
-            print("after visit I got {0}".format(ret))
+            # ii.logger.debug("after visit I got {0}".format(ret))
             flow = ii.Interpreter.flow
             if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
-                print("BREAKING OR CONTINUING")
+                ii.logger.debug("BREAKING OR CONTINUING")
                 if ii.Interpreter.canBreak():
                     ii.Interpreter.doStep()
                 break 
             elif flow == ii.FlowEvent.RETURN:
                 ret = ii.Interpreter.returnData
-                print("RETURNING {0}".format(ret))
+                ii.logger.debug("RETURNING {0}".format(ret))
                 if ii.Interpreter.canReturn():
                     retType = Type.NULL
                     retDimensions = 0
@@ -785,5 +801,5 @@ class evalVisitor(ParseTreeVisitor):
             return ret
             
         # except Exception as e:
-            # print("Poop, returning {0}. Got {1}".format(ret,e))
+            # ii.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))
             # return ret

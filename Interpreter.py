@@ -13,6 +13,11 @@ from io import StringIO
 import Variable
 import Instance
 import Builtins
+import logging
+
+FORMAT = "=> %(message)s"
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class FlowEvent(Enum):
     STEP = 0
@@ -29,6 +34,7 @@ class Interpreter(object):
     def initialize(cls):
         cls.visitor = evalVisitor()
         cls.callStack = CallStack()
+        cls.memory = []
         cls.flow = FlowEvent.STEP
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
@@ -42,22 +48,23 @@ class Interpreter(object):
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = langParser(stream)
+        #parser.setTrace(True)
         treenode = getattr(parser, rule)
         tree = treenode()
         cls.visitor.setParser(parser)
         funcscanner = functionVisitor(parser, cls.callStack.top())
-        print("Using rule " + rule)
+        logger.debug("Using rule " + rule)
         funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
         funcvisit(tree)
-        #print(tree.toStringTree())
+        #logger.debug(tree.toStringTree())
         visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
-        #print(visit)
+        #logger.debug(visit)
         return visit(tree)
 
     @classmethod
     def executeBlock(cls, function, callArgs):
         (codeIndex, argumentList, returnType, isBuiltIn, isConstructor) = function.get(callArgs)
-        print("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
+        logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
@@ -94,9 +101,9 @@ class Interpreter(object):
                 argValues[-1] = packed
         
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argValues))
-        print("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
+        logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
-            print("CodeIndex is {0}".format(codeIndex))
+            logger.debug("CodeIndex is {0}".format(codeIndex))
             builtInFunc = getattr(Builtins, codeIndex)
             return builtInFunc(*argValues)
         else:
@@ -124,7 +131,7 @@ class Interpreter(object):
 
     @classmethod
     def isValidClass(cls, name):
-        print(cls.callStack.top().classes)
+        logger.debug(cls.callStack.top().classes)
         return name in cls.callStack.top().classes
 
     @classmethod
@@ -134,8 +141,9 @@ class Interpreter(object):
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
             objContext.locals.context = objContext
-            print("Now my locals are {0}".format(objContext.locals))
+            logger.debug("Now my locals are {0}".format(objContext.locals))
             objContext.functions = copy.copy(classContext.functions)
+            objContext.classes = copy.copy(classContext.classes)
         except e:
             raise TypeError("Class {0} does not exist!".format(name))
         return Instance.Instance(Type.STRUCT, objContext, className=name)
@@ -149,32 +157,53 @@ class Interpreter(object):
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
-        print("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
+        logger.debug("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
+        # logger.debug("CallStack: {0}".format(cls.callStack.items))
         return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className):
-        print("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
+        logger.debug("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
-    def mapRefParam(cls, name, ref, depth, trailers, sourceTrailers = []):
+    def clearRefs(cls, name):
+         srcDepth = cls.getDepth(name)
+         entry = (name, srcDepth)
+         if entry in cls.callStack.top().refMappings:
+            data = cls.callStack.top().refMappings[entry]
+            deletionList = []
+            for (ref, depth), (trailers, sourceTrailers, isReferrer) in data.items():
+                if (isReferrer):
+                    deletionList.append( (ref, depth) )
+            
+            for linkedEntry in deletionList:
+                cls.callStack.top().refMappings[entry].pop(linkedEntry, None)
+                if linkedEntry in cls.callStack.top().refMappings:
+                    cls.callStack.top().refMappings[linkedEntry].pop(entry, None)
+                     
+
+    @classmethod
+    def mapRefParam(cls, name, ref, depth, trailers, sourceTrailers = None, isReferrer = True):
+        if sourceTrailers is None: sourceTrailers = []
         srcDepth = cls.getDepth(name)
         entry = (name, srcDepth)
-        refData = (ref, depth, trailers, sourceTrailers)
-        if entry in cls.callStack.top().refMappings:
-            cls.callStack.top().refMappings[entry].append(refData)
-        else:
-            cls.callStack.top().refMappings[entry] = [refData]
+        if entry not in cls.callStack.top().refMappings:
+            cls.callStack.top().refMappings[entry] = {}
+
+        refEntry = (ref, depth)
+        refData = (trailers, sourceTrailers, isReferrer)
+        cls.callStack.top().refMappings[entry][refEntry] = refData
+        logger.debug("New REFMAPPING in {1}. Currently = {0}".format(str(cls.callStack.top().refMappings), str(cls.callStack.top())))
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):
-        print("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top().functions))
+        logger.debug("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top().functions))
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None):
-        print("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
+        logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         newContext = Context(cls.callStack.size(), returnable, breakable, returnType)
         newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
@@ -184,6 +213,7 @@ class Interpreter(object):
     def pushContext(cls, context):
          # Code trees don't need deep copying
         context.functions = copy.copy(cls.callStack.top().functions)
+        context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
 
         cls.callStack.push(context)
@@ -191,13 +221,14 @@ class Interpreter(object):
     @classmethod
     def popFrame(cls):
         prev = cls.callStack.pop()
-        print("Dropped context:\n{0}".format(str(prev)))
+        logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context
         if (prev.structName is None):
-            print("Top before merge:\n{0}".format(str(cls.callStack.top())))
+            # logger.debug("Top before merge:\n{0}".format(str(cls.callStack.top())))
             cls.callStack.top().locals.merge(prev.locals)
-            print("Top after merge:\n{0}".format(str(cls.callStack.top())))
+            cls.callStack.top().mergeRefMappings(prev.refMappings)
+            # logger.debug("Top after merge:\n{0}".format(str(cls.callStack.top())))
 
         return prev
 
@@ -238,10 +269,28 @@ class Interpreter(object):
 
     @classmethod
     def output(cls, string):
-        print(string)
+        logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
         cls.outStream.write(string)
         cls.outStream.write("\n")
 
+# Memory access functions
+
+def memalloc(instance):
+    pos = len(Interpreter.memory)
+    Interpreter.memory.append(instance)
+    return pos
+
+def memwrite(index, instance):
+    sz = len(Interpreter.memory)
+    if (sz <= index):
+        diff = index-sz+1
+        Interpreter.memory.extend([Instance.Instance(Type.NULL, 0) for _ in range(diff)])
+    Interpreter.memory[index] = instance
+
+def memread(index):
+    return Interpreter.memory[index]
+
+#========================
 
 def main(argv):
     if len(argv)>1:

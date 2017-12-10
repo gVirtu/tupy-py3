@@ -1,5 +1,6 @@
 from SymbolTable import SymbolTable
 import copy
+import Interpreter as ii
 
 # The Context object
 # ------------------
@@ -50,6 +51,16 @@ class Context(object):
         self.locals.subscriptlist = copy.deepcopy(otherContext.locals.subscriptlist)
         self.locals.declaredDepth = copy.copy(otherContext.locals.declaredDepth)
 
+    def mergeRefMappings(self, other):
+        ii.logger.debug("MERGING REF MAPPINGS - ORIGINALLY {0}".format(other))
+        filteredMappings = {key:val for key,val in other.items() if key[1] <= self.depth}
+
+        for key in filteredMappings:
+            filteredMappings[key] = {key:val for key,val in filteredMappings[key].items() if key[1] <= self.depth}
+
+        ii.logger.debug("MERGING REF MAPPINGS - NOW {0}".format(filteredMappings))
+        self.refMappings.update(filteredMappings)
+
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
@@ -66,4 +77,4 @@ class Context(object):
         return result
 
     def __str__(self):
-        return "CONTEXT<{0}> <<{1}>>".format(self.depth, str(self.functions))
+        return "CONTEXT<{0}> <<{1}>>".format(self.depth, str(self.locals))

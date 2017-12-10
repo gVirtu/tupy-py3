@@ -37,7 +37,7 @@ class Variable(object):
                         depth += 1
             elif ttype == TrailerType.CALL:
                 # try:
-                print("tid {0}".format(tid))
+                # ii.logger.debug("tid {0}".format(tid))
                 ret = ii.Interpreter.executeBlock(ret.value, tid)
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
@@ -55,24 +55,24 @@ class Variable(object):
 
     @classmethod
     def get_array_range(cls, inst, begin, end, level, single=False):
-        print("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
+        ii.logger.debug("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
         if level == 0:
             if not inst.is_subscriptable_array():
                 raise TypeError("{0} cannot be subscripted.".format(inst.type))
             
             if (single):
                 if inst.type == Type.STRING:
-                    print("...returned {0}".format(inst.value[begin]))
+                    ii.logger.debug("...returned {0}".format(inst.value[begin]))
                     return (ord(inst.value[begin]), Type.CHAR)
                 else:
-                    print("...returned {0}".format(inst.value[begin].get().value))
+                    ii.logger.debug("...returned {0}".format(inst.value[begin].get().value))
                     return (inst.value[begin].get().value, inst.value[begin].get().type)
             else:
-                print("...returned {0}".format(inst.value[begin:end]))
+                ii.logger.debug("...returned {0}".format(inst.value[begin:end]))
                 return (inst.value[begin:end], inst.type)
         else:
             ret = []
-            print("Welp, first gotta check {0}".format(inst.value))
+            ii.logger.debug("Welp, first gotta check {0}".format(inst.value))
             for literal in inst.value:
                 lower_inst = literal.get()
                 lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)[0] #Not interested in type
@@ -82,11 +82,13 @@ class Variable(object):
                     new_inst = Instance.Instance(lower_inst.type, lower_level)
                 ret.append(Literal(new_inst))
                 
-            print("...returned {0}".format(ret))
+            ii.logger.debug("...returned {0}".format(ret))
             return (ret, inst.heldtype)
 
     @classmethod
-    def makeDefaultValue(cls, datatype, declSubscripts=[], heldType=None, className=None):
+    def makeDefaultValue(cls, datatype, declSubscripts=None, heldType=None, className=None):
+        if declSubscripts is None:
+            declSubscripts = []
         if datatype == Type.ARRAY:
             return cls.array_init(declSubscripts, heldType)
         elif datatype == Type.STRING:
@@ -94,7 +96,7 @@ class Variable(object):
         elif datatype == Type.TUPLE:
             return Instance.Instance(datatype, ())
         elif datatype == Type.STRUCT:
-            return ii.Interpreter.newClassInstance(className)
+            return Instance.Instance(Type.NULL, None, className=className) #ii.Interpreter.newClassInstance(className)
         else:
             return Instance.Instance(datatype, 0)
 

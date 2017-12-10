@@ -19,10 +19,10 @@ class Function(object):
             codeIndex = code
         else:
             # Register code tree
-            print("Current functions = {0}".format(context.functions))
+            ii.logger.debug("Current functions = {0}".format(context.functions))
             codeIndex = len(context.functions)
             context.functions.append(code)
-            print("Updated functions = {0}".format(context.functions))
+            ii.logger.debug("Updated functions = {0}".format(context.functions))
 
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
