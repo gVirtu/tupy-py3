@@ -39,7 +39,7 @@ class SymbolTable(object):
         else:
             data = Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
-        self.data[(name, depth)] = ii.memalloc(data)
+        self.data[(name, depth)] = ii.memAlloc(data)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
         ii.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
@@ -48,10 +48,10 @@ class SymbolTable(object):
         depth = self.context.depth
         self.declaredDepth[name] = depth
         try:
-            entry = ii.memread(self.data[(name, depth)]).value
+            entry = ii.memRead(self.data[(name, depth)]).value
         except Exception:
             entry = Function.Function(name)
-            self.data[(name, depth)] = ii.memalloc(Instance.Instance(Type.Type.FUNCTION, entry))
+            self.data[(name, depth)] = ii.memAlloc(Instance.Instance(Type.Type.FUNCTION, entry))
         finally:
             if entry.is_ambiguous(argumentList):
                 raise NameError("Overloaded function {0} is ambiguous!".format(name))
@@ -67,9 +67,13 @@ class SymbolTable(object):
         else:
             raise NameError(name+" is not defined!")
 
+    def ref(self, name, cell):
+        depth = self.declaredDepth[name]
+        self.data[(name, depth)] = cell
+
     def get(self, name):
         depth = self.declaredDepth[name]
-        return ii.memread(self.data[(name, depth)])
+        return ii.memRead(self.data[(name, depth)])
 
     def hasKey(self, name):
         return name in self.declaredDepth
@@ -117,7 +121,7 @@ class SymbolTable(object):
 
                     targetIndex = targetSubscript.begin
                     return self.processDimensions(childSubscripts, instance, rootType, 
-                                                   childSizes, currentData.value[targetIndex].get(), className)
+                                                   childSizes, ii.memRead(currentData.value[targetIndex]), className)
                 else:
                     # Inserting an array, current subscript is a range or wildcard.
                     #
@@ -172,8 +176,8 @@ class SymbolTable(object):
                         offset = targetSubscript.begin
                         for targetIndex in range(offset, offset + levelSize):
                             child = instance.value[targetIndex - offset]
-                            valid = self.processDimensions(childSubscripts, child.get(), rootType, 
-                                                       childSizes, currentData.value[targetIndex].get(), className)
+                            valid = self.processDimensions(childSubscripts, ii.memRead(child), rootType, 
+                                                       childSizes, ii.memRead(currentData.value[targetIndex]), className)
                             if valid:
                                 pass
                             else:
@@ -188,15 +192,15 @@ class SymbolTable(object):
                 if targetSubscript.isSingle:
                     targetIndex = targetSubscript.begin
                     valid = self.processDimensions(childSubscripts, instance, rootType, 
-                                               childSizes, currentData.value[targetIndex].get(), className)
+                                               childSizes, ii.memRead(currentData.value[targetIndex]), className)
                 else:
-                    new_value = [Variable.Literal(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                    new_value = [ii.memAlloc(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
                     instance.__init__(Type.Type.ARRAY, new_value)
 
                     for targetIndex in range(len(instance.value)):
                         offset = targetSubscript.begin
-                        valid = self.processDimensions(childSubscripts, instance.value[targetIndex].get(), rootType, 
-                                                   childSizes, currentData.value[targetIndex+offset].get(), className)
+                        valid = self.processDimensions(childSubscripts, ii.memRead(instance.value[targetIndex]), rootType, 
+                                                   childSizes, ii.memRead(currentData.value[targetIndex+offset]), className)
                 
                 return valid;
         else:
@@ -239,7 +243,7 @@ class SymbolTable(object):
             else:
                 targetIndex = targetSubscript.begin
                 return self.getTargetSize(subscriptList[1:], 
-                                          currentData.value[targetIndex].get(), 
+                                          ii.memRead(currentData.value[targetIndex]), 
                                           sizeList[1:])
         else:
             return targetSubscript.end - targetSubscript.begin
@@ -249,7 +253,7 @@ class SymbolTable(object):
             return True
         else:
             depth = self.declaredDepth[name]
-            current_data = ii.memread(self.data[(name, depth)])
+            current_data = ii.memRead(self.data[(name, depth)])
             # self.data[(name, depth)].print_roottype()
 
             (inst, parent) = Variable.Variable.retrieveWithTrailers(current_data, trailerList)
@@ -288,7 +292,7 @@ class SymbolTable(object):
         else:
             depth = forceDepth
 
-        full_data = ii.memread(self.data[(name, depth)])
+        full_data = ii.memRead(self.data[(name, depth)])
         target_subscript = None
 
         old_instance = instance
@@ -304,7 +308,7 @@ class SymbolTable(object):
                 ii.logger.debug("Found call to member {0} at index {1}".format(trailer[1], ind))
                 class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
                 class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
-                self.updateRefs(name, depth, visited)
+                # self.updateRefs(name, depth, visited)
                 return True
 
         # First, apply the trailers to the name to get what's currently stored there
@@ -353,32 +357,32 @@ class SymbolTable(object):
                 self.updateChildren(target_data, target_subscript, target_depth, instance)
                 full_data.update_size(deep=True)
             else:
-                ii.memwrite(self.data[(name, depth)], instance)
+                ii.memWrite(self.data[(name, depth)], instance)
             # Update pass-by-reference mappings
-            self.updateRefs(name, depth, visited)
+            # self.updateRefs(name, depth, visited)
                 # self.data[(refName, refDepth)] = self.data[(name, depth)]
             # self.data[(name, depth)].print_roottype()
             return True
         else:
             raise TypeError("Assignment exceeds allocated space!")
 
-    def updateRefs(self, name, depth, visited):
-        if (name, depth) in self.context.refMappings:
-            ii.logger.debug("{0} has refmappings!".format(name))
-            refsMap = self.context.refMappings[(name, depth)]
-            for (refName, refDepth), (refTrailers, sourceTrailers, _) in refsMap.items():
-                ii.logger.debug("Checking out {0}... (visits = {1})".format(refName, visited))
-                if (refName, refDepth) not in visited:
-                    (refSource, _) = Variable.Variable.retrieveWithTrailers(ii.memread(self.data[(name, depth)]), sourceTrailers)
-                    visited[(name, depth)] = True
-                    self.updateData(refName, refSource, refTrailers, forceDepth=refDepth, visited=visited)
-        return visited
+    # def updateRefs(self, name, depth, visited):
+    #     if (name, depth) in self.context.refMappings:
+    #         ii.logger.debug("{0} has refmappings!".format(name))
+    #         refsMap = self.context.refMappings[(name, depth)]
+    #         for (refName, refDepth), (refTrailers, sourceTrailers, _) in refsMap.items():
+    #             ii.logger.debug("Checking out {0}... (visits = {1})".format(refName, visited))
+    #             if (refName, refDepth) not in visited:
+    #                 (refSource, _) = Variable.Variable.retrieveWithTrailers(ii.memRead(self.data[(name, depth)]), sourceTrailers)
+    #                 visited[(name, depth)] = True
+    #                 self.updateData(refName, refSource, refTrailers, forceDepth=refDepth, visited=visited)
+    #     return visited
 
     def updateChildren(self, target_data, target_subscript, depth, instance):
         ii.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
         if depth == 0:
             if target_subscript.isSingle:
-                target_data.value[target_subscript.begin] = Variable.Literal(instance)
+                target_data.value[target_subscript.begin] = ii.memAlloc(instance)
             elif target_subscript.isWildcard:
                 target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
             else:
@@ -389,18 +393,18 @@ class SymbolTable(object):
             for ind in range(len(target_data.value)):
                 child = target_data.value[ind]
                 inst_child = instance.value[ind]
-                self.updateChildren(child.get(), target_subscript, depth-1, inst_child.get())
+                self.updateChildren(ii.memRead(child), target_subscript, depth-1, ii.memRead(inst_child))
 
     def deepMerge(self, target_value, source_value):
         ii.logger.debug("deepMerge({0}, {1})".format(target_value, source_value))
         updateLength = min(len(target_value), len(source_value))
         for ind in range(updateLength):
-            child = target_value[ind].inst
-            newchild = source_value[ind].inst
+            child = ii.memRead(target_value[ind])
+            newchild = ii.memRead(source_value[ind])
             if isinstance(child.value, list):
                 self.deepMerge(child.value, newchild.value)
             else:
-                target_value[ind].inst = source_value[ind].inst
+                ii.memWrite(target_value[ind], newchild)
         for ind in range(len(target_value), len(source_value)):
             ii.logger.debug("NEW ELEMENT {0}".format(source_value[ind]))
             target_value.append(source_value[ind])

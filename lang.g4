@@ -393,11 +393,14 @@ power
 ///        '[' [testlist_comp] ']' |				<- Not valid atom?
 ///        '{' [dictorsetmaker] '}' |				<- Not valid atom?
 ///        NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
+
+/// P.S.: 'dataType' is included instead of NAME so that the casting functions get
+///       matched as well
 atom
  : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN 
  | OPEN_BRACK (testOrExpressionList)? CLOSE_BRACK
  | CARDINALITY_OP testOrExpression CARDINALITY_OP
- | NAME 
+ | dataType 
  | number 
  | string+ 
  | character

@@ -1,11 +1,13 @@
 import Interpreter as ii
 import Argument
+import Instance
 import inspect
 import copy
 from Type import Type
 
 def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
+    function("caracter", Type.CHAR, [Type.INT])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -29,19 +31,25 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
 # BUILT-IN FUNCTIONS
 
 def escrever(argsTuple):
-    out = ' '.join([printLiteral(arg) for arg in argsTuple.get().value])
+    out = ' '.join([stringProcess(printInstance(ii.memRead(arg))) for arg in argsTuple.get().value])
     ii.Interpreter.output(out)
     return out
 
-def printLiteral(arg):
-    inst = arg.get()
+def printInstance(arg):
+    inst = arg
     typ = inst.type
     if typ == Type.ARRAY: 
-        out = str([printLiteral(child) for child in inst.value])
+        out = str([printInstance(ii.memRead(child)) for child in inst.value])
     elif typ == Type.TUPLE: 
-        out = str(tuple([printLiteral(child) for child in inst.value]))
+        out = str(tuple([printInstance(ii.memRead(child)) for child in inst.value]))
     elif typ == Type.CHAR:
         out = chr(inst.value)
     else:
         out = str(inst.value)
     return out
+
+def stringProcess(string):
+    return string.replace("\\n", "\n")
+
+def caracter(inteiro):
+    return Instance.Instance(Type.CHAR, inteiro.get().value)

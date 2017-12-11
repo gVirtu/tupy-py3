@@ -1,5 +1,6 @@
 from Type import Type
 import Variable
+import Interpreter as ii
 
 class Instance(object):
     __slots__ = [
@@ -21,10 +22,10 @@ class Instance(object):
         self.value = value
 
         if self.type == Type.ARRAY and len(self.value)>0:
-            self.heldtype = self.value[0].get().type
-            self.roottype = self.value[0].get().roottype
-            self.array_dimensions = self.value[0].get().array_dimensions + 1
-            if not all(element.get().type == self.heldtype for element in self.value):
+            self.heldtype = ii.memRead(self.value[0]).type
+            self.roottype = ii.memRead(self.value[0]).roottype
+            self.array_dimensions = ii.memRead(self.value[0]).array_dimensions + 1
+            if not all(ii.memRead(element).type == self.heldtype for element in self.value):
                 raise TypeError()
 
         if self.type == Type.STRING:
@@ -43,9 +44,9 @@ class Instance(object):
             self.size = len(self.value)
         elif self.type == Type.ARRAY or self.type == Type.TUPLE:
             if deep:
-                self.size = sum([element.get().update_size() for element in self.value])
+                self.size = sum([ii.memRead(element).update_size() for element in self.value])
             else:
-                self.size = sum([element.get().collection_size for element in self.value])
+                self.size = sum([ii.memRead(element).collection_size for element in self.value])
         elif self.type == Type.NULL:
             self.size = 0
         else:
@@ -59,7 +60,7 @@ class Instance(object):
         self.roottype = new_type
         if self.type == Type.ARRAY or self.type == Type.TUPLE:
             for element in self.value:
-                element.get().update_roottype(new_type)
+                ii.memRead(element).update_roottype(new_type)
 
     # def print_roottype(self):
     #     print("The root type of {0} is {1}".format(self.value, self.roottype))
@@ -78,9 +79,9 @@ class Instance(object):
         # self.value[pos] = literal
         # self.size += literal.get().size
 
-    def array_append(self, literal):
-        self.value += [literal]
-        self.size += literal.get().size
+    def array_append(self, memCell):
+        self.value += [memCell]
+        self.size += ii.memRead(memCell).size
         self.collection_size += 1
 
     def array_length(self):
@@ -88,9 +89,9 @@ class Instance(object):
 
     def array_pad(self, size, generator, args):
         while self.array_length() < size:
-            self.array_append(Variable.Literal(generator(*args)))
+            self.array_append(ii.memAlloc(generator(*args)))
         if len(self.value) > 0:
-            self.heldtype = self.value[0].get().type
+            self.heldtype = ii.memRead(self.value[0]).type
 
     def is_pure_array(self):
         return self.type == Type.ARRAY

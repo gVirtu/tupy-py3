@@ -248,7 +248,7 @@ def serializedATN():
         buf.write("\2\u01fc\u01fe\5f\64\2\u01fd\u01fc\3\2\2\2\u01fd\u01fe")
         buf.write("\3\2\2\2\u01fe\u01ff\3\2\2\2\u01ff\u0210\7 \2\2\u0200")
         buf.write("\u0201\7\27\2\2\u0201\u0202\5\36\20\2\u0202\u0203\7\27")
-        buf.write("\2\2\u0203\u0210\3\2\2\2\u0204\u0210\7A\2\2\u0205\u0210")
+        buf.write("\2\2\u0203\u0210\3\2\2\2\u0204\u0210\5\30\r\2\u0205\u0210")
         buf.write("\5p9\2\u0206\u0208\5l\67\2\u0207\u0206\3\2\2\2\u0208\u0209")
         buf.write("\3\2\2\2\u0209\u0207\3\2\2\2\u0209\u020a\3\2\2\2\u020a")
         buf.write("\u0210\3\2\2\2\u020b\u0210\5n8\2\u020c\u0210\7\f\2\2\u020d")
@@ -2121,7 +2121,7 @@ class langParser ( Parser ):
             self.state = 305
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
+            if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.INTEGER - 9)) | (1 << (langParser.REAL - 9)) | (1 << (langParser.CHAR - 9)) | (1 << (langParser.STRING - 9)) | (1 << (langParser.BOOLEAN - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
                 self.state = 304
                 self.testOrExpressionList()
 
@@ -2931,7 +2931,7 @@ class langParser ( Parser ):
                 self.state = 391
                 self.notTest()
                 pass
-            elif token in [langParser.NULL, langParser.TRUE, langParser.FALSE, langParser.CARDINALITY_OP, langParser.OPEN_PAREN, langParser.OPEN_BRACK, langParser.ADD, langParser.MINUS, langParser.NOT_OP, langParser.NAME, langParser.STRING_LITERAL, langParser.CHAR_LITERAL, langParser.DECIMAL_INTEGER, langParser.OCT_INTEGER, langParser.HEX_INTEGER, langParser.BIN_INTEGER, langParser.FLOAT_NUMBER, langParser.IMAG_NUMBER]:
+            elif token in [langParser.NULL, langParser.TRUE, langParser.FALSE, langParser.CARDINALITY_OP, langParser.OPEN_PAREN, langParser.OPEN_BRACK, langParser.ADD, langParser.MINUS, langParser.NOT_OP, langParser.INTEGER, langParser.REAL, langParser.CHAR, langParser.STRING, langParser.BOOLEAN, langParser.NAME, langParser.STRING_LITERAL, langParser.CHAR_LITERAL, langParser.DECIMAL_INTEGER, langParser.OCT_INTEGER, langParser.HEX_INTEGER, langParser.BIN_INTEGER, langParser.FLOAT_NUMBER, langParser.IMAG_NUMBER]:
                 self.enterOuterAlt(localctx, 2)
                 self.state = 392
                 self.comparison()
@@ -3832,7 +3832,7 @@ class langParser ( Parser ):
                 self.state = 485
                 self.factor()
                 pass
-            elif token in [langParser.NULL, langParser.TRUE, langParser.FALSE, langParser.CARDINALITY_OP, langParser.OPEN_PAREN, langParser.OPEN_BRACK, langParser.NAME, langParser.STRING_LITERAL, langParser.CHAR_LITERAL, langParser.DECIMAL_INTEGER, langParser.OCT_INTEGER, langParser.HEX_INTEGER, langParser.BIN_INTEGER, langParser.FLOAT_NUMBER, langParser.IMAG_NUMBER]:
+            elif token in [langParser.NULL, langParser.TRUE, langParser.FALSE, langParser.CARDINALITY_OP, langParser.OPEN_PAREN, langParser.OPEN_BRACK, langParser.INTEGER, langParser.REAL, langParser.CHAR, langParser.STRING, langParser.BOOLEAN, langParser.NAME, langParser.STRING_LITERAL, langParser.CHAR_LITERAL, langParser.DECIMAL_INTEGER, langParser.OCT_INTEGER, langParser.HEX_INTEGER, langParser.BIN_INTEGER, langParser.FLOAT_NUMBER, langParser.IMAG_NUMBER]:
                 self.enterOuterAlt(localctx, 4)
                 self.state = 486
                 self.power()
@@ -3961,8 +3961,9 @@ class langParser ( Parser ):
             return self.getTypedRuleContext(langParser.TestOrExpressionContext,0)
 
 
-        def NAME(self):
-            return self.getToken(langParser.NAME, 0)
+        def dataType(self):
+            return self.getTypedRuleContext(langParser.DataTypeContext,0)
+
 
         def number(self):
             return self.getTypedRuleContext(langParser.NumberContext,0)
@@ -4024,7 +4025,7 @@ class langParser ( Parser ):
                 self.state = 502
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
+                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.INTEGER - 9)) | (1 << (langParser.REAL - 9)) | (1 << (langParser.CHAR - 9)) | (1 << (langParser.STRING - 9)) | (1 << (langParser.BOOLEAN - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
                     self.state = 501
                     self.testOrExpressionList()
 
@@ -4039,7 +4040,7 @@ class langParser ( Parser ):
                 self.state = 507
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
+                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.INTEGER - 9)) | (1 << (langParser.REAL - 9)) | (1 << (langParser.CHAR - 9)) | (1 << (langParser.STRING - 9)) | (1 << (langParser.BOOLEAN - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
                     self.state = 506
                     self.testOrExpressionList()
 
@@ -4056,10 +4057,10 @@ class langParser ( Parser ):
                 self.state = 512
                 self.match(langParser.CARDINALITY_OP)
                 pass
-            elif token in [langParser.NAME]:
+            elif token in [langParser.INTEGER, langParser.REAL, langParser.CHAR, langParser.STRING, langParser.BOOLEAN, langParser.NAME]:
                 self.enterOuterAlt(localctx, 4)
                 self.state = 514
-                self.match(langParser.NAME)
+                self.dataType()
                 pass
             elif token in [langParser.DECIMAL_INTEGER, langParser.OCT_INTEGER, langParser.HEX_INTEGER, langParser.BIN_INTEGER, langParser.FLOAT_NUMBER, langParser.IMAG_NUMBER]:
                 self.enterOuterAlt(localctx, 5)
@@ -4182,7 +4183,7 @@ class langParser ( Parser ):
                 self.state = 529
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
+                if ((((_la - 9)) & ~0x3f) == 0 and ((1 << (_la - 9)) & ((1 << (langParser.NOT - 9)) | (1 << (langParser.NULL - 9)) | (1 << (langParser.TRUE - 9)) | (1 << (langParser.FALSE - 9)) | (1 << (langParser.CARDINALITY_OP - 9)) | (1 << (langParser.OPEN_PAREN - 9)) | (1 << (langParser.OPEN_BRACK - 9)) | (1 << (langParser.ADD - 9)) | (1 << (langParser.MINUS - 9)) | (1 << (langParser.NOT_OP - 9)) | (1 << (langParser.INTEGER - 9)) | (1 << (langParser.REAL - 9)) | (1 << (langParser.CHAR - 9)) | (1 << (langParser.STRING - 9)) | (1 << (langParser.BOOLEAN - 9)) | (1 << (langParser.NAME - 9)) | (1 << (langParser.STRING_LITERAL - 9)) | (1 << (langParser.CHAR_LITERAL - 9)) | (1 << (langParser.DECIMAL_INTEGER - 9)) | (1 << (langParser.OCT_INTEGER - 9)) | (1 << (langParser.HEX_INTEGER - 9)) | (1 << (langParser.BIN_INTEGER - 9)) | (1 << (langParser.FLOAT_NUMBER - 9)) | (1 << (langParser.IMAG_NUMBER - 9)))) != 0):
                     self.state = 528
                     self.argList()
 

@@ -3,7 +3,7 @@ import pytest
 from antlr4 import InputStream
 from Instance import Instance
 from Type import Type
-from Interpreter import Interpreter
+from Interpreter import Interpreter, memRead
 
 class TestEvalVisitor(unittest.TestCase):
 
@@ -20,11 +20,11 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(len(ret.value), len(array))
         for ind in range(len(array)):
             if (isinstance(array[ind], list)):
-                self.assertEqual(ret.value[ind].get().type, Type.ARRAY)
-                self.assertArrayEquals(ret.value[ind].get(), targetType, array[ind])
+                self.assertEqual(memRead(ret.value[ind]).type, Type.ARRAY)
+                self.assertArrayEquals(memRead(ret.value[ind]), targetType, array[ind])
             else:
-                self.assertEqual(ret.value[ind].get().type, targetType)
-                self.assertEqual(ret.value[ind].get().value, array[ind])
+                self.assertEqual(memRead(ret.value[ind]).type, targetType)
+                self.assertEqual(memRead(ret.value[ind]).value, array[ind])
 
     def test_integer(self):
         ret = self.evalExpression("123\n")
@@ -63,14 +63,14 @@ class TestEvalVisitor(unittest.TestCase):
     def test_tuple(self):
         ret = self.evalExpression("(1, 3.14, \"ok\", [1,5])\n")
         self.assertEqual(ret.type, Type.TUPLE)
-        self.assertEqual(ret.value[0].get().type, Type.INT)
-        self.assertEqual(ret.value[0].get().value, 1)
-        self.assertEqual(ret.value[1].get().type, Type.FLOAT)
-        self.assertEqual(ret.value[1].get().value, 3.14)
-        self.assertEqual(ret.value[2].get().type, Type.STRING)
-        self.assertEqual(ret.value[2].get().value, "ok")
-        self.assertEqual(ret.value[3].get().type, Type.ARRAY)
-        self.assertEqual(ret.value[3].get().size, 2)
+        self.assertEqual(memRead(ret.value[0]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[0]).value, 1)
+        self.assertEqual(memRead(ret.value[1]).type, Type.FLOAT)
+        self.assertEqual(memRead(ret.value[1]).value, 3.14)
+        self.assertEqual(memRead(ret.value[2]).type, Type.STRING)
+        self.assertEqual(memRead(ret.value[2]).value, "ok")
+        self.assertEqual(memRead(ret.value[3]).type, Type.ARRAY)
+        self.assertEqual(memRead(ret.value[3]).size, 2)
         ret = self.evalExpression("()\n")
         self.assertEqual(ret.type, Type.TUPLE)
         self.assertEqual(ret.size, 0)
@@ -78,12 +78,12 @@ class TestEvalVisitor(unittest.TestCase):
     def test_array(self):
         ret = self.evalExpression("[1, 2, 3]\n")
         self.assertEqual(ret.type, Type.ARRAY)
-        self.assertEqual(ret.value[0].get().type, Type.INT)
-        self.assertEqual(ret.value[0].get().value, 1)
-        self.assertEqual(ret.value[1].get().type, Type.INT)
-        self.assertEqual(ret.value[1].get().value, 2)
-        self.assertEqual(ret.value[2].get().type, Type.INT)
-        self.assertEqual(ret.value[2].get().value, 3)
+        self.assertEqual(memRead(ret.value[0]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[0]).value, 1)
+        self.assertEqual(memRead(ret.value[1]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[1]).value, 2)
+        self.assertEqual(memRead(ret.value[2]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[2]).value, 3)
         self.assertRaises(TypeError, self.evalExpression, "[1, 2, \"not_ok\"]\n")
         ret = self.evalExpression("[]\n")
         self.assertEqual(ret.type, Type.ARRAY)
@@ -315,22 +315,22 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 20)
         ret = self.evalExpression("[5,10,20,40][1..2]\n")
         self.assertEqual(ret.type, Type.ARRAY)
-        self.assertEqual(ret.value[0].get().type, Type.INT)
-        self.assertEqual(ret.value[0].get().value, 10)
-        self.assertEqual(ret.value[1].get().type, Type.INT)
-        self.assertEqual(ret.value[1].get().value, 20)
+        self.assertEqual(memRead(ret.value[0]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[0]).value, 10)
+        self.assertEqual(memRead(ret.value[1]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[1]).value, 20)
         ret = self.evalExpression("(5,10.1,20,40)[1..2]\n")
         self.assertEqual(ret.type, Type.TUPLE)
-        self.assertEqual(ret.value[0].get().type, Type.FLOAT)
-        self.assertEqual(ret.value[0].get().value, 10.1)
-        self.assertEqual(ret.value[1].get().type, Type.INT)
-        self.assertEqual(ret.value[1].get().value, 20)
+        self.assertEqual(memRead(ret.value[0]).type, Type.FLOAT)
+        self.assertEqual(memRead(ret.value[0]).value, 10.1)
+        self.assertEqual(memRead(ret.value[1]).type, Type.INT)
+        self.assertEqual(memRead(ret.value[1]).value, 20)
         ret_1 = self.evalExpression("[5,10,20,40]\n")
         ret_2 = self.evalExpression("[5,10,20,40][*]\n")
         self.assertEqual(ret_2.type, Type.ARRAY)
         for i in range(len(ret_1.value)):
-            self.assertEqual(ret_2.value[i].get().type, ret_1.value[i].get().type)
-            self.assertEqual(ret_2.value[i].get().value, ret_1.value[i].get().value)
+            self.assertEqual(memRead(ret_2.value[i]).type, memRead(ret_1.value[i]).type)
+            self.assertEqual(memRead(ret_2.value[i]).value, memRead(ret_1.value[i]).value)
         self.assertRaises(TypeError, Interpreter.interpret, "2[0]\n")
 
 
@@ -658,6 +658,15 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 11)
 
+    def test_function_character(self):
+        ret = Interpreter.interpret(("cadeia s <- \"Teste\"\n"
+                                     "caracter func(caracter x):\n"
+                                     "\tretornar caracter(x + 1)\n"
+                                     "func(s[1])\n"
+                                    ))
+        self.assertEqual(ret.type, Type.CHAR)
+        self.assertEqual(ret.value, ord("f"))
+
     def test_function_overload(self):
         ret = Interpreter.interpret(("inteiro func(inteiro a, inteiro b):\n"
                                      "\t retornar a+b\n"
@@ -700,7 +709,7 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_function_variadic(self):
         ret = Interpreter.interpret(("inteiro teste(args...):\n"
-                                     "\t se |args|>1:\n"
+                                     "\t se |args| > 1:\n"
                                      "\t\t retornar args[0] + args[1]\n"
                                      "\t senão:\n"
                                      "\t\t retornar 0\n"
@@ -822,6 +831,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "x\n"
                                     ))
         self.assertArrayEquals(ret, Type.FLOAT, [5.0, 25.0, 5.0])  
+
 
     def test_while(self):
         ret = Interpreter.interpret(("inteiro i, x <- 0, 1\n"
@@ -1049,6 +1059,21 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertArrayEquals(ret, Type.INT, [1, 2, 10, 4, 5])  
 
+    def test_function_refparam_errors(self):
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a):\n"
+                          "\tretornar a\n"
+                          "teste(ref inteiro a):\n"
+                          "\ta <- a + 1\n"
+                          "teste(func(5))\n"
+                          ))
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("teste(ref caracter c):\n"
+                          "\tc <- c + 1\n"
+                          "cadeia s <- \"Ola\"\n"
+                          "teste(s[2])\n"
+                          ))
+
     def test_reference_assign(self):
         ret = Interpreter.interpret(("inteiro a, b\n"
                                      "b <- ref a\n"
@@ -1132,13 +1157,12 @@ class TestEvalVisitor(unittest.TestCase):
                                      "Lista cab <- Lista(10)\n"
                                      "inteiro i\n"
                                      "Lista atual <- ref cab\n"
-                                     "Lista p\n"
                                      "para i <- 1..4:\n"
-                                     "\tp <- Lista(10-(i*2))\n"
+                                     "\tLista p <- Lista(10-(i*2))\n"
                                      "\tatual.prox <- ref p\n"
                                      "\tatual <- ref p\n"
                                      "enquanto cab ~= nulo:\n"
-                                     "\tescrever(cab.chave, \"\\n\")\n"
+                                     "\tescrever(cab.chave)\n"
                                      "\tcab <- ref cab.prox\n"
                                     ))
         self.assertEqual(Interpreter.outStream.getvalue(), "10\n8\n6\n4\n2\n")

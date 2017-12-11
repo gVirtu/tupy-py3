@@ -28,7 +28,8 @@ class Variable(object):
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
                         orig_root_type = ret.roottype
                         ret = Instance.Instance(newtype, newvalue)
-                        ret.roottype = orig_root_type
+                        if (orig_root_type != Type.STRING): #Let STRING become CHAR
+                            ret.roottype = orig_root_type
                     else:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
                         orig_root_type = ret.roottype
@@ -38,11 +39,13 @@ class Variable(object):
             elif ttype == TrailerType.CALL:
                 # try:
                 # ii.logger.debug("tid {0}".format(tid))
+                parent = (ret, None, -1)
                 ret = ii.Interpreter.executeBlock(ret.value, tid)
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
             elif ttype == TrailerType.MEMBER:
                 ii.Interpreter.callStack.push(ret.value)
+                parent = (ret, tid, -2)
                 ret = ret.value.locals.get(tid)
                 classContextsPushed = classContextsPushed+1
             else:
@@ -65,22 +68,22 @@ class Variable(object):
                     ii.logger.debug("...returned {0}".format(inst.value[begin]))
                     return (ord(inst.value[begin]), Type.CHAR)
                 else:
-                    ii.logger.debug("...returned {0}".format(inst.value[begin].get().value))
-                    return (inst.value[begin].get().value, inst.value[begin].get().type)
+                    ii.logger.debug("...returned {0}".format(ii.memRead(inst.value[begin]).value))
+                    return (ii.memRead(inst.value[begin]).value, ii.memRead(inst.value[begin]).type)
             else:
                 ii.logger.debug("...returned {0}".format(inst.value[begin:end]))
                 return (inst.value[begin:end], inst.type)
         else:
             ret = []
             ii.logger.debug("Welp, first gotta check {0}".format(inst.value))
-            for literal in inst.value:
-                lower_inst = literal.get()
+            for memoryCell in inst.value:
+                lower_inst = ii.memRead(memoryCell)
                 lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)[0] #Not interested in type
                 if (single and level==1):
                     new_inst = Instance.Instance(lower_inst.heldtype, lower_level)
                 else:
                     new_inst = Instance.Instance(lower_inst.type, lower_level)
-                ret.append(Literal(new_inst))
+                ret.append(ii.memAlloc(new_inst))
                 
             ii.logger.debug("...returned {0}".format(ret))
             return (ret, inst.heldtype)
@@ -109,8 +112,7 @@ class Variable(object):
         else:
             subs = declSubscripts[0]
             sz = subs.begin
-            element = Literal(cls.array_init(declSubscripts[1:], heldType, className))
-            content = [(copy.deepcopy(element)) for i in range(sz)]
+            content = [ii.memAlloc(cls.array_init(declSubscripts[1:], heldType, className)) for _ in range(sz)]
             ret = Instance.Instance(Type.ARRAY, content)
             return ret
 

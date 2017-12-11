@@ -138,9 +138,17 @@ class evalVisitor(ParseTreeVisitor):
                             # E.g: a <- ref b
                             #      a <- ref c
                             # These next few lines will stop a from tracking b and vice-versa.
+                            # if (is_reference_assign):
+                            #     if isinstance(rval, v.Symbol):
+                            #         ii.Interpreter.clearRefs(lval.name)
+                            #     else:
+                            #         error(SyntaxError, "Cannot reference a literal!", ctx)
+
                             if (is_reference_assign):
                                 if isinstance(rval, v.Symbol):
-                                    ii.Interpreter.clearRefs(lval.name)
+                                    depth = ii.Interpreter.getDepth(rval.name)
+                                    cell = ii.Interpreter.getMemoryCell(rval.name, depth)
+                                    ii.Interpreter.referenceSymbol(lval.name, cell, trailerList=lval.trailers)
                                 else:
                                     error(SyntaxError, "Cannot reference a literal!", ctx)
 
@@ -149,11 +157,11 @@ class evalVisitor(ParseTreeVisitor):
                             else:
                                 ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
 
-                            if (is_reference_assign):
-                                ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), 
-                                                            rval.trailers, sourceTrailers = lval.trailers)
-                                ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), 
-                                                            lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
+                            # if (is_reference_assign):
+                            #     ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), 
+                            #                                 rval.trailers, sourceTrailers = lval.trailers)
+                            #     ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), 
+                            #                                 lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
                                 
                         else:
                             error(SyntaxError, "Cannot assign to literal!", ctx)
@@ -350,7 +358,21 @@ class evalVisitor(ParseTreeVisitor):
             (referenceDepth, referenceTrailers) = referenceData
             
             if (referenceDepth > -1): #Pass-by-reference only
-                ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
+                cell = ii.Interpreter.getMemoryCell(literal.name, referenceDepth)
+
+                # Grabbing the correct memory cell is trickier if there are trailers
+                # We are mostly concerned with where the result of retrieveWithTrailers
+                # is contained (i.e. the parent_triple). The negative depths are a tiny hack
+                # so that we can easily tell whether the referenced entity is the result of
+                # a SUBSCRIPT (depth >= 0), CALL (depth = -1) or MEMBER (depth = -2)
+                if (referenceTrailers):
+                    try:
+                        cell = ii.Interpreter.getDeepMemoryCell(ii.memRead(cell), referenceTrailers)
+                    except ii.InvalidMemoryAccessException as e:
+                        raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
+
+                ii.Interpreter.referenceSymbol(name, cell)
+                # ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
             
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
@@ -587,8 +609,8 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):
-        if ctx.NAME() is not None:
-            return v.Symbol(str(ctx.NAME().getText()))
+        if ctx.dataType() is not None: #Any NAME
+            return v.Symbol(str(ctx.dataType().getChild(0).getText()))
         elif ctx.TRUE() is not None:
             return v.Literal(Instance.Instance(Type.BOOL, True));
         elif ctx.FALSE() is not None:
@@ -605,11 +627,13 @@ class evalVisitor(ParseTreeVisitor):
             if len(res)==1:
                 return res[0]
             else:
-                return v.Literal(Instance.Instance(Type.TUPLE, tuple(res)));
+                ret_res = [ii.memAlloc(element.get()) for element in res]
+                return v.Literal(Instance.Instance(Type.TUPLE, tuple(ret_res)));
         elif ctx.OPEN_BRACK() is not None:
             res = []
             if ctx.testOrExpressionList() is not None:
-                res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+                lit_res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
+                res = [ii.memAlloc(element.get()) for element in lit_res]
             try:
                 return v.Literal(Instance.Instance(Type.ARRAY, list(res)));
             except TypeError:

@@ -46,7 +46,7 @@ class Function(object):
                 try:
                     current_level = current_level[Type.TUPLE]
                 except Exception:
-                    raise TypeError("Unexpected argument {0}!".format(literal.get().value))
+                    raise TypeError("Unexpected argument {0}! ({1}, {2})".format(literal.get().value, literal.get().type, literal.get().roottype))
         try:
             return current_level[_args_end]
         except Exception:

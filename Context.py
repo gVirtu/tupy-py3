@@ -36,7 +36,7 @@ class Context(object):
         # is declared as pass-by-reference, its name is mapped to the name and 
         # depth of the passed symbol. Whenever an update occurs, the mapped
         # symbol is then updated to point to the same instance reference.
-        self.refMappings = {}
+        # self.refMappings = {}
 
         # Dict of classes (TODO)
         self.classes = {}
@@ -51,15 +51,15 @@ class Context(object):
         self.locals.subscriptlist = copy.deepcopy(otherContext.locals.subscriptlist)
         self.locals.declaredDepth = copy.copy(otherContext.locals.declaredDepth)
 
-    def mergeRefMappings(self, other):
-        ii.logger.debug("MERGING REF MAPPINGS - ORIGINALLY {0}".format(other))
-        filteredMappings = {key:val for key,val in other.items() if key[1] <= self.depth}
+    # def mergeRefMappings(self, other):
+    #     ii.logger.debug("MERGING REF MAPPINGS - ORIGINALLY {0}".format(other))
+    #     filteredMappings = {key:val for key,val in other.items() if key[1] <= self.depth}
 
-        for key in filteredMappings:
-            filteredMappings[key] = {key:val for key,val in filteredMappings[key].items() if key[1] <= self.depth}
+    #     for key in filteredMappings:
+    #         filteredMappings[key] = {key:val for key,val in filteredMappings[key].items() if key[1] <= self.depth}
 
-        ii.logger.debug("MERGING REF MAPPINGS - NOW {0}".format(filteredMappings))
-        self.refMappings.update(filteredMappings)
+    #     ii.logger.debug("MERGING REF MAPPINGS - NOW {0}".format(filteredMappings))
+    #     self.refMappings.update(filteredMappings)
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -71,7 +71,7 @@ class Context(object):
         setattr(result, 'returnable', copy.copy(self.returnable))
         setattr(result, 'breakable', copy.copy(self.breakable))
         setattr(result, 'functions', copy.copy(self.functions))
-        setattr(result, 'refMappings', copy.copy(self.refMappings))
+        # setattr(result, 'refMappings', copy.copy(self.refMappings))
         setattr(result, 'classes', copy.copy(self.classes))
         setattr(result, 'structName', copy.copy(self.structName))
         return result

@@ -16,7 +16,7 @@ import Builtins
 import logging
 
 FORMAT = "=> %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class FlowEvent(Enum):
@@ -34,7 +34,6 @@ class Interpreter(object):
     def initialize(cls):
         cls.visitor = evalVisitor()
         cls.callStack = CallStack()
-        cls.memory = []
         cls.flow = FlowEvent.STEP
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
@@ -90,7 +89,8 @@ class Interpreter(object):
             if (len(callArgs) > fixedCount):
                 extraArgs = argValues[fixedCount:]
                 argValues = argValues[:fixedCount]
-                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple(extraArgs)))
+                memExtraArgs = [memAlloc(literal.get()) for literal in extraArgs]
+                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
                 argValues.append(packed)
             else:
                 # This is to prevent extraArgs from having Nones which cause
@@ -113,7 +113,7 @@ class Interpreter(object):
                 cls.callStack.push(classInstance.value)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
                 cls.callStack.pop()
-                return classInstance;
+                return classInstance
             else:
                 return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
 
@@ -167,6 +167,56 @@ class Interpreter(object):
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
 
     @classmethod
+    def referenceSymbol(cls, name, memoryCell, trailerList = None):
+        if (trailerList is None): trailerList = []
+        if not trailerList:
+            logger.debug("Setting "+name+" to reference "+str(memoryCell))
+            cls.callStack.top().locals.ref(name, memoryCell)
+            return True
+        else:
+            logger.debug("Setting {0}{1} to reference {2}".format(name, trailerList, str(memoryCell)))
+            inst = cls.loadSymbol(name)
+            (ret, parent_triple) = Variable.Variable.retrieveWithTrailers(inst, trailerList)
+            (parent, trailer, depth) = parent_triple
+            if (depth == -2): # A TT.MEMBER is referencing memoryCell
+                memberDepth = parent.value.locals.declaredDepth[trailer]
+                parent.value.locals.data[(trailer, memberDepth)] = memoryCell
+                return True
+            elif (depth == -1): # A TT.CALL is referencing memoryCell
+                raise SyntaxError("Cannot assign a reference to function call!")
+            else: # A TT.SUBSCRIPT is referencing memoryCell
+                if (trailer.isSingle):
+                    if parent.type == Type.STRING:
+                        raise SyntaxError("Cannot assign a reference to a string's character!")
+                    else:
+                        parent.value[trailer.begin] = memoryCell
+                        return True
+                else:
+                    raise SyntaxError("Cannot assign a reference to a range-subscripted array!")
+
+    @classmethod
+    def getDeepMemoryCell(cls, inst, trailers):
+        (ret, parent_triple) = Variable.Variable.retrieveWithTrailers(inst, trailers)
+        (parent, trailer, depth) = parent_triple
+        if (depth == -2): # Get cell for a TT.MEMBER
+            memberDepth = parent.value.locals.declaredDepth[trailer]
+            return parent.value.locals.data[(trailer, memberDepth)]
+        elif (depth == -1): # Get cell for a TT.CALL
+            raise InvalidMemoryAccessException("<Function call>")
+        else: # Get cell for a TT.SUBSCRIPT
+            if (trailer.isSingle):
+                if parent.type == Type.STRING:
+                    raise InvalidMemoryAccessException("<Character>")
+                else:
+                    return parent.value[trailer.begin]
+            else:
+                raise InvalidMemoryAccessException("<Range-subscripted array>")
+
+    @classmethod
+    def getMemoryCell(cls, name, depth):
+        return cls.callStack.top().locals.data[(name, depth)]
+
+    @classmethod
     def clearRefs(cls, name):
          srcDepth = cls.getDepth(name)
          entry = (name, srcDepth)
@@ -213,7 +263,7 @@ class Interpreter(object):
     def pushContext(cls, context):
          # Code trees don't need deep copying
         context.functions = copy.copy(cls.callStack.top().functions)
-        context.refMappings = copy.copy(cls.callStack.top().refMappings)
+        # context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
 
         cls.callStack.push(context)
@@ -227,7 +277,7 @@ class Interpreter(object):
         if (prev.structName is None):
             # logger.debug("Top before merge:\n{0}".format(str(cls.callStack.top())))
             cls.callStack.top().locals.merge(prev.locals)
-            cls.callStack.top().mergeRefMappings(prev.refMappings)
+            # cls.callStack.top().mergeRefMappings(prev.refMappings)
             # logger.debug("Top after merge:\n{0}".format(str(cls.callStack.top())))
 
         return prev
@@ -269,26 +319,32 @@ class Interpreter(object):
 
     @classmethod
     def output(cls, string):
-        logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
+        logger.info("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
         cls.outStream.write(string)
         cls.outStream.write("\n")
 
 # Memory access functions
+# TODO: Memory Cell class
+#       Garbage collection when popping context
 
-def memalloc(instance):
-    pos = len(Interpreter.memory)
-    Interpreter.memory.append(instance)
-    return pos
+class MemoryCell(object):
+    def __init__(self, inst):
+        self.data = inst
 
-def memwrite(index, instance):
-    sz = len(Interpreter.memory)
-    if (sz <= index):
-        diff = index-sz+1
-        Interpreter.memory.extend([Instance.Instance(Type.NULL, 0) for _ in range(diff)])
-    Interpreter.memory[index] = instance
+    def __repr__(self):
+        return "■MEMORYCELL■" #"■{0}■".format(self.data)
 
-def memread(index):
-    return Interpreter.memory[index]
+class InvalidMemoryAccessException(Exception):
+    pass
+
+def memAlloc(data):
+    return MemoryCell(data)
+
+def memRead(cell):
+    return cell.data
+
+def memWrite(cell, data):
+    cell.data = data
 
 #========================
 
