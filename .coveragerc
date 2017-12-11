@@ -3,3 +3,4 @@ omit =
 	langLexer.py
 	langVisitor.py
 	langListener.py
+	eval_test.py

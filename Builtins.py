@@ -1,19 +1,22 @@
 import Interpreter as ii
 import Argument
 import Instance
+import Variable as v
 import inspect
+import math
 import copy
 from Type import Type
 
 def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
     function("caracter", Type.CHAR, [Type.INT])
+    function("real", Type.FLOAT, [Type.INT])
+    function("log", Type.FLOAT, [Type.FLOAT, Type.FLOAT], 
+             defaults=[None, v.Literal(Instance.Instance(Type.FLOAT, math.e))])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
     argNames = copy.copy(argSpecs.args)
-    if argSpecs.varargs is not None:
-        argNames.append(argSpecs.varargs)
 
     if arrayDimensions is None:
         arrayDimensions = [0] * len(argNames)
@@ -45,11 +48,17 @@ def printInstance(arg):
     elif typ == Type.CHAR:
         out = chr(inst.value)
     else:
-        out = str(inst.value)
+        out = inst.value #str(inst.value)
     return out
 
 def stringProcess(string):
-    return string.replace("\\n", "\n")
+    return str(string).replace("\\n", "\n")
 
 def caracter(inteiro):
     return Instance.Instance(Type.CHAR, inteiro.get().value)
+
+def real(inteiro):
+    return Instance.Instance(Type.FLOAT, inteiro.get().value)
+
+def log(n, b):
+    return Instance.Instance(Type.FLOAT, math.log(n.get().value, b.get().value))

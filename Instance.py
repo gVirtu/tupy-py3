@@ -68,9 +68,6 @@ class Instance(object):
     #         for element in self.value:
     #             element.get().print_roottype()
 
-    def array_get(self, pos):
-        return self.value[pos]
-
     # UNUSED
     # def array_update(self, pos, literal):
         # if not self.is_mutable_array():

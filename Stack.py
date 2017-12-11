@@ -1,4 +1,4 @@
-class Stack(object): 
+class Stack(object): # pragma: no cover
     def __init__(self):
         self.items = []
 

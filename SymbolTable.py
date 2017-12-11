@@ -278,7 +278,7 @@ class SymbolTable(object):
             # else:
             #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
 
-    def updateData(self, name, instance, trailers, forceDepth=None, visited=None):
+    def updateData(self, name, instance, trailers, visited=None):
         if visited is None: visited = {}
         ii.logger.debug("Updating {0}{1} to {2} (visits={3})".format(name, trailers, instance, visited))
         # This is a call to assign some INSTANCE to some NAME
@@ -287,10 +287,7 @@ class SymbolTable(object):
         # Note that when a name is DECLARED, the trailers won't show up here.
         # e.g.: inteiro A[5,5] <- ... # No trailers! Equivalent to "inteiro A[5,5]; A <- ..."
 
-        if (forceDepth is None):
-            depth = self.declaredDepth[name]
-        else:
-            depth = forceDepth
+        depth = self.declaredDepth[name]
 
         full_data = ii.memRead(self.data[(name, depth)])
         target_subscript = None
@@ -329,7 +326,8 @@ class SymbolTable(object):
             if trailer[0] == Type.TrailerType.SUBSCRIPT:
                 subscriptList = subscriptList + trailer[1]
             else:
-                break
+                # MEMBER trailertypes have already been handled above
+                raise SyntaxError("Cannot assign to function calls!")
 
         # We need to be able to tell which sizes our INSTANCE should ideally have
         # Here we automatically fill every omitted subscript with a wildcard
@@ -366,18 +364,6 @@ class SymbolTable(object):
         else:
             raise TypeError("Assignment exceeds allocated space!")
 
-    # def updateRefs(self, name, depth, visited):
-    #     if (name, depth) in self.context.refMappings:
-    #         ii.logger.debug("{0} has refmappings!".format(name))
-    #         refsMap = self.context.refMappings[(name, depth)]
-    #         for (refName, refDepth), (refTrailers, sourceTrailers, _) in refsMap.items():
-    #             ii.logger.debug("Checking out {0}... (visits = {1})".format(refName, visited))
-    #             if (refName, refDepth) not in visited:
-    #                 (refSource, _) = Variable.Variable.retrieveWithTrailers(ii.memRead(self.data[(name, depth)]), sourceTrailers)
-    #                 visited[(name, depth)] = True
-    #                 self.updateData(refName, refSource, refTrailers, forceDepth=refDepth, visited=visited)
-    #     return visited
-
     def updateChildren(self, target_data, target_subscript, depth, instance):
         ii.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
         if depth == 0:
@@ -397,7 +383,9 @@ class SymbolTable(object):
 
     def deepMerge(self, target_value, source_value):
         ii.logger.debug("deepMerge({0}, {1})".format(target_value, source_value))
-        updateLength = min(len(target_value), len(source_value))
+        # Either the target_value or source_value would do as the updateLength, 
+        # since they are guaranteed to be the same after processDimensions runs.
+        updateLength = len(target_value)
         for ind in range(updateLength):
             child = ii.memRead(target_value[ind])
             newchild = ii.memRead(source_value[ind])
@@ -405,9 +393,6 @@ class SymbolTable(object):
                 self.deepMerge(child.value, newchild.value)
             else:
                 ii.memWrite(target_value[ind], newchild)
-        for ind in range(len(target_value), len(source_value)):
-            ii.logger.debug("NEW ELEMENT {0}".format(source_value[ind]))
-            target_value.append(source_value[ind])
         ii.logger.debug("Merged and became {0}".format(target_value))
         return target_value
 

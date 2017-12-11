@@ -16,7 +16,7 @@ import Builtins
 import logging
 
 FORMAT = "=> %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.INFO)
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class FlowEvent(Enum):
@@ -41,6 +41,7 @@ class Interpreter(object):
 
     @classmethod
     def interpret(cls, input, rule="r"):
+        logger.debug("Input is {0}".format(str(input)))
         cls.outStream.close()
         cls.initialize()
         Builtins.initialize()
@@ -144,8 +145,8 @@ class Interpreter(object):
             logger.debug("Now my locals are {0}".format(objContext.locals))
             objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
-        except e:
-            raise TypeError("Class {0} does not exist!".format(name))
+        except KeyError as exc:
+            raise NameError("Class {0} does not exist!".format(name)) from exc
         return Instance.Instance(Type.STRUCT, objContext, className=name)
 
     @classmethod
@@ -215,36 +216,6 @@ class Interpreter(object):
     @classmethod
     def getMemoryCell(cls, name, depth):
         return cls.callStack.top().locals.data[(name, depth)]
-
-    @classmethod
-    def clearRefs(cls, name):
-         srcDepth = cls.getDepth(name)
-         entry = (name, srcDepth)
-         if entry in cls.callStack.top().refMappings:
-            data = cls.callStack.top().refMappings[entry]
-            deletionList = []
-            for (ref, depth), (trailers, sourceTrailers, isReferrer) in data.items():
-                if (isReferrer):
-                    deletionList.append( (ref, depth) )
-            
-            for linkedEntry in deletionList:
-                cls.callStack.top().refMappings[entry].pop(linkedEntry, None)
-                if linkedEntry in cls.callStack.top().refMappings:
-                    cls.callStack.top().refMappings[linkedEntry].pop(entry, None)
-                     
-
-    @classmethod
-    def mapRefParam(cls, name, ref, depth, trailers, sourceTrailers = None, isReferrer = True):
-        if sourceTrailers is None: sourceTrailers = []
-        srcDepth = cls.getDepth(name)
-        entry = (name, srcDepth)
-        if entry not in cls.callStack.top().refMappings:
-            cls.callStack.top().refMappings[entry] = {}
-
-        refEntry = (ref, depth)
-        refData = (trailers, sourceTrailers, isReferrer)
-        cls.callStack.top().refMappings[entry][refEntry] = refData
-        logger.debug("New REFMAPPING in {1}. Currently = {0}".format(str(cls.callStack.top().refMappings), str(cls.callStack.top())))
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):
@@ -324,15 +295,13 @@ class Interpreter(object):
         cls.outStream.write("\n")
 
 # Memory access functions
-# TODO: Memory Cell class
-#       Garbage collection when popping context
 
 class MemoryCell(object):
     def __init__(self, inst):
         self.data = inst
 
     def __repr__(self):
-        return "■MEMORYCELL■" #"■{0}■".format(self.data)
+        return "■{0}".format(self.data)
 
 class InvalidMemoryAccessException(Exception):
     pass
@@ -350,10 +319,12 @@ def memWrite(cell, data):
 
 def main(argv):
     if len(argv)>1:
-        input = argv[1]
+        logger.debug("Opening file {0}...".format(argv[1]))
+        with open(argv[1], 'r') as myfile:
+            input = myfile.read()
     else:
         input = sys.stdin.read()
     return Interpreter.interpret(input)
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     main(sys.argv)

@@ -48,8 +48,6 @@ class Variable(object):
                 parent = (ret, tid, -2)
                 ret = ret.value.locals.get(tid)
                 classContextsPushed = classContextsPushed+1
-            else:
-                pass
 
         for i in range(classContextsPushed):
             ii.Interpreter.popFrame()
@@ -219,9 +217,10 @@ class Variable(object):
         return Literal(Instance.Instance(Type.INT, self.get().size))
 
     def resultType(self, a, b):
-        if (a == Type.REFERENCE or b == Type.REFERENCE):
-            raise TypeError("Cannot operate on instance of type REFERENCE!")
-        elif (a == Type.STRUCT or b == Type.STRUCT):
+        # Deprecated type
+        # if (a == Type.REFERENCE or b == Type.REFERENCE):
+        #   raise TypeError("Cannot operate on instance of type REFERENCE!")
+        if (a == Type.STRUCT or b == Type.STRUCT):
             raise TypeError("Cannot operate on STRUCTS!")
         elif (a == Type.FUNCTION or b == Type.FUNCTION):
             raise TypeError("Cannot operate on FUNCTIONS!")
@@ -284,7 +283,7 @@ class Symbol(Variable):
         self.trailers = []
         self.name = name
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return "SYMBOL<{0}>".format(str(self.name))
 
     def get(self):

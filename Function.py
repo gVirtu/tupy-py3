@@ -9,7 +9,7 @@ class Function(object):
         self.name = name
         self.argumentTree = {}
 
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover
         return "F->{0}".format(str(self.argumentTree))
 
     def put(self, context, argumentList, returnType, code, builtIn=False, isConstructor=False):

@@ -144,18 +144,22 @@ class evalVisitor(ParseTreeVisitor):
                             #     else:
                             #         error(SyntaxError, "Cannot reference a literal!", ctx)
 
+                            effectiveTrailers = [] if isDeclaration else lval.trailers
+
                             if (is_reference_assign):
                                 if isinstance(rval, v.Symbol):
                                     depth = ii.Interpreter.getDepth(rval.name)
                                     cell = ii.Interpreter.getMemoryCell(rval.name, depth)
-                                    ii.Interpreter.referenceSymbol(lval.name, cell, trailerList=lval.trailers)
+                                    if (rval.trailers):
+                                        try:
+                                            cell = ii.Interpreter.getDeepMemoryCell(ii.memRead(cell), rval.trailers)
+                                        except ii.InvalidMemoryAccessException as e:
+                                            raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
+                                    ii.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
                                 else:
                                     error(SyntaxError, "Cannot reference a literal!", ctx)
-
-                            if isDeclaration:
-                                ii.Interpreter.storeSymbol(lval.name, rval.get(), [])
                             else:
-                                ii.Interpreter.storeSymbol(lval.name, rval.get(), lval.trailers)
+                                ii.Interpreter.storeSymbol(lval.name, rval.get(), effectiveTrailers)
 
                             # if (is_reference_assign):
                             #     ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), 

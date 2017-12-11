@@ -1,9 +1,11 @@
 import unittest
 import pytest
+import sys
+import io
 from antlr4 import InputStream
 from Instance import Instance
 from Type import Type
-from Interpreter import Interpreter, memRead
+from Interpreter import Interpreter, memRead, main
 
 class TestEvalVisitor(unittest.TestCase):
 
@@ -25,6 +27,15 @@ class TestEvalVisitor(unittest.TestCase):
             else:
                 self.assertEqual(memRead(ret.value[ind]).type, targetType)
                 self.assertEqual(memRead(ret.value[ind]).value, array[ind])
+
+    def test_entrypoint_file(self):
+        ret = main([None, "code/helloWorld.uerj"])
+        self.assertEqual(Interpreter.outStream.getvalue(), "Olá mundo!\n")
+
+    def test_entrypoint_stdin(self):
+        sys.stdin = io.StringIO("escrever(\"Teste\")\n")
+        ret = main([None])
+        self.assertEqual(Interpreter.outStream.getvalue(), "Teste\n")
 
     def test_integer(self):
         ret = self.evalExpression("123\n")
@@ -217,6 +228,18 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, -174)
         self.assertRaises(TypeError, self.evalExpression, "~verdadeiro\n")
+
+    def test_arithmetic_error(self):        
+        self.assertRaises(TypeError, Interpreter.interpret, ("inteiro func(inteiro a):\n"
+                                                             "\tretornar a\n"
+                                                             "func + func\n"
+                                                            ))
+        self.assertRaises(TypeError, Interpreter.interpret, ("tipo Teste:\n"
+                                                             "\tinteiro a\n"
+                                                             "Teste u, v <- Teste(), Teste()\n"
+                                                             "u + v\n"
+                                                            ))
+
 
     def test_comparison(self):
         ret = self.evalExpression("3 < 4\n")
@@ -552,6 +575,14 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertArrayEquals(ret[0], Type.INT, [[1, 2, 3], [4, 5, 6], [7, 8, 9, 0]])
         self.assertEqual(ret[1].type, Type.INT)
         self.assertEqual(ret[1].value, 10)
+        ret = Interpreter.interpret(("inteiro X[*,*], Y[*,*]\n"
+                                     "X <- [[1, 2], [3, 4, 5]]\n"
+                                     "Y <- [[5, 4, 3], [2, 1]]\n"
+                                     "X[0,*] <- Y[0,*]\n"
+                                     "X, Y\n"
+                                    ))
+        self.assertArrayEquals(ret[0], Type.INT, [[5, 4, 3], [3, 4, 5]])
+        self.assertArrayEquals(ret[1], Type.INT, [[5, 4, 3], [2, 1]])
 
     def test_if(self):
         ret = Interpreter.interpret("se 2 > 1: \"ok\"\nsenão: \"not ok\"\n")
@@ -753,6 +784,10 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(Interpreter.outStream.getvalue(), "5\n")
         ret = Interpreter.interpret("escrever(5,\"cinco\",\'a\')\n")
         self.assertEqual(Interpreter.outStream.getvalue(), "5 cinco a\n")
+        ret = Interpreter.interpret("escrever([1, 2, 3])\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "[1, 2, 3]\n")
+        ret = Interpreter.interpret("escrever((4, 5, 6))\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "(4, 5, 6)\n")
         ret = Interpreter.interpret(("inteiro escrever(inteiro n):\n"
                                      "\t retornar 100\n"
                                      "escrever(5)\n"
@@ -970,6 +1005,7 @@ class TestEvalVisitor(unittest.TestCase):
                           "Círculo C <- Círculo()\n"
                           "Q <- C\n"
                           ))
+        self.assertRaises(NameError, Interpreter.newClassInstance, "classeInexistente")
 
     def test_for_loop(self):
         ret = Interpreter.interpret(("inteiro i\n"
@@ -1074,6 +1110,29 @@ class TestEvalVisitor(unittest.TestCase):
                           "teste(s[2])\n"
                           ))
 
+    def test_reference_errors(self):
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro V[5] <- [2, 4, 8, 16, 32]\n"
+                          "inteiro X[3] <- ref V[1..3]\n"
+                          ))
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro V[2] <- [2, 4]\n"
+                          "inteiro X[3] <- [1, 2, 3]\n"
+                          "X[1..2] <- ref V\n"
+                          ))
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a):\n"
+                          "\tretornar a\n"
+                          "inteiro teste(inteiro a):\n"
+                          "\tretornar a + 1\n"
+                          "func(1) <- ref teste\n"
+                          ))
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("cadeia s <- \"Ola\"\n"
+                          "caracter a <- \'A\'\n"
+                          "s[1] <- ref a\n"
+                          ))
+
     def test_reference_assign(self):
         ret = Interpreter.interpret(("inteiro a, b\n"
                                      "b <- ref a\n"
@@ -1082,6 +1141,15 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
+
+    def test_reference_assign_array_element(self):
+        ret = Interpreter.interpret(("inteiro A[3] <- [10, 50, 200]\n"
+                                     "inteiro x\n"
+                                     "A[1] <- ref x\n"
+                                     "x <- 100\n"
+                                     "A\n"
+                                    ))
+        self.assertArrayEquals(ret, Type.INT, [10, 100, 200])  
 
     def test_reference_reassign(self):
         ret = Interpreter.interpret(("inteiro a, b, c, d\n"
@@ -1166,6 +1234,23 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\tcab <- ref cab.prox\n"
                                     ))
         self.assertEqual(Interpreter.outStream.getvalue(), "10\n8\n6\n4\n2\n")
+
+    def test_logarithm(self):
+        ret = Interpreter.interpret("log(32.0, 2.0)\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, 5.0)
+        ret = Interpreter.interpret("log(real(32), real(2))\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, 5.0)
+
+    def test_no_function_call_assign(self):
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro func(inteiro x):\n"
+                          "\tretornar x*x\n"
+                          "inteiro func2(inteiro x):\n"
+                          "\tretornar x+x\n"
+                          "func(1) <- func2(1)\n"
+                         ))
         
 if __name__ == '__main__':
     unittest.main()
