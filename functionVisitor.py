@@ -1,7 +1,9 @@
 # Generated from lang.g4 by ANTLR 4.7
-from antlr4 import *
+
 from Type import TrailerType, Type
-if __name__ is not None and "." in __name__:
+
+from antlr4 import *
+if __name__ is not None and "." in __name__: # pragma: no cover
     from .langParser import langParser
 else:
     from langParser import langParser
@@ -96,9 +98,12 @@ class functionVisitor(ParseTreeVisitor):
         return True if ctx.REF() is not None else False
 
 
-    # Visit a parse tree produced by langParser#importStatement.
-    def visitImportStatement(self, ctx:langParser.ImportStatementContext):
-        return self.visitChildren(ctx)
+    # NOT IMPLEMENTED
+    #====================================================================
+    # # Visit a parse tree produced by langParser#importStatement.
+    # def visitImportStatement(self, ctx:langParser.ImportStatementContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
     # Visit a parse tree produced by langParser#statement.
@@ -141,19 +146,22 @@ class functionVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#enumSpecifier.
-    def visitEnumSpecifier(self, ctx:langParser.EnumSpecifierContext):
-        return self.visitChildren(ctx)
+    # NOT IMPLEMENTED
+    #====================================================================
+    # # Visit a parse tree produced by langParser#enumSpecifier.
+    # def visitEnumSpecifier(self, ctx:langParser.EnumSpecifierContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#enumeratorList.
-    def visitEnumeratorList(self, ctx:langParser.EnumeratorListContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#enumeratorList.
+    # def visitEnumeratorList(self, ctx:langParser.EnumeratorListContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#enumerator.
-    def visitEnumerator(self, ctx:langParser.EnumeratorContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#enumerator.
+    # def visitEnumerator(self, ctx:langParser.EnumeratorContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
     # Visit a parse tree produced by langParser#flowStatement.

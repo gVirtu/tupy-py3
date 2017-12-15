@@ -813,6 +813,11 @@ class TestEvalVisitor(unittest.TestCase):
                           "func(2)\n"
                          ))
         self.assertRaises(TypeError, Interpreter.interpret, 
+                         ("inteiro func(inteiro a):\n"
+                          "\t retornar a\n"
+                          "func([1, 2, 3])\n"
+                         ))
+        self.assertRaises(TypeError, Interpreter.interpret, 
                          ("inteiro func(inteiro[][] a):\n"
                           "\t retornar |a|\n"
                           "func([1,2,3])\n"
@@ -1061,7 +1066,16 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 126)
 
-    def test_break(self):
+    def test_for_loop_errors(self):
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro i, j\n"
+                          "inteiro soma <- 0\n"
+                          "para i, j <- 0..9:\n"
+                          "\tsoma <- soma + i\n"
+                          "soma\n"
+                         ))
+ 
+    def test_break(self) :
         ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"
                                      "enquanto verdadeiro:\n"
                                      "\ti <- i + 1\n"
@@ -1073,6 +1087,17 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 11)
+
+    def test_break_nested_for(self):
+        ret = Interpreter.interpret(("inteiro tot, i, j <- 0, 0, 0\n"
+                                     "para i, j <- 3..1, 1..3 passo -1, 1:\n"
+                                     "\tse j>i :\n"
+                                     "\t\tparar\n"
+                                     "\ttot <- tot + i*j\n"
+                                     "tot\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 24)
 
     def test_continue(self):
         ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"
@@ -1132,6 +1157,8 @@ class TestEvalVisitor(unittest.TestCase):
                           "caracter a <- \'A\'\n"
                           "s[1] <- ref a\n"
                           ))
+        self.assertRaises(SyntaxError, Interpreter.interpret, 
+                         ("inteiro a <- ref 25\n"))
 
     def test_reference_assign(self):
         ret = Interpreter.interpret(("inteiro a, b\n"

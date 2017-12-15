@@ -3,7 +3,7 @@ from Subscript import Subscript
 from Type import TrailerType, Type
 
 from antlr4 import *
-if __name__ is not None and "." in __name__:
+if __name__ is not None and "." in __name__: # pragma: no cover
     from .langParser import langParser
 else:
     from langParser import langParser
@@ -41,30 +41,35 @@ class evalVisitor(ParseTreeVisitor):
         return None
 
 
+    # HANDLED BY FUNCTION VISITOR
+    #====================================================================
     # Visit a parse tree produced by langParser#parameters.
-    def visitParameters(self, ctx:langParser.ParametersContext):
-        return self.visitChildren(ctx)
+    # def visitParameters(self, ctx:langParser.ParametersContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#typedArgsList.
-    def visitTypedArgsList(self, ctx:langParser.TypedArgsListContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#typedArgsList.
+    # def visitTypedArgsList(self, ctx:langParser.TypedArgsListContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#typedFunctionParam.
-    def visitTypedFunctionParam(self, ctx:langParser.TypedFunctionParamContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#typedFunctionParam.
+    # def visitTypedFunctionParam(self, ctx:langParser.TypedFunctionParamContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#paramPassage.
-    def visitParamPassage(self, ctx:langParser.ParamPassageContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#paramPassage.
+    # def visitParamPassage(self, ctx:langParser.ParamPassageContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
-    # Visit a parse tree produced by langParser#importStatement.
-    def visitImportStatement(self, ctx:langParser.ImportStatementContext):
-        return self.visitChildren(ctx)
-
+    # NOT IMPLEMENTED
+    #====================================================================
+    # # Visit a parse tree produced by langParser#importStatement.
+    # def visitImportStatement(self, ctx:langParser.ImportStatementContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
@@ -88,9 +93,12 @@ class evalVisitor(ParseTreeVisitor):
         return self.visitTestOrExpressionStatement(ctx.testOrExpressionStatement())
 
 
+    # UNUSED - TOKEN ACCESSED DIRECTLY
+    #====================================================================
     # Visit a parse tree produced by langParser#dataType.
-    def visitDataType(self, ctx:langParser.DataTypeContext):
-        return self.visitChildren(ctx)
+    # def visitDataType(self, ctx:langParser.DataTypeContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
     # Visit a parse tree produced by langParser#testOrExpressionStatement.
@@ -193,19 +201,22 @@ class evalVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # NOT IMPLEMENTED
+    #====================================================================
     # Visit a parse tree produced by langParser#enumSpecifier.
-    def visitEnumSpecifier(self, ctx:langParser.EnumSpecifierContext):
-        return self.visitChildren(ctx)
+    # def visitEnumSpecifier(self, ctx:langParser.EnumSpecifierContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#enumeratorList.
-    def visitEnumeratorList(self, ctx:langParser.EnumeratorListContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#enumeratorList.
+    # def visitEnumeratorList(self, ctx:langParser.EnumeratorListContext):
+    #     return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by langParser#enumerator.
-    def visitEnumerator(self, ctx:langParser.EnumeratorContext):
-        return self.visitChildren(ctx)
+    # # Visit a parse tree produced by langParser#enumerator.
+    # def visitEnumerator(self, ctx:langParser.EnumeratorContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
     # Visit a parse tree produced by langParser#flowStatement.
@@ -315,8 +326,9 @@ class evalVisitor(ParseTreeVisitor):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
                 ret = self.visitBlock(block)
-                if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
-                    break
+            
+            if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
+                break
 
             currentLiteral = v.Literal(ii.Interpreter.loadSymbol(names[0]))
             currentInstance = (currentLiteral.add(steps[0])).get()
@@ -458,11 +470,12 @@ class evalVisitor(ParseTreeVisitor):
                     res = res.neq(rhs)
         return res
 
-
+    # UNUSED - TOKEN ACCESSED DIRECTLY
+    #====================================================================
     # Visit a parse tree produced by langParser#comparisonOperator.
-    def visitComparisonOperator(self, ctx:langParser.ComparisonOperatorContext):
-        return self.visitChildren(ctx)
-
+    # def visitComparisonOperator(self, ctx:langParser.ComparisonOperatorContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
     # Visit a parse tree produced by langParser#loopRange.
     def visitLoopRange(self, ctx:langParser.LoopRangeContext):
@@ -471,9 +484,12 @@ class evalVisitor(ParseTreeVisitor):
         return (begin_inst, end_inst)
 
 
+    # UNUSED - TOKEN ACCESSED DIRECTLY
+    #====================================================================
     # Visit a parse tree produced by langParser#rangeDelimiter.
-    def visitRangeDelimiter(self, ctx:langParser.RangeDelimiterContext):
-        return self.visitChildren(ctx)
+    # def visitRangeDelimiter(self, ctx:langParser.RangeDelimiterContext):
+    #     return self.visitChildren(ctx)
+    #====================================================================
 
 
     # Visit a parse tree produced by langParser#rangeList.
@@ -751,10 +767,10 @@ class evalVisitor(ParseTreeVisitor):
 
     def aggregateResult(self, aggregate, nextResult):
         # ii.logger.debug("Aggregating "+str(aggregate)+" and "+str(nextResult))
-        if aggregate is not None:
-            res = aggregate
-        else:
-            res = nextResult
+        # if aggregate is not None:
+        #     res = aggregate
+        # else:
+        res = nextResult
         # ii.logger.debug("Gives us "+str(res))
         return res
 
