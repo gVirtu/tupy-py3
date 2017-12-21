@@ -10,6 +10,7 @@ from Context import Context
 from enum import Enum
 from Type import Type
 from io import StringIO
+import JSONPrinter
 import Variable
 import Instance
 import Builtins
@@ -38,12 +39,14 @@ class Interpreter(object):
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
         cls.outStream = StringIO()
+        cls.traceOut = None
 
     @classmethod
-    def interpret(cls, input, rule="r"):
+    def interpret(cls, input, rule="r", trace=None):
         logger.debug("Input is {0}".format(str(input)))
         cls.outStream.close()
         cls.initialize()
+        cls.traceOut = JSONPrinter.JSONPrinter()
         Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
@@ -223,9 +226,11 @@ class Interpreter(object):
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
-    def pushFrame(cls, returnable=False, breakable=False, returnType=None):
+    def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
         logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
-        newContext = Context(cls.callStack.size(), returnable, breakable, returnType)
+        if (funcName is None):
+            funcName = cls.callStack.top().funcName
+        newContext = Context(cls.callStack.size(), returnable, breakable, returnType, funcName=funcName)
         newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
         cls.pushContext(newContext)

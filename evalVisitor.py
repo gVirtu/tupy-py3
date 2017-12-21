@@ -340,7 +340,7 @@ class evalVisitor(ParseTreeVisitor):
         return ret
 
     # Visit a parse tree produced by langParser#block.
-    def visitBlock(self, ctx:langParser.BlockContext, injectList=None, returnType=None):
+    def visitBlock(self, ctx:langParser.BlockContext, injectList=None, returnType=None, funcName=None):
         if (injectList is None): injectList = []
 
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
@@ -350,7 +350,7 @@ class evalVisitor(ParseTreeVisitor):
         isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
         if not isClassDef:
             ii.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
-                                     returnType=returnType)
+                                     returnType=returnType, funcName=funcName)
         ii.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceData, literal) in injectList:

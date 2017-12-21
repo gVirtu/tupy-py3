@@ -8,7 +8,8 @@ import Interpreter as ii
 # They are stored in the Call Stack.
 
 class Context(object):
-    def __init__(self, depth, returnable=False, breakable=False, returnType=(None, 0), struct=None):
+    def __init__(self, depth, returnable=False, breakable=False, 
+                 funcName=None, returnType=(None, 0), struct=None):
         # Depth describes how nested the current code block is.
         # Global context has a depth of 0.
         self.depth = depth
@@ -43,6 +44,9 @@ class Context(object):
 
         # In Class Contexts, this is the name of the class this belongs to
         self.structName = struct
+
+        # In Function Contexts, this is the name of the function being ran
+        self.funcName = funcName
 
     def inheritSymbolTable(self, otherContext):
         self.locals.data = copy.copy(otherContext.locals.data)
