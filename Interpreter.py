@@ -1,15 +1,11 @@
-import sys
 import copy
 from antlr4 import *
 from langLexer import langLexer
 from langParser import langParser
-from evalVisitor import evalVisitor
-from functionVisitor import functionVisitor
-from CallStack import CallStack
-from Context import Context
-from enum import Enum
-from Type import Type
-from io import StringIO
+import evalVisitor
+import functionVisitor
+import CallStack
+import Context
 import JSONPrinter
 import Variable
 import Instance
@@ -17,8 +13,12 @@ import Builtins
 import logging
 
 FORMAT = "=> %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+logging.basicConfig(format=FORMAT, level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+from enum import Enum
+from Type import Type
+from io import StringIO
 
 class FlowEvent(Enum):
     STEP = 0
@@ -33,8 +33,8 @@ class Interpreter(object):
 
     @classmethod
     def initialize(cls):
-        cls.visitor = evalVisitor()
-        cls.callStack = CallStack()
+        cls.visitor = evalVisitor.evalVisitor()
+        cls.callStack = CallStack.CallStack()
         cls.flow = FlowEvent.STEP
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
@@ -42,11 +42,12 @@ class Interpreter(object):
         cls.traceOut = None
 
     @classmethod
-    def interpret(cls, input, rule="r", trace=None):
+    def interpret(cls, input, rule="r", trace=False):
         logger.debug("Input is {0}".format(str(input)))
         cls.outStream.close()
         cls.initialize()
-        cls.traceOut = JSONPrinter.JSONPrinter()
+        if (trace):
+            cls.traceOut = JSONPrinter.JSONPrinter(input)
         Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
@@ -55,14 +56,18 @@ class Interpreter(object):
         treenode = getattr(parser, rule)
         tree = treenode()
         cls.visitor.setParser(parser)
-        funcscanner = functionVisitor(parser, cls.callStack.top())
+        funcscanner = functionVisitor.functionVisitor(parser, cls.callStack.top())
         logger.debug("Using rule " + rule)
         funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
         funcvisit(tree)
         #logger.debug(tree.toStringTree())
         visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
         #logger.debug(visit)
-        return visit(tree)
+        ret_visit = visit(tree)
+        if (cls.traceOut is None):
+            return ret_visit
+        else:
+            return cls.traceOut.dump()
 
     @classmethod
     def executeBlock(cls, function, callArgs):
@@ -140,7 +145,7 @@ class Interpreter(object):
 
     @classmethod
     def newClassInstance(cls, name):
-        objContext = Context(cls.classContextDepth, True, struct=name)
+        objContext = Context.Context(cls.classContextDepth, True, struct=name)
         try:
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
@@ -230,7 +235,7 @@ class Interpreter(object):
         logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         if (funcName is None):
             funcName = cls.callStack.top().funcName
-        newContext = Context(cls.callStack.size(), returnable, breakable, returnType, funcName=funcName)
+        newContext = Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
         newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
         cls.pushContext(newContext)
@@ -296,8 +301,15 @@ class Interpreter(object):
     @classmethod
     def output(cls, string):
         logger.info("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
+        if cls.traceOut is None:
+            print(string)
         cls.outStream.write(string)
         cls.outStream.write("\n")
+
+    @classmethod
+    def trace(cls, line, is_call):
+        if cls.traceOut is not None:
+            cls.traceOut.trace(line, is_call)
 
 # Memory access functions
 
@@ -319,17 +331,3 @@ def memRead(cell):
 
 def memWrite(cell, data):
     cell.data = data
-
-#========================
-
-def main(argv):
-    if len(argv)>1:
-        logger.debug("Opening file {0}...".format(argv[1]))
-        with open(argv[1], 'r') as myfile:
-            input = myfile.read()
-    else:
-        input = sys.stdin.read()
-    return Interpreter.interpret(input)
-
-if __name__ == '__main__': # pragma: no cover
-    main(sys.argv)

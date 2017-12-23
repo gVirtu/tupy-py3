@@ -5,13 +5,9 @@ import io
 from antlr4 import InputStream
 from Instance import Instance
 from Type import Type
-from Interpreter import Interpreter, memRead, main
+from Interpreter import Interpreter, memRead
 
 class TestEvalVisitor(unittest.TestCase):
-
-    '''def test_expr(self):
-        self.assertEqual(self.evalExpression("10+10\n")), (3, 'INTEGER'))'''
-
     eex = "testOrExpression"
 
     def evalExpression(self, expr):
@@ -27,15 +23,6 @@ class TestEvalVisitor(unittest.TestCase):
             else:
                 self.assertEqual(memRead(ret.value[ind]).type, targetType)
                 self.assertEqual(memRead(ret.value[ind]).value, array[ind])
-
-    def test_entrypoint_file(self):
-        ret = main([None, "code/helloWorld.uerj"])
-        self.assertEqual(Interpreter.outStream.getvalue(), "Olá mundo!\n")
-
-    def test_entrypoint_stdin(self):
-        sys.stdin = io.StringIO("escrever(\"Teste\")\n")
-        ret = main([None])
-        self.assertEqual(Interpreter.outStream.getvalue(), "Teste\n")
 
     def test_integer(self):
         ret = self.evalExpression("123\n")
