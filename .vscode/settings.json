@@ -12,5 +12,6 @@
     "python.unitTest.nosetestsEnabled": false,
     "python.unitTest.pyTestArgs": [
         "."
-    ]
+    ],
+    "python.linting.pylintEnabled": false
 }

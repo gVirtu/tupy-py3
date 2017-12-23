@@ -1,6 +1,6 @@
-import Interpreter as ii
+import tupy.Interpreter
 import json
-import Type
+import tupy.Type
 
 class JSONPrinter(object):
     def __init__(self, codeString):
@@ -17,24 +17,24 @@ class JSONPrinter(object):
         element = {}
         heap = {}
 
-        element["globals"] = self.scan_context_locals(ii.Interpreter.callStack.items[0], self.globalVars, 
+        element["globals"] = self.scan_context_locals(Interpreter.Interpreter.callStack.items[0], self.globalVars, 
                                  self.globalVarList, heap)
         element["ordered_globals"] = self.globalVarList
 
         stack = []
 
-        it_callstack = iter(ii.Interpreter.callStack.items[:-1]) # all except top frame
+        it_callstack = iter(Interpreter.Interpreter.callStack.items[:-1]) # all except top frame
         next(it_callstack) # except global frame as well
         for context in it_callstack:
             stack.append(self.process_stack_element(context, False, heap))
 
         # process highlighted frame
-        stack.append(self.process_stack_element(ii.Interpreter.callStack.top(), True, heap))
+        stack.append(self.process_stack_element(Interpreter.Interpreter.callStack.top(), True, heap))
         element["stack_to_render"] = stack
 
-        ii.Interpreter.outStream.seek(0)
-        element["stdout"] = ii.Interpreter.outStream.read()
-        element["func_name"] = ii.Interpreter.callStack.top().funcName
+        Interpreter.Interpreter.outStream.seek(0)
+        element["stdout"] = Interpreter.Interpreter.outStream.read()
+        element["func_name"] = Interpreter.Interpreter.callStack.top().funcName
         element["heap"] = heap
         element["line"] = line
         element["event"] = self.map_event_to_string(is_call)
@@ -71,7 +71,7 @@ class JSONPrinter(object):
             data = ["INSTANCE", inst.className]
             instLocals = inst.value.locals
             for name, depth in instLocals.declaredDepth.items():
-                if depth == ii.Interpreter.classContextDepth: 
+                if depth == Interpreter.Interpreter.classContextDepth: 
                     attribute = []
                     subMemoryCell = instLocals.data[(name, depth)]
                     self.handle_submemory_cell(subMemoryCell, attribute, heap)  
@@ -123,7 +123,7 @@ class JSONPrinter(object):
 
     def map_event_to_string(self, is_call):
         if (is_call): return "call"
-        elif ii.Interpreter.flow == ii.FlowEvent.RETURN: return "return"
+        elif Interpreter.Interpreter.flow == Interpreter.FlowEvent.RETURN: return "return"
         else: return "step_line"
 
     def map_type_to_string(self, type):

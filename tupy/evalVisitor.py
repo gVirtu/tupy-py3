@@ -1,22 +1,19 @@
 # Generated from lang.g4 by ANTLR 4.7
-from Subscript import Subscript
-from Type import TrailerType, Type
+from tupy.Subscript import Subscript
+from tupy.Type import TrailerType, Type
 
 from antlr4 import *
-if __name__ is not None and "." in __name__: # pragma: no cover
-    from .langParser import langParser
-else:
-    from langParser import langParser
+from tupy.langParser import langParser
 
-from errorHelper import error
+from tupy.errorHelper import error
 
 import copy
-import Instance
-import Interpreter as ii
+import tupy.Instance
+import tupy.Interpreter
 import traceback
-import Context
-import Variable as v
-import functionVisitor as fv
+import tupy.Context
+import tupy.Variable
+import tupy.functionVisitor as fv
 
 # This class defines a complete generic visitor for a parse tree produced by langParser.
 
@@ -31,9 +28,9 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
         res = self.executeStatements(ctx.statement())
-        ii.logger.debug("ALL DONE!")
-        ii.logger.debug("CallStack top is {0}".format(str(ii.Interpreter.callStack.top())))
-        ii.logger.debug("Returnin {0}".format(res))
+        tupy.Interpreter.logger.debug("ALL DONE!")
+        tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
+        tupy.Interpreter.logger.debug("Returnin {0}".format(res))
         return res
 
     # Visit a parse tree produced by langParser#functionDefinition.
@@ -134,45 +131,45 @@ class evalVisitor(ParseTreeVisitor):
                 if (isDeclaration and childcount == current_child):
                     self.doDeclare(lhs, decltype, declaredClass)
 
-                ii.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
-                # ii.logger.debug("LHS = "+str(lhs))
-                # ii.logger.debug("RHS = "+str(rhs))
+                tupy.Interpreter.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
+                # tupy.Interpreter.logger.debug("LHS = "+str(lhs))
+                # tupy.Interpreter.logger.debug("RHS = "+str(rhs))
                 if (len(lhs) == len(rhs)):
                     for ind in range(0, len(lhs)):
-                        # ii.logger.debug("ind="+str(ind))
+                        # tupy.Interpreter.logger.debug("ind="+str(ind))
                         lval = lhs[ind]
                         rval = rhs[ind]
-                        if isinstance(lval, v.Symbol):
+                        if isinstance(lval, tupy.Variable.Symbol):
                             # E.g: a <- ref b
                             #      a <- ref c
                             # These next few lines will stop a from tracking b and vice-versa.
                             # if (is_reference_assign):
-                            #     if isinstance(rval, v.Symbol):
-                            #         ii.Interpreter.clearRefs(lval.name)
+                            #     if isinstance(rval, tupy.Variable.Symbol):
+                            #         tupy.Interpreter.Interpreter.clearRefs(lval.name)
                             #     else:
                             #         error(SyntaxError, "Cannot reference a literal!", ctx)
 
                             effectiveTrailers = [] if isDeclaration else lval.trailers
 
                             if (is_reference_assign):
-                                if isinstance(rval, v.Symbol):
-                                    depth = ii.Interpreter.getDepth(rval.name)
-                                    cell = ii.Interpreter.getMemoryCell(rval.name, depth)
+                                if isinstance(rval, tupy.Variable.Symbol):
+                                    depth = tupy.Interpreter.Interpreter.getDepth(rval.name)
+                                    cell = tupy.Interpreter.Interpreter.getMemoryCell(rval.name, depth)
                                     if (rval.trailers):
                                         try:
-                                            cell = ii.Interpreter.getDeepMemoryCell(ii.memRead(cell), rval.trailers)
-                                        except ii.InvalidMemoryAccessException as e:
+                                            cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), rval.trailers)
+                                        except tupy.Interpreter.InvalidMemoryAccessException as e:
                                             raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
-                                    ii.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
+                                    tupy.Interpreter.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
                                 else:
                                     error(SyntaxError, "Cannot reference a literal!", ctx)
                             else:
-                                ii.Interpreter.storeSymbol(lval.name, rval.get(), effectiveTrailers)
+                                tupy.Interpreter.Interpreter.storeSymbol(lval.name, rval.get(), effectiveTrailers)
 
                             # if (is_reference_assign):
-                            #     ii.Interpreter.mapRefParam(lval.name, rval.name, ii.Interpreter.getDepth(rval.name), 
+                            #     tupy.Interpreter.tupy.Interpreter.mapRefParam(lval.name, rval.name, tupy.Interpreter.Interpreter.getDepth(rval.name), 
                             #                                 rval.trailers, sourceTrailers = lval.trailers)
-                            #     ii.Interpreter.mapRefParam(rval.name, lval.name, ii.Interpreter.getDepth(lval.name), 
+                            #     tupy.Interpreter.tupy.Interpreter.mapRefParam(rval.name, lval.name, tupy.Interpreter.Interpreter.getDepth(lval.name), 
                             #                                 lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
                                 
                         else:
@@ -183,10 +180,10 @@ class evalVisitor(ParseTreeVisitor):
                 is_reference_assign = False
             
         if isDeclaration:
-            # Bypass trailers during Instance.Instance retrieval. e.g.:
+            # Bypass trailers during tupy.Instance.Instance retrieval. e.g.:
             # inteiro A[2] <- [10, 20]
             # Would return A instead of A[2] (which is invalid)
-            return tuple(ii.Interpreter.loadSymbol(literal.name) for literal in lhs)
+            return tuple(tupy.Interpreter.Interpreter.loadSymbol(literal.name) for literal in lhs)
         else:
             return tuple(literal.get() for literal in lhs)
 
@@ -226,13 +223,13 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#breakStatement.
     def visitBreakStatement(self, ctx:langParser.BreakStatementContext):
-        ii.Interpreter.doBreak()
+        tupy.Interpreter.Interpreter.doBreak()
         return None
 
 
     # Visit a parse tree produced by langParser#continueStatement.
     def visitContinueStatement(self, ctx:langParser.ContinueStatementContext):
-        ii.Interpreter.doContinue()
+        tupy.Interpreter.Interpreter.doContinue()
         return None
 
 
@@ -243,7 +240,7 @@ class evalVisitor(ParseTreeVisitor):
         except Exception:
             expr = None
         finally: 
-            ii.Interpreter.doReturn(expr)
+            tupy.Interpreter.Interpreter.doReturn(expr)
         return None
 
 
@@ -282,10 +279,10 @@ class evalVisitor(ParseTreeVisitor):
         iterations = 0
         while( bool(self.visitTest(testTree).get().value) ):
             ret = self.visitBlock(ctx.block())
-            if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
                     break
             iterations += 1
-            if iterations > ii.Interpreter.iterationLimit:
+            if iterations > tupy.Interpreter.Interpreter.iterationLimit:
                 raise RuntimeError("Iteration limit reached!")
         return ret
 
@@ -295,7 +292,7 @@ class evalVisitor(ParseTreeVisitor):
         names = self.visitNameList(ctx.nameList())
         ranges = self.visitRangeList(ctx.rangeList())
         if (ctx.expressionList() is None):
-            steps = [v.Literal(Instance.Instance(Type.INT, 1))] * len(names)
+            steps = [tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1))] * len(names)
         else:
             steps = self.visitExpressionList(ctx.expressionList())
         stopFuncs = []
@@ -317,25 +314,25 @@ class evalVisitor(ParseTreeVisitor):
 
     def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block):
         remaining = len(names)
-        ii.Interpreter.storeSymbol(names[0], ranges[0][0], [])
+        tupy.Interpreter.Interpreter.storeSymbol(names[0], ranges[0][0], [])
         currentInstance = ranges[0][0]
         iterations = 0
         while (not stopFuncs[0](currentInstance.value, ranges[0][1].value)):
-            ii.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
+            tupy.Interpreter.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
             if (remaining > 1):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
                 ret = self.visitBlock(block)
             
-            if (ii.Interpreter.lastEvent == ii.FlowEvent.BREAK):
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
                 break
 
-            currentLiteral = v.Literal(ii.Interpreter.loadSymbol(names[0]))
+            currentLiteral = tupy.Variable.Literal(tupy.Interpreter.Interpreter.loadSymbol(names[0]))
             currentInstance = (currentLiteral.add(steps[0])).get()
-            ii.Interpreter.storeSymbol(names[0], currentInstance, [])
+            tupy.Interpreter.Interpreter.storeSymbol(names[0], currentInstance, [])
 
             iterations += 1
-            if iterations > ii.Interpreter.iterationLimit:
+            if iterations > tupy.Interpreter.Interpreter.iterationLimit:
                 raise RuntimeError("Iteration limit reached!")  
         return ret
 
@@ -349,9 +346,9 @@ class evalVisitor(ParseTreeVisitor):
                   or isinstance(ctx.parentCtx, langParser.WhileStatementContext)
         isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
         if not isClassDef:
-            ii.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
+            tupy.Interpreter.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
                                      returnType=returnType, funcName=funcName)
-        ii.logger.debug("INJECT LIST IS: {0}".format(injectList))
+        tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceData, literal) in injectList:
             inst = literal.get()
@@ -368,13 +365,13 @@ class evalVisitor(ParseTreeVisitor):
                 className = inst.value.structName
 
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
-            ii.Interpreter.declareSymbol(name, datatype, subscriptList, className)
-            ii.Interpreter.storeSymbol(name, inst, [])
+            tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className)
+            tupy.Interpreter.Interpreter.storeSymbol(name, inst, [])
 
             (referenceDepth, referenceTrailers) = referenceData
             
             if (referenceDepth > -1): #Pass-by-reference only
-                cell = ii.Interpreter.getMemoryCell(literal.name, referenceDepth)
+                cell = tupy.Interpreter.Interpreter.getMemoryCell(literal.name, referenceDepth)
 
                 # Grabbing the correct memory cell is trickier if there are trailers
                 # We are mostly concerned with where the result of retrieveWithTrailers
@@ -383,12 +380,12 @@ class evalVisitor(ParseTreeVisitor):
                 # a SUBSCRIPT (depth >= 0), CALL (depth = -1) or MEMBER (depth = -2)
                 if (referenceTrailers):
                     try:
-                        cell = ii.Interpreter.getDeepMemoryCell(ii.memRead(cell), referenceTrailers)
-                    except ii.InvalidMemoryAccessException as e:
+                        cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), referenceTrailers)
+                    except tupy.Interpreter.InvalidMemoryAccessException as e:
                         raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
 
-                ii.Interpreter.referenceSymbol(name, cell)
-                # ii.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
+                tupy.Interpreter.Interpreter.referenceSymbol(name, cell)
+                # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
             
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
@@ -396,7 +393,7 @@ class evalVisitor(ParseTreeVisitor):
             ret = self.executeStatements(ctx.statement())
         #ret = self.visitChildren(ctx)
         if not isClassDef:
-            ii.Interpreter.popFrame()
+            tupy.Interpreter.Interpreter.popFrame()
         return ret
 
 
@@ -617,7 +614,7 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#power.
     def visitPower(self, ctx:langParser.PowerContext):
         at = self.visitAtom(ctx.atom())
-        # ii.logger.debug(at)
+        # tupy.Interpreter.logger.debug(at)
         for t in ctx.trailer():
             at.trailers.append(self.visitTrailer(t))
 
@@ -630,13 +627,13 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):
         if ctx.dataType() is not None: #Any NAME
-            return v.Symbol(str(ctx.dataType().getChild(0).getText()))
+            return tupy.Variable.Symbol(str(ctx.dataType().getChild(0).getText()))
         elif ctx.TRUE() is not None:
-            return v.Literal(Instance.Instance(Type.BOOL, True));
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, True));
         elif ctx.FALSE() is not None:
-            return v.Literal(Instance.Instance(Type.BOOL, False));
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False));
         elif ctx.NULL() is not None:
-            return v.Literal(Instance.Instance(Type.NULL, 0));
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.NULL, 0));
         elif len(ctx.CARDINALITY_OP()) == 2:
             res = self.visitTestOrExpression(ctx.testOrExpression())
             return res.cardinality()
@@ -647,15 +644,15 @@ class evalVisitor(ParseTreeVisitor):
             if len(res)==1:
                 return res[0]
             else:
-                ret_res = [ii.memAlloc(element.get()) for element in res]
-                return v.Literal(Instance.Instance(Type.TUPLE, tuple(ret_res)));
+                ret_res = [tupy.Interpreter.memAlloc(element.get()) for element in res]
+                return tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple(ret_res)));
         elif ctx.OPEN_BRACK() is not None:
             res = []
             if ctx.testOrExpressionList() is not None:
                 lit_res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
-                res = [ii.memAlloc(element.get()) for element in lit_res]
+                res = [tupy.Interpreter.memAlloc(element.get()) for element in lit_res]
             try:
-                return v.Literal(Instance.Instance(Type.ARRAY, list(res)));
+                return tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, list(res)));
             except TypeError:
                 error(TypeError, "Types in array must be consistent!", ctx)
         else:
@@ -709,26 +706,26 @@ class evalVisitor(ParseTreeVisitor):
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
         names = ctx.NAME()
         className = names[0].getText()
-        ii.logger.debug("Visiting a class named {0}".format(className))
-        classContext = Context.Context(7777777, True, struct=className)
+        tupy.Interpreter.logger.debug("Visiting a class named {0}".format(className))
+        classContext = tupy.Context.Context(7777777, True, struct=className)
 
         if (len(names) > 1):
-            inherited = ii.Interpreter.getClassContext(names[1].getText()) 
-            ii.logger.debug("Inheriting from {0}".format(names[1].getText()))
+            inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 
+            tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.locals = copy.deepcopy(inherited.locals)
             classContext.locals.context = classContext
             classContext.functions = copy.copy(inherited.functions)
 
-        ii.Interpreter.putClassContext(className, classContext)
-        ii.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
-        originalContext = ii.Interpreter.callStack.top()
-        ii.Interpreter.callStack.push(classContext)
-        ii.Interpreter.putClassContext(className, classContext) # Make autoreferences possible
+        tupy.Interpreter.Interpreter.putClassContext(className, classContext)
+        tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
+        originalContext = tupy.Interpreter.Interpreter.callStack.top()
+        tupy.Interpreter.Interpreter.callStack.push(classContext)
+        tupy.Interpreter.Interpreter.putClassContext(className, classContext) # Make autoreferences possible
 
         funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
         funcvisitor.visitBlock(ctx.block())
         ret = self.visitBlock(ctx.block())
-        ii.Interpreter.callStack.pop()
+        tupy.Interpreter.Interpreter.callStack.pop()
         return ret
 
 
@@ -739,39 +736,39 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#string.
     def visitString(self, ctx:langParser.StringContext):
-        return v.Literal(Instance.Instance(Type.STRING, str(self.visitChildren(ctx))))
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, str(self.visitChildren(ctx))))
 
 
     # Visit a parse tree produced by langParser#character.
     def visitCharacter(self, ctx:langParser.StringContext):
-        return v.Literal(Instance.Instance(Type.CHAR, ord(self.visitChildren(ctx))))
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.CHAR, ord(self.visitChildren(ctx))))
 
 
     # Visit a parse tree produced by langParser#number.
     def visitNumber(self, ctx:langParser.NumberContext):
         if ctx.integer() is None:
-            return v.Literal(Instance.Instance(Type.FLOAT, float(self.visitChildren(ctx))))
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, float(self.visitChildren(ctx))))
         else:
             return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by langParser#integer.
     def visitInteger(self, ctx:langParser.IntegerContext):
-        return v.Literal(Instance.Instance(Type.INT, int(self.visitChildren(ctx))))
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx))))
 
 
     def visitTerminal(self, node):
-        # ii.logger.debug("Got to terminal "+str(node))
+        # tupy.Interpreter.logger.debug("Got to terminal "+str(node))
         return str(node)
 
 
     def aggregateResult(self, aggregate, nextResult):
-        # ii.logger.debug("Aggregating "+str(aggregate)+" and "+str(nextResult))
+        # tupy.Interpreter.logger.debug("Aggregating "+str(aggregate)+" and "+str(nextResult))
         # if aggregate is not None:
         #     res = aggregate
         # else:
         res = nextResult
-        # ii.logger.debug("Gives us "+str(res))
+        # tupy.Interpreter.logger.debug("Gives us "+str(res))
         return res
 
     def mapLexType(self, lextype):
@@ -800,39 +797,40 @@ class evalVisitor(ParseTreeVisitor):
             if any((x.begin < 1 and not x.isWildcard) for x in subscriptList):
                 raise SyntaxError("Declaration subscripts must be greater than zero!")
 
-            if decltype==Type.STRUCT and not ii.Interpreter.isValidClass(className):
+            if decltype==Type.STRUCT and not tupy.Interpreter.Interpreter.isValidClass(className):
                 raise TypeError("Class {0} was not declared!".format(className))
 
-            ii.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
+            tupy.Interpreter.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
 
     def executeStatements(self, statementList):
         ret = None
         for s in statementList:
-            # ii.logger.debug("visiting {0}".format(s))
+            # tupy.Interpreter.logger.debug("visiting {0}".format(s))
             ret = self.visitStatement(s)
-            # ii.logger.debug("after visit I got {0}".format(ret))
-            flow = ii.Interpreter.flow
-            if flow == ii.FlowEvent.BREAK or flow == ii.FlowEvent.CONTINUE:
-                ii.logger.debug("BREAKING OR CONTINUING")
-                if ii.Interpreter.canBreak():
-                    ii.Interpreter.doStep()
+            # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
+            flow = tupy.Interpreter.Interpreter.flow
+            if flow == tupy.Interpreter.FlowEvent.BREAK or flow == tupy.Interpreter.FlowEvent.CONTINUE:
+                tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
+                if tupy.Interpreter.Interpreter.canBreak():
+                    tupy.Interpreter.Interpreter.doStep()
                 break 
-            elif flow == ii.FlowEvent.RETURN:
-                ret = ii.Interpreter.returnData
-                ii.logger.debug("RETURNING {0}".format(ret))
-                if ii.Interpreter.canReturn():
+            elif flow == tupy.Interpreter.FlowEvent.RETURN:
+                ret = tupy.Interpreter.Interpreter.returnData
+                tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
+                if tupy.Interpreter.Interpreter.canReturn():
                     retType = Type.NULL
                     retDimensions = 0
                     if (ret is not None):
                         retType = ret[0].roottype
                         retDimensions = ret[0].array_dimensions
-                    (desiredType, arrayDimensions) = ii.Interpreter.getReturnType()
+                    (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
                     #desiredType = None -> Don't care
                     if desiredType is None or \
                        (desiredType == retType and arrayDimensions == retDimensions):
-                        ii.Interpreter.doStep()
+                        tupy.Interpreter.Interpreter.doStep()
                     else:
-                        raise TypeError("Function expected to return {0}!".format(ii.Interpreter.getReturnType()))
+                        tupy.Interpreter.logger.debug("Returned {0}".format(retType))
+                        raise TypeError("Function expected to return {0}!".format(tupy.Interpreter.Interpreter.getReturnType()))
                 break
         #TODO: Double check whether this is intended
         # try:
@@ -845,5 +843,5 @@ class evalVisitor(ParseTreeVisitor):
             return ret
             
         # except Exception as e:
-            # ii.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))
+            # tupy.Interpreter.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))
             # return ret

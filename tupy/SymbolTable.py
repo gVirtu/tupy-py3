@@ -1,9 +1,9 @@
-import Instance
-import Interpreter as ii
-import Variable
-import Function
-import Type
-import Subscript
+import tupy.Instance
+import tupy.Interpreter
+import tupy.Variable
+import tupy.Function
+import tupy.Type
+import tupy.Subscript
 import copy
 
 class SymbolTable(object):
@@ -35,23 +35,23 @@ class SymbolTable(object):
         depth = self.context.depth
         self.declaredDepth[name] = depth
         if len(subscriptList) > 0:
-            data = Variable.Variable.makeDefaultValue(Type.Type.ARRAY, subscriptList, datatype, className)
+            data = tupy.Variable.Variable.makeDefaultValue(tupy.Type.Type.ARRAY, subscriptList, datatype, className)
         else:
-            data = Variable.Variable.makeDefaultValue(datatype, className=className)
+            data = tupy.Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
-        self.data[(name, depth)] = ii.memAlloc(data)
+        self.data[(name, depth)] = tupy.Interpreter.memAlloc(data)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
-        ii.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
-        self.datatype[name] = Type.Type.FUNCTION
+        tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
+        self.datatype[name] = tupy.Type.Type.FUNCTION
         self.subscriptlist[name] = None
         depth = self.context.depth
         self.declaredDepth[name] = depth
         try:
-            entry = ii.memRead(self.data[(name, depth)]).value
+            entry = tupy.Interpreter.memRead(self.data[(name, depth)]).value
         except Exception:
-            entry = Function.Function(name)
-            self.data[(name, depth)] = ii.memAlloc(Instance.Instance(Type.Type.FUNCTION, entry))
+            entry = tupy.Function.Function(name)
+            self.data[(name, depth)] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
         finally:
             if entry.is_ambiguous(argumentList):
                 raise NameError("Overloaded function {0} is ambiguous!".format(name))
@@ -73,7 +73,7 @@ class SymbolTable(object):
 
     def get(self, name):
         depth = self.declaredDepth[name]
-        return ii.memRead(self.data[(name, depth)])
+        return tupy.Interpreter.memRead(self.data[(name, depth)])
 
     def hasKey(self, name):
         return name in self.declaredDepth
@@ -83,7 +83,7 @@ class SymbolTable(object):
         self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
 
     def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData, className):
-        ii.logger.debug("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
+        tupy.Interpreter.logger.debug("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
         # Because subscriptList tells us how the passed 'instance' will fit in
         # our current data, we need to verify it all the way to the end to make
         # sure our array dimensions are correct.
@@ -121,7 +121,7 @@ class SymbolTable(object):
 
                     targetIndex = targetSubscript.begin
                     return self.processDimensions(childSubscripts, instance, rootType, 
-                                                   childSizes, ii.memRead(currentData.value[targetIndex]), className)
+                                                   childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex]), className)
                 else:
                     # Inserting an array, current subscript is a range or wildcard.
                     #
@@ -132,7 +132,7 @@ class SymbolTable(object):
                     #         [[0, 2, 4], [0, 5, 6], [0, 0, 0]] ]
                     levelSize = instance.array_length()
                     isDynamicSize = sizeList[0].isWildcard
-                    ii.logger.debug("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
+                    tupy.Interpreter.logger.debug("TEST VALID SIZES: {0} <= {1} ??".format(levelSize, targetSize))
 
                     # We don't need to validate the passed instance's length when the current
                     # dimension is dynamic, because in this case it can simply be updated
@@ -148,12 +148,12 @@ class SymbolTable(object):
                         #           result is [1, 2, 3, 0, 0]
                         if (levelSize < targetSize):
                             if childType is None: childType = rootType;
-                            ii.logger.debug("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
-                            instance.array_pad(targetSize, Variable.Variable.makeDefaultValue, (childType, 
+                            tupy.Interpreter.logger.debug("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
+                            instance.array_pad(targetSize, tupy.Variable.Variable.makeDefaultValue, (childType, 
                                                                                             childSubscripts,
                                                                                             rootType, className))
                             levelSize = instance.array_length()
-                            ii.logger.debug("Instance is now {0}".format(instance))
+                            tupy.Interpreter.logger.debug("Instance is now {0}".format(instance))
 
                         # In some edge cases the currentData might not have the current size,
                         # especially when dealing with dynamic-sized arrays. Most notably,
@@ -169,15 +169,15 @@ class SymbolTable(object):
 
                         currentSize = currentData.array_length()
                         if (isDynamicSize or currentSize < levelSize) and targetSubscript.isWildcard:
-                            currentData.array_pad(levelSize, Variable.Variable.makeDefaultValue, (childType, 
+                            currentData.array_pad(levelSize, tupy.Variable.Variable.makeDefaultValue, (childType, 
                                                                                                childSubscripts,
                                                                                                rootType, className))
 
                         offset = targetSubscript.begin
                         for targetIndex in range(offset, offset + levelSize):
                             child = instance.value[targetIndex - offset]
-                            valid = self.processDimensions(childSubscripts, ii.memRead(child), rootType, 
-                                                       childSizes, ii.memRead(currentData.value[targetIndex]), className)
+                            valid = self.processDimensions(childSubscripts, tupy.Interpreter.memRead(child), rootType, 
+                                                       childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex]), className)
                             if valid:
                                 pass
                             else:
@@ -192,15 +192,15 @@ class SymbolTable(object):
                 if targetSubscript.isSingle:
                     targetIndex = targetSubscript.begin
                     valid = self.processDimensions(childSubscripts, instance, rootType, 
-                                               childSizes, ii.memRead(currentData.value[targetIndex]), className)
+                                               childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex]), className)
                 else:
-                    new_value = [ii.memAlloc(Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
-                    instance.__init__(Type.Type.ARRAY, new_value)
+                    new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                    instance.__init__(tupy.Type.Type.ARRAY, new_value)
 
                     for targetIndex in range(len(instance.value)):
                         offset = targetSubscript.begin
-                        valid = self.processDimensions(childSubscripts, ii.memRead(instance.value[targetIndex]), rootType, 
-                                                   childSizes, ii.memRead(currentData.value[targetIndex+offset]), className)
+                        valid = self.processDimensions(childSubscripts, tupy.Interpreter.memRead(instance.value[targetIndex]), rootType, 
+                                                   childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex+offset]), className)
                 
                 return valid;
         else:
@@ -230,7 +230,7 @@ class SymbolTable(object):
     #
 
     def getTargetSize(self, subscriptList, currentData, sizeList):
-        ii.logger.debug("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
+        tupy.Interpreter.logger.debug("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
         targetSubscript = subscriptList[0]
         if targetSubscript.isWildcard:
             if sizeList[0].isWildcard:
@@ -243,30 +243,30 @@ class SymbolTable(object):
             else:
                 targetIndex = targetSubscript.begin
                 return self.getTargetSize(subscriptList[1:], 
-                                          ii.memRead(currentData.value[targetIndex]), 
+                                          tupy.Interpreter.memRead(currentData.value[targetIndex]), 
                                           sizeList[1:])
         else:
             return targetSubscript.end - targetSubscript.begin
 
     def hasValidType(self, name, instance, trailerList):
-        if (instance.roottype == Type.Type.NULL):
+        if (instance.roottype == tupy.Type.Type.NULL):
             return True
         else:
             depth = self.declaredDepth[name]
-            current_data = ii.memRead(self.data[(name, depth)])
+            current_data = tupy.Interpreter.memRead(self.data[(name, depth)])
             # self.data[(name, depth)].print_roottype()
 
-            (inst, parent) = Variable.Variable.retrieveWithTrailers(current_data, trailerList)
+            (inst, parent) = tupy.Variable.Variable.retrieveWithTrailers(current_data, trailerList)
 
             # An instance will only keep its roottype as Type.ARRAY if it has no elements
-            if (instance.roottype == Type.Type.ARRAY and inst.is_pure_array()):
+            if (instance.roottype == tupy.Type.Type.ARRAY and inst.is_pure_array()):
                 return True
 
-            # ii.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
+            # tupy.Interpreter.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
 
             equivalent_types = (inst.roottype == instance.roottype)
-            if (inst.roottype == Type.Type.STRUCT and equivalent_types):
-                # ii.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
+            if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
+                # tupy.Interpreter.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
                 return inst.class_name == instance.class_name
             else:
                 return equivalent_types
@@ -276,11 +276,11 @@ class SymbolTable(object):
             #     else:
             #         return True
             # else:
-            #     return instance.type == self.datatype[name] or instance.type == Type.Type.NULL
+            #     return instance.type == self.datatype[name] or instance.type == tupy.Type.Type.NULL
 
     def updateData(self, name, instance, trailers, visited=None):
         if visited is None: visited = {}
-        ii.logger.debug("Updating {0}{1} to {2} (visits={3})".format(name, trailers, instance, visited))
+        tupy.Interpreter.logger.debug("Updating {0}{1} to {2} (visits={3})".format(name, trailers, instance, visited))
         # This is a call to assign some INSTANCE to some NAME
         # with a list of trailers. e.g.: A[5,5] <- 10
         # A is the NAME, 10 is the INSTANCE, and [(subscript, 5), (subscript, 5)] are the trailers.
@@ -289,21 +289,21 @@ class SymbolTable(object):
 
         depth = self.declaredDepth[name]
 
-        full_data = ii.memRead(self.data[(name, depth)])
+        full_data = tupy.Interpreter.memRead(self.data[(name, depth)])
         target_subscript = None
 
         old_instance = instance
         instance = copy.deepcopy(old_instance)
-        if (self.datatype[name] == Type.Type.STRUCT):
+        if (self.datatype[name] == tupy.Type.Type.STRUCT):
             instance.class_name = self.classname[name]
 
         for ind, trailer in enumerate(trailers):
-            if trailer[0] == Type.TrailerType.MEMBER:
+            if trailer[0] == tupy.Type.TrailerType.MEMBER:
                 # A special case is updating a member of some class instance.
                 # We'll cutoff the trailers list here and have that instance's
                 # SymbolTable take over.
-                ii.logger.debug("Found call to member {0} at index {1}".format(trailer[1], ind))
-                class_instance, _ = Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
+                tupy.Interpreter.logger.debug("Found call to member {0} at index {1}".format(trailer[1], ind))
+                class_instance, _ = tupy.Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
                 class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
                 # self.updateRefs(name, depth, visited)
                 return True
@@ -312,10 +312,10 @@ class SymbolTable(object):
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
         # where the child data is contained. This is useful in range assignments so that we know
         # exactly the locations where our new data will be placed.
-        current_data, parent_triple = Variable.Variable.retrieveWithTrailers(full_data, trailers)
+        current_data, parent_triple = tupy.Variable.Variable.retrieveWithTrailers(full_data, trailers)
         target_data, target_subscript, target_depth = parent_triple
 
-        is_subscripted = isinstance(target_subscript, Subscript.Subscript)
+        is_subscripted = isinstance(target_subscript, tupy.Subscript.Subscript)
         root_type = current_data.roottype
 
         # The only trailers that matter for range assignments are the last ones, here we
@@ -323,7 +323,7 @@ class SymbolTable(object):
         # e.g.: alunos[5].listaNotas()[3][1] -> [1, 3]
         subscriptList = []
         for trailer in reversed(trailers):
-            if trailer[0] == Type.TrailerType.SUBSCRIPT:
+            if trailer[0] == tupy.Type.TrailerType.SUBSCRIPT:
                 subscriptList = subscriptList + trailer[1]
             else:
                 # MEMBER trailertypes have already been handled above
@@ -338,7 +338,7 @@ class SymbolTable(object):
         declared_sizes = self.subscriptlist[name]
 
         class_name = self.classname[name]
-        # ii.logger.debug("Applicable subscripts: {0}".format(applicable_subscripts))
+        # tupy.Interpreter.logger.debug("Applicable subscripts: {0}".format(applicable_subscripts))
 
         # Next comes dimension validation and corrections. 
         # It digs inside instance's structure to find out if it has the correct sizes according to 
@@ -349,13 +349,13 @@ class SymbolTable(object):
 
         if self.processDimensions(applicable_subscripts, instance, root_type, declared_sizes, full_data, class_name): 
             instance.update_roottype(root_type)
-            ii.logger.debug("Instance turned into {0}".format(instance)) 
-            ii.logger.debug("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
+            tupy.Interpreter.logger.debug("Instance turned into {0}".format(instance)) 
+            tupy.Interpreter.logger.debug("Parent: {0} with subscript {1}".format(target_data, target_subscript))          
             if is_subscripted:
                 self.updateChildren(target_data, target_subscript, target_depth, instance)
                 full_data.update_size(deep=True)
             else:
-                ii.memWrite(self.data[(name, depth)], instance)
+                tupy.Interpreter.memWrite(self.data[(name, depth)], instance)
             # Update pass-by-reference mappings
             # self.updateRefs(name, depth, visited)
                 # self.data[(refName, refDepth)] = self.data[(name, depth)]
@@ -365,10 +365,10 @@ class SymbolTable(object):
             raise TypeError("Assignment exceeds allocated space!")
 
     def updateChildren(self, target_data, target_subscript, depth, instance):
-        ii.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
+        tupy.Interpreter.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
         if depth == 0:
             if target_subscript.isSingle:
-                target_data.value[target_subscript.begin] = ii.memAlloc(instance)
+                target_data.value[target_subscript.begin] = tupy.Interpreter.memAlloc(instance)
             elif target_subscript.isWildcard:
                 target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
             else:
@@ -379,28 +379,28 @@ class SymbolTable(object):
             for ind in range(len(target_data.value)):
                 child = target_data.value[ind]
                 inst_child = instance.value[ind]
-                self.updateChildren(ii.memRead(child), target_subscript, depth-1, ii.memRead(inst_child))
+                self.updateChildren(tupy.Interpreter.memRead(child), target_subscript, depth-1, tupy.Interpreter.memRead(inst_child))
 
     def deepMerge(self, target_value, source_value):
-        ii.logger.debug("deepMerge({0}, {1})".format(target_value, source_value))
+        tupy.Interpreter.logger.debug("deepMerge({0}, {1})".format(target_value, source_value))
         # Either the target_value or source_value would do as the updateLength, 
         # since they are guaranteed to be the same after processDimensions runs.
         updateLength = len(target_value)
         for ind in range(updateLength):
-            child = ii.memRead(target_value[ind])
-            newchild = ii.memRead(source_value[ind])
+            child = tupy.Interpreter.memRead(target_value[ind])
+            newchild = tupy.Interpreter.memRead(source_value[ind])
             if isinstance(child.value, list):
                 self.deepMerge(child.value, newchild.value)
             else:
-                ii.memWrite(target_value[ind], newchild)
-        ii.logger.debug("Merged and became {0}".format(target_value))
+                tupy.Interpreter.memWrite(target_value[ind], newchild)
+        tupy.Interpreter.logger.debug("Merged and became {0}".format(target_value))
         return target_value
 
     def fillOmittedSizes(self, name, subscripts):
         ret = subscripts
         target = len(self.subscriptlist[name])
         while len(ret) < target:
-            ret.append(Subscript.Subscript(isWildcard=True))
+            ret.append(tupy.Subscript.Subscript(isWildcard=True))
         return ret        
 
     def __str__(self):

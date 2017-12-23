@@ -1,18 +1,18 @@
-import Interpreter as ii
-import Argument
-import Instance
-import Variable as v
+import tupy.Interpreter
+import tupy.Argument
+import tupy.Instance
+import tupy.Variable
 import inspect
 import math
 import copy
-from Type import Type
+from tupy.Type import Type
 
 def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
     function("caracter", Type.CHAR, [Type.INT])
     function("real", Type.FLOAT, [Type.INT])
     function("log", Type.FLOAT, [Type.FLOAT, Type.FLOAT], 
-             defaults=[None, v.Literal(Instance.Instance(Type.FLOAT, math.e))])
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, math.e))])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -28,23 +28,23 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
         defaults = [None] * len(argNames)
 
     argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, defaults))
-    args = [Argument.Argument(*params) for params in argParamList]
-    ii.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
+    args = [tupy.Argument.Argument(*params) for params in argParamList]
+    tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
 # BUILT-IN FUNCTIONS
 
 def escrever(argsTuple):
-    out = ' '.join([stringProcess(printInstance(ii.memRead(arg))) for arg in argsTuple.get().value])
-    ii.Interpreter.output(out)
+    out = ' '.join([stringProcess(printInstance(tupy.Interpreter.memRead(arg))) for arg in argsTuple.get().value])
+    tupy.Interpreter.Interpreter.output(out)
     return out
 
 def printInstance(arg):
     inst = arg
     typ = inst.type
     if typ == Type.ARRAY: 
-        out = str([printInstance(ii.memRead(child)) for child in inst.value])
+        out = str([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value])
     elif typ == Type.TUPLE: 
-        out = str(tuple([printInstance(ii.memRead(child)) for child in inst.value]))
+        out = str(tuple([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value]))
     elif typ == Type.CHAR:
         out = chr(inst.value)
     else:
@@ -55,10 +55,10 @@ def stringProcess(string):
     return str(string).replace("\\n", "\n")
 
 def caracter(inteiro):
-    return Instance.Instance(Type.CHAR, inteiro.get().value)
+    return tupy.Instance.Instance(Type.CHAR, inteiro.get().value)
 
 def real(inteiro):
-    return Instance.Instance(Type.FLOAT, inteiro.get().value)
+    return tupy.Instance.Instance(Type.FLOAT, inteiro.get().value)
 
 def log(n, b):
-    return Instance.Instance(Type.FLOAT, math.log(n.get().value, b.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.log(n.get().value, b.get().value))

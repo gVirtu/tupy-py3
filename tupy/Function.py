@@ -1,6 +1,5 @@
-import Argument as a
-import Interpreter as ii
-from Type import Type
+import tupy.Interpreter
+from tupy.Type import Type
 
 _args_end = Type.NULL
 
@@ -19,10 +18,10 @@ class Function(object):
             codeIndex = code
         else:
             # Register code tree
-            ii.logger.debug("Current functions = {0}".format(context.functions))
+            tupy.Interpreter.logger.debug("Current functions = {0}".format(context.functions))
             codeIndex = len(context.functions)
             context.functions.append(code)
-            ii.logger.debug("Updated functions = {0}".format(context.functions))
+            tupy.Interpreter.logger.debug("Updated functions = {0}".format(context.functions))
 
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.

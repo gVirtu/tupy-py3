@@ -3,9 +3,9 @@ import pytest
 import sys
 import io
 from antlr4 import InputStream
-from Instance import Instance
-from Type import Type
-from Interpreter import Interpreter, memRead
+from tupy.Instance import Instance
+from tupy.Type import Type
+from tupy.Interpreter import Interpreter, memRead
 
 class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"

@@ -1,16 +1,13 @@
 # Generated from lang.g4 by ANTLR 4.7
 
-from Type import TrailerType, Type
+from tupy.Type import TrailerType, Type
 
 from antlr4 import *
-if __name__ is not None and "." in __name__: # pragma: no cover
-    from .langParser import langParser
-else:
-    from langParser import langParser
+from tupy.langParser import langParser
 
-import Interpreter as ii
-import Argument
-import evalVisitor
+import tupy.Interpreter
+import tupy.Argument
+import tupy.evalVisitor
 
 # This class defines a complete generic visitor for a parse tree produced by langParser.
 
@@ -20,7 +17,7 @@ class functionVisitor(ParseTreeVisitor):
         self.parser = parser
         self.functionContext = functionContext
         self.className = className
-        self.evalV = ii.Interpreter.visitor
+        self.evalV = tupy.Interpreter.Interpreter.visitor
         if (constructorContext is not None):
             self.constructorContext = constructorContext
         else:
@@ -71,7 +68,7 @@ class functionVisitor(ParseTreeVisitor):
                 # Variadic param
                 if op == self.parser.NAME:
                     param_name = str(c.getText())
-                    ret.append(Argument.Argument(param_name, Type.TUPLE))
+                    ret.append(tupy.Argument.Argument(param_name, Type.TUPLE))
             else:
                 if op == self.parser.COMMA:
                     element = self.visitTypedFunctionParam(c)
@@ -90,7 +87,7 @@ class functionVisitor(ParseTreeVisitor):
             passByRef = self.visitParamPassage(ctx.paramPassage())
         else:
             passByRef = False
-        return Argument.Argument(param_name, datatype, array_dimensions, passByRef)
+        return tupy.Argument.Argument(param_name, datatype, array_dimensions, passByRef)
 
 
     # Visit a parse tree produced by langParser#paramPassage.

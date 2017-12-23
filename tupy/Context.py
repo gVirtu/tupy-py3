@@ -1,4 +1,4 @@
-from SymbolTable import SymbolTable
+from tupy.SymbolTable import SymbolTable
 import copy
 
 # The Context object

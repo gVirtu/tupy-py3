@@ -1,15 +1,15 @@
 import copy
 from antlr4 import *
-from langLexer import langLexer
-from langParser import langParser
-import evalVisitor
-import functionVisitor
-import CallStack
-import Context
-import JSONPrinter
-import Variable
-import Instance
-import Builtins
+from tupy.langLexer import langLexer
+from tupy.langParser import langParser
+import tupy.evalVisitor
+import tupy.functionVisitor
+import tupy.CallStack
+import tupy.Context
+import tupy.JSONPrinter
+import tupy.Variable
+import tupy.Instance
+import tupy.Builtins
 import logging
 
 FORMAT = "=> %(message)s"
@@ -17,7 +17,7 @@ logging.basicConfig(format=FORMAT, level=logging.WARN)
 logger = logging.getLogger(__name__)
 
 from enum import Enum
-from Type import Type
+from tupy.Type import Type
 from io import StringIO
 
 class FlowEvent(Enum):
@@ -33,8 +33,8 @@ class Interpreter(object):
 
     @classmethod
     def initialize(cls):
-        cls.visitor = evalVisitor.evalVisitor()
-        cls.callStack = CallStack.CallStack()
+        cls.visitor = tupy.evalVisitor.evalVisitor()
+        cls.callStack = tupy.CallStack.CallStack()
         cls.flow = FlowEvent.STEP
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
@@ -47,8 +47,8 @@ class Interpreter(object):
         cls.outStream.close()
         cls.initialize()
         if (trace):
-            cls.traceOut = JSONPrinter.JSONPrinter(input)
-        Builtins.initialize()
+            cls.traceOut = tupy.JSONPrinter.JSONPrinter(input)
+        tupy.Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = langParser(stream)
@@ -56,7 +56,7 @@ class Interpreter(object):
         treenode = getattr(parser, rule)
         tree = treenode()
         cls.visitor.setParser(parser)
-        funcscanner = functionVisitor.functionVisitor(parser, cls.callStack.top())
+        funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
         logger.debug("Using rule " + rule)
         funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
         funcvisit(tree)
@@ -99,21 +99,21 @@ class Interpreter(object):
                 extraArgs = argValues[fixedCount:]
                 argValues = argValues[:fixedCount]
                 memExtraArgs = [memAlloc(literal.get()) for literal in extraArgs]
-                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
+                packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
                 argValues.append(packed)
             else:
                 # This is to prevent extraArgs from having Nones which cause
                 # errors when instantiating, and come from the appending of defaultValues
                 # from the argumentList. (variadic args won't have them so None ends up
                 # being added to argValues)
-                packed = Variable.Literal(Instance.Instance(Type.TUPLE, tuple()))
+                packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple()))
                 argValues[-1] = packed
         
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             logger.debug("CodeIndex is {0}".format(codeIndex))
-            builtInFunc = getattr(Builtins, codeIndex)
+            builtInFunc = getattr(tupy.Builtins, codeIndex)
             return builtInFunc(*argValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
@@ -145,7 +145,7 @@ class Interpreter(object):
 
     @classmethod
     def newClassInstance(cls, name):
-        objContext = Context.Context(cls.classContextDepth, True, struct=name)
+        objContext = tupy.Context.Context(cls.classContextDepth, True, struct=name)
         try:
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
@@ -155,7 +155,7 @@ class Interpreter(object):
             objContext.classes = copy.copy(classContext.classes)
         except KeyError as exc:
             raise NameError("Class {0} does not exist!".format(name)) from exc
-        return Instance.Instance(Type.STRUCT, objContext, className=name)
+        return tupy.tupy.Instance.Instance(Type.STRUCT, objContext, className=name)
 
     @classmethod
     def loadSymbol(cls, name):
@@ -185,7 +185,7 @@ class Interpreter(object):
         else:
             logger.debug("Setting {0}{1} to reference {2}".format(name, trailerList, str(memoryCell)))
             inst = cls.loadSymbol(name)
-            (ret, parent_triple) = Variable.Variable.retrieveWithTrailers(inst, trailerList)
+            (ret, parent_triple) = tupy.Variable.Variable.retrieveWithTrailers(inst, trailerList)
             (parent, trailer, depth) = parent_triple
             if (depth == -2): # A TT.MEMBER is referencing memoryCell
                 memberDepth = parent.value.locals.declaredDepth[trailer]
@@ -205,7 +205,7 @@ class Interpreter(object):
 
     @classmethod
     def getDeepMemoryCell(cls, inst, trailers):
-        (ret, parent_triple) = Variable.Variable.retrieveWithTrailers(inst, trailers)
+        (ret, parent_triple) = tupy.Variable.Variable.retrieveWithTrailers(inst, trailers)
         (parent, trailer, depth) = parent_triple
         if (depth == -2): # Get cell for a TT.MEMBER
             memberDepth = parent.value.locals.declaredDepth[trailer]
@@ -235,7 +235,7 @@ class Interpreter(object):
         logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         if (funcName is None):
             funcName = cls.callStack.top().funcName
-        newContext = Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
+        newContext = tupy.Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
         newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
         cls.pushContext(newContext)

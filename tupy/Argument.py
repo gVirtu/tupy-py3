@@ -1,6 +1,3 @@
-import Instance as im
-import Type as tm
-
 class Argument(object):
     def __init__(self, name, 
                        datatype, 

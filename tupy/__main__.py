@@ -1,5 +1,5 @@
 import sys
-import Interpreter
+import tupy.Interpreter
 
 import gettext
 import argparse
@@ -25,7 +25,7 @@ def main(argv):
     else:
         input = sys.stdin.read()
 
-    return Interpreter.Interpreter.interpret(input, trace=args.trace)
+    return tupy.Interpreter.Interpreter.interpret(input, trace=args.trace)
 
 if __name__ == '__main__': # pragma: no cover
     main(sys.argv)
