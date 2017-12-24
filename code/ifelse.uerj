@@ -1,0 +1,6 @@
+inteiro a <- 5
+se a > 3:
+  inteiro b <- a^2
+senão:
+  inteiro c <- a<<1
+inteiro x, y <- a, a

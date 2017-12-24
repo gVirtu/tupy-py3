@@ -1,15 +1,12 @@
 import unittest
 import pytest
-import sys
-import io
-from antlr4 import InputStream
-import tupy
+import subprocess
 
 class TestJSONPrinter(unittest.TestCase):
 
     def test_simple_code(self):
-        ret = tupy.main([None, "code/simple.uerj", "--trace"])
-        self.assertEqual(ret, "nadas\n")
+        output = subprocess.getoutput("python3 -m tupy code/simple.uerj -t")
+        self.assertEqual(output, "nadas")   
 
 if __name__ == '__main__':
     unittest.main()

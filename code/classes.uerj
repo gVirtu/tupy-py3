@@ -1,0 +1,6 @@
+tipo Aluno:
+  cadeia nome
+  
+Aluno a <- Aluno()
+a.nome <- "Paulo"
+a.nome

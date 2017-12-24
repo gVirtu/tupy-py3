@@ -178,7 +178,10 @@ class evalVisitor(ParseTreeVisitor):
                     error(ValueError, "Cannot assign expression lists of different sizes!", ctx)
                 rhs = lhs
                 is_reference_assign = False
-            
+
+        # Trace - Test/Expression Statement
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
         if isDeclaration:
             # Bypass trailers during tupy.Instance.Instance retrieval. e.g.:
             # inteiro A[2] <- [10, 20]
@@ -224,12 +227,16 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#breakStatement.
     def visitBreakStatement(self, ctx:langParser.BreakStatementContext):
         tupy.Interpreter.Interpreter.doBreak()
+        # Trace - Flow Statement 1
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
         return None
 
 
     # Visit a parse tree produced by langParser#continueStatement.
     def visitContinueStatement(self, ctx:langParser.ContinueStatementContext):
         tupy.Interpreter.Interpreter.doContinue()
+        # Trace - Flow Statement 2
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
         return None
 
 
@@ -241,6 +248,8 @@ class evalVisitor(ParseTreeVisitor):
             expr = None
         finally: 
             tupy.Interpreter.Interpreter.doReturn(expr)
+            # Trace - Flow Statement 3
+            tupy.Interpreter.Interpreter.trace(ctx.start.line)
         return None
 
 
@@ -265,9 +274,11 @@ class evalVisitor(ParseTreeVisitor):
             elif isinstance(c, langParser.ElseIfContext):
                 pass
             elif isinstance(c, langParser.TestContext):
+                # Trace - If/Else Statement
+                tupy.Interpreter.Interpreter.trace(c.start.line)
                 test = bool(self.visitTest(c).get().value)
             elif isinstance(c, langParser.BlockContext) and ((test is True) or (lastOne)):
-                ret = self.visitBlock(c)
+                ret = self.visitBlock(c, funcName="Desvio Condicional")
                 break
         return ret
 
@@ -277,8 +288,10 @@ class evalVisitor(ParseTreeVisitor):
         ret = None
         testTree = ctx.test()
         iterations = 0
+        # Trace - While Statement
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
         while( bool(self.visitTest(testTree).get().value) ):
-            ret = self.visitBlock(ctx.block())
+            ret = self.visitBlock(ctx.block(), funcName="Laço (enquanto)")
             if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
                     break
             iterations += 1
@@ -306,6 +319,9 @@ class evalVisitor(ParseTreeVisitor):
                 else:
                     stopFuncs.append(stopFuncLT)
 
+            # Trace - For Statement
+            tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
             ret = self.handleInnerFor(None, names, ranges, steps, stopFuncs, ctx.block())
 
             return ret
@@ -322,7 +338,7 @@ class evalVisitor(ParseTreeVisitor):
             if (remaining > 1):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
-                ret = self.visitBlock(block)
+                ret = self.visitBlock(block, funcName="Laço (para)")
             
             if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
                 break
@@ -345,6 +361,7 @@ class evalVisitor(ParseTreeVisitor):
                   or isinstance(ctx.parentCtx, langParser.ForStatementContext) \
                   or isinstance(ctx.parentCtx, langParser.WhileStatementContext)
         isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
+
         if not isClassDef:
             tupy.Interpreter.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
                                      returnType=returnType, funcName=funcName)
@@ -392,8 +409,13 @@ class evalVisitor(ParseTreeVisitor):
         else:
             ret = self.executeStatements(ctx.statement())
         #ret = self.visitChildren(ctx)
+
+        # Trace return (end block)
+        tupy.Interpreter.Interpreter.trace(ctx.stop.line, True)
+
         if not isClassDef:
             tupy.Interpreter.Interpreter.popFrame()
+        
         return ret
 
 
@@ -724,7 +746,7 @@ class evalVisitor(ParseTreeVisitor):
 
         funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
         funcvisitor.visitBlock(ctx.block())
-        ret = self.visitBlock(ctx.block())
+        ret = self.visitBlock(ctx.block(), funcName=className)
         tupy.Interpreter.Interpreter.callStack.pop()
         return ret
 
@@ -806,7 +828,9 @@ class evalVisitor(ParseTreeVisitor):
         ret = None
         for s in statementList:
             # tupy.Interpreter.logger.debug("visiting {0}".format(s))
+            tupy.Interpreter.logger.debug("Executing statement at line {0}...".format(s.start.line))
             ret = self.visitStatement(s)
+
             # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
             flow = tupy.Interpreter.Interpreter.flow
             if flow == tupy.Interpreter.FlowEvent.BREAK or flow == tupy.Interpreter.FlowEvent.CONTINUE:
@@ -832,6 +856,7 @@ class evalVisitor(ParseTreeVisitor):
                         tupy.Interpreter.logger.debug("Returned {0}".format(retType))
                         raise TypeError("Function expected to return {0}!".format(tupy.Interpreter.Interpreter.getReturnType()))
                 break
+            
         #TODO: Double check whether this is intended
         # try:
         try:

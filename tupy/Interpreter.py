@@ -13,7 +13,7 @@ import tupy.Builtins
 import logging
 
 FORMAT = "=> %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.WARN)
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 from enum import Enum
@@ -67,7 +67,9 @@ class Interpreter(object):
         if (cls.traceOut is None):
             return ret_visit
         else:
-            return cls.traceOut.dump()
+            ret = cls.traceOut.dump()
+            print(ret)
+            return ret
 
     @classmethod
     def executeBlock(cls, function, callArgs):
@@ -120,11 +122,11 @@ class Interpreter(object):
             if (isConstructor):
                 classInstance = cls.newClassInstance(function.name)
                 cls.callStack.push(classInstance.value)
-                cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
+                cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName=function.name)
                 cls.callStack.pop()
                 return classInstance
             else:
-                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType)
+                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName=function.name)
 
     @classmethod
     def getDepth(cls, name):
@@ -307,9 +309,9 @@ class Interpreter(object):
         cls.outStream.write("\n")
 
     @classmethod
-    def trace(cls, line, is_call):
+    def trace(cls, line, is_return=False):
         if cls.traceOut is not None:
-            cls.traceOut.trace(line, is_call)
+            cls.traceOut.trace(line, is_return)
 
 # Memory access functions
 
