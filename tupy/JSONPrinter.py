@@ -139,7 +139,10 @@ class JSONPrinter(object):
             header = "C_DATA"
             address = str(id(inst))
             type_str = self.map_type_to_string(inst.type)
-            value = inst.value
+            if (inst.type == tupy.Type.Type.NULL):
+                value = "<NULL>"
+            else:
+                value = inst.value
             data = [header, address, type_str, value]
         
         return data
@@ -173,7 +176,7 @@ class JSONPrinter(object):
         stack_element["parent_frame_id_list"] = []
         stack_element["encoded_locals"] = self.scan_context_locals(context, self.contextVars[unique_id], 
                                  self.contextVarList[unique_id], heap)
-        stack_element["ordered_varnames"] = self.contextVarList[unique_id]
+        stack_element["ordered_varnames"] = copy.copy(self.contextVarList[unique_id])
         if is_highlighted and returnData:
             if (self.instance_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
             else: rd = self.parse_instance(returnData, heap)
