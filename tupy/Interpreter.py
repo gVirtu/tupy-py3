@@ -13,7 +13,7 @@ import tupy.Builtins
 import logging
 
 FORMAT = "=> %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from enum import Enum
@@ -29,7 +29,8 @@ class FlowEvent(Enum):
 class Interpreter(object):
     outStream = StringIO()
     iterationLimit = 1000
-    classContextDepth = 9999999
+    classContextDepth = 7777777
+    instContextDepth = 9999999
 
     @classmethod
     def initialize(cls):
@@ -122,11 +123,11 @@ class Interpreter(object):
             if (isConstructor):
                 classInstance = cls.newClassInstance(function.name)
                 cls.callStack.push(classInstance.value)
-                cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName=function.name)
+                cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
                 return classInstance
             else:
-                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName=function.name)
+                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
 
     @classmethod
     def getDepth(cls, name):
@@ -147,7 +148,8 @@ class Interpreter(object):
 
     @classmethod
     def newClassInstance(cls, name):
-        objContext = tupy.Context.Context(cls.classContextDepth, True, struct=name)
+        objContext = tupy.Context.Context(cls.instContextDepth, True, struct=name,
+                                          funcName="Instância de {0}".format(name))
         try:
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
@@ -309,9 +311,12 @@ class Interpreter(object):
         cls.outStream.write("\n")
 
     @classmethod
-    def trace(cls, line, is_return=False):
+    def trace(cls, line, returnData=None):
+        if (returnData and isinstance(returnData, tuple)):
+            ret_res = [tupy.Interpreter.memAlloc(element) for element in returnData]
+            returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
         if cls.traceOut is not None:
-            cls.traceOut.trace(line, is_return)
+            cls.traceOut.trace(line, returnData)
 
 # Memory access functions
 

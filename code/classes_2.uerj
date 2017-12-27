@@ -1,0 +1,9 @@
+tipo Ponto:
+    inteiro x, y
+    Ponto(inteiro a, inteiro b):
+        x, y <- a, b
+
+inteiro distancia(Ponto P, Ponto Q):
+    retornar (P.x - Q.x)^2 + (P.y - Q.y)^2
+Ponto A, B <- Ponto(0, 0), Ponto(30, 40)
+distancia(A, B)

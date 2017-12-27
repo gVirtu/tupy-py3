@@ -31,6 +31,7 @@ class evalVisitor(ParseTreeVisitor):
         tupy.Interpreter.logger.debug("ALL DONE!")
         tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
         tupy.Interpreter.logger.debug("Returnin {0}".format(res))
+        tupy.Interpreter.Interpreter.trace(ctx.stop.line, res)
         return res
 
     # Visit a parse tree produced by langParser#functionDefinition.
@@ -100,6 +101,9 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpressionStatement.
     def visitTestOrExpressionStatement(self, ctx:langParser.TestOrExpressionStatementContext):
+        # Trace - Test/Expression Statement
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
         childcount = len(ctx.testOrExpressionList())
         isDeclaration = isinstance(ctx.parentCtx, langParser.DeclarationStatementContext)
         decltype = Type.NULL
@@ -179,9 +183,6 @@ class evalVisitor(ParseTreeVisitor):
                 rhs = lhs
                 is_reference_assign = False
 
-        # Trace - Test/Expression Statement
-        tupy.Interpreter.Interpreter.trace(ctx.start.line)
-
         if isDeclaration:
             # Bypass trailers during tupy.Instance.Instance retrieval. e.g.:
             # inteiro A[2] <- [10, 20]
@@ -226,17 +227,19 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#breakStatement.
     def visitBreakStatement(self, ctx:langParser.BreakStatementContext):
-        tupy.Interpreter.Interpreter.doBreak()
         # Trace - Flow Statement 1
         tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
+        tupy.Interpreter.Interpreter.doBreak()
         return None
 
 
     # Visit a parse tree produced by langParser#continueStatement.
     def visitContinueStatement(self, ctx:langParser.ContinueStatementContext):
-        tupy.Interpreter.Interpreter.doContinue()
         # Trace - Flow Statement 2
         tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
+        tupy.Interpreter.Interpreter.doContinue()
         return None
 
 
@@ -247,9 +250,10 @@ class evalVisitor(ParseTreeVisitor):
         except Exception:
             expr = None
         finally: 
-            tupy.Interpreter.Interpreter.doReturn(expr)
             # Trace - Flow Statement 3
             tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
+            tupy.Interpreter.Interpreter.doReturn(expr)
         return None
 
 
@@ -411,7 +415,10 @@ class evalVisitor(ParseTreeVisitor):
         #ret = self.visitChildren(ctx)
 
         # Trace return (end block)
-        tupy.Interpreter.Interpreter.trace(ctx.stop.line, True)
+        if (breakable and not returnable): # loops shouldn't trace returns per iteration
+            pass
+        else:
+            tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
 
         if not isClassDef:
             tupy.Interpreter.Interpreter.popFrame()
@@ -729,7 +736,8 @@ class evalVisitor(ParseTreeVisitor):
         names = ctx.NAME()
         className = names[0].getText()
         tupy.Interpreter.logger.debug("Visiting a class named {0}".format(className))
-        classContext = tupy.Context.Context(7777777, True, struct=className)
+        classContext = tupy.Context.Context(tupy.Interpreter.Interpreter.classContextDepth, 
+                                True, struct=className, funcName="Classe {0}".format(className))
 
         if (len(names) > 1):
             inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 

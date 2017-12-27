@@ -16,7 +16,8 @@ class JSONPrinter(object):
     def dump(self):
         return json.dumps(self.data, indent=None)
 
-    def trace(self, line, is_return=False):
+    def trace(self, line, returnData=None):
+        tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
 
@@ -36,7 +37,13 @@ class JSONPrinter(object):
 
         if (tupy.Interpreter.Interpreter.callStack.size() > 1):
             # process highlighted frame
-            stack.append(self.process_stack_element(tupy.Interpreter.Interpreter.callStack.top(), True, heap))
+            stack.append(self.process_stack_element(tupy.Interpreter.Interpreter.callStack.top(), True, heap, returnData))
+        elif returnData:
+            if (self.instance_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
+            else: rd = self.parse_instance(returnData, heap)
+
+            element["globals"]["__return__"] = rd
+            element["ordered_globals"].append("__return__")
         
         element["stack_to_render"] = stack
 
@@ -48,7 +55,7 @@ class JSONPrinter(object):
         element["heap"] = heap #self.format_heap(heap)
         element["line"] = line
         element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(), 
-                                                    is_return)
+                                                    returnData is not None)
 
         # All done!
         self.data["trace"].append(element)
@@ -57,28 +64,30 @@ class JSONPrinter(object):
     # the trace heap. Stores the order in which the names appear session-wide.
     def scan_context_locals(self, context, locals_set, locals_order, heap):
         ret = {}
-        for name, depth in context.locals.declaredDepth.items():
-            if depth < context.depth:
+        for name in sorted(context.locals.declaredDepth.keys()):
+            depth = context.locals.declaredDepth[name]
+            if context.structName is None and depth < context.depth:
                 continue
 
             if context.locals.datatype[name] == tupy.Type.Type.FUNCTION:
                 continue
 
-            # Add to ordered_locals / globals
+            heap_ind = self.add_to_heap(heap, context.locals.data[(name, depth)].data)
+
             if name not in locals_set:
                 locals_set.add(name)
                 locals_order.append(name)
 
             # Add to heap
-            ret[name] = ["REF",
-                            self.add_to_heap(heap, context.locals.data[(name, depth)]) ]
+            ret[name] = ["REF", heap_ind]
+
         return ret
 
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
-    def add_to_heap(self, heap, memoryCell):
-        mcID = str(id(memoryCell))
-        heap[mcID] = self.parse_memory_cell(memoryCell, heap)
+    def add_to_heap(self, heap, instance):
+        iid = str(id(instance))
+        heap[iid] = self.parse_instance(instance, heap)
         # heap.add(mcID)
         # if mcID not in self.globalHeap:
         #     ind = len(self.globalHeap)+1
@@ -87,35 +96,42 @@ class JSONPrinter(object):
 
         # self.globalHeap[mcID] = (ind, self.parse_memory_cell(memoryCell, heap))
 
-        return mcID
+        return iid
 
     # Formats the output heap. To be rendered correctly, primitives need
     # to be in a HEAP_PRIMITIVE structure.
     def format_heap(self, heap):
         for k, v in heap.items():
-            if (v[0] == "C_DATA"):
+            if (v and v[0] == "C_DATA"):
                 #datatype = data[2]
                 heap[k] = ["HEAP_PRIMITIVE", "primitivo", v]
 
-    # Recursively extracts data from a memory cell and outputs the trace-ready
+    # Recursively extracts data from an instance and outputs the trace-ready
     # parsed data that goes into the heap. 
-    def parse_memory_cell(self, memoryCell, heap):
-        inst = memoryCell.data
-        #print("Handling {0}".format(inst))
-
+    def parse_instance(self, inst, heap):
+        tupy.Interpreter.logger.debug("PARSE_INSTANCE {0}".format(inst))
         if (inst.type == tupy.Type.Type.STRUCT):
-            data = ["INSTANCE", inst.class_name]
+            header = "C_STRUCT"
+            address = str(id(inst))
+            data = [header, address, inst.class_name]
             instLocals = inst.value.locals
-            for name, depth in instLocals.declaredDepth.items():
+            tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
+            for (name, depth) in sorted(instLocals.data.keys()):
+                tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
                 if depth == tupy.Interpreter.Interpreter.classContextDepth: 
                     attribute = []
                     subMemoryCell = instLocals.data[(name, depth)]
-                    self.handle_submemory_cell(subMemoryCell, attribute, heap)  
                     attribute.append(name)
+                    self.handle_submemory_cell(subMemoryCell, attribute, heap)  
                     data.append(attribute)
 
         elif (inst.is_pure_array()):
             data = ["LIST"]
+            for subMemoryCell in inst.value:
+                self.handle_submemory_cell(subMemoryCell, data, heap)
+
+        elif (inst.type == tupy.Type.Type.TUPLE):
+            data = ["TUPLE"]
             for subMemoryCell in inst.value:
                 self.handle_submemory_cell(subMemoryCell, data, heap)
 
@@ -133,25 +149,37 @@ class JSONPrinter(object):
         subInst = subMemoryCell.data
         #print("Subhandling {0}, list is {1}".format(subInst, data_list))
         # Compound, link a REF.
-        if (subInst.type == tupy.Type.Type.STRUCT or subInst.is_pure_array()):
-            data_list.append(["REF", self.add_to_heap(heap, subMemoryCell)])
+        if (self.instance_is_compound(subInst)):
+            data_list.append(["REF", self.add_to_heap(heap, subMemoryCell.data)])
         else: # Primitive, just put the C_DATA inside the LIST
-            data_list.append(self.parse_memory_cell(subMemoryCell, heap))
+            data_list.append(self.parse_instance(subMemoryCell.data, heap))
 
-    def process_stack_element(self, context, is_highlighted, heap):
+    def instance_is_compound(self, instance):
+        return instance.type == tupy.Type.Type.STRUCT or \
+               instance.type == tupy.Type.Type.TUPLE or \
+               instance.type == tupy.Type.Type.ARRAY
+
+    def process_stack_element(self, context, is_highlighted, heap, returnData=None):
         stack_element = {}
 
         frame_id = id(context)
-        if frame_id not in self.contextVars:
-            self.contextVars[frame_id] = set()
-            self.contextVarList[frame_id] = []
+        unique_id = (frame_id, returnData is None)
+        if unique_id not in self.contextVars:
+            self.contextVars[unique_id] = set()
+            self.contextVarList[unique_id] = []
 
         stack_element["is_highlighted"] = is_highlighted
         stack_element["is_parent"] = False
         stack_element["parent_frame_id_list"] = []
-        stack_element["encoded_locals"] = self.scan_context_locals(context, self.contextVars[frame_id], 
-                                 self.contextVarList[frame_id], heap)
-        stack_element["ordered_varnames"] = self.contextVarList[frame_id]
+        stack_element["encoded_locals"] = self.scan_context_locals(context, self.contextVars[unique_id], 
+                                 self.contextVarList[unique_id], heap)
+        stack_element["ordered_varnames"] = self.contextVarList[unique_id]
+        if is_highlighted and returnData:
+            if (self.instance_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
+            else: rd = self.parse_instance(returnData, heap)
+
+            stack_element["encoded_locals"]["__return__"] = rd
+            stack_element["ordered_varnames"].append("__return__")
         stack_element["is_zombie"] = False
         stack_element["frame_id"] = frame_id
         stack_element["func_name"] = context.funcName
