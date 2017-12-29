@@ -1,0 +1,4 @@
+inteiro func(inteiro a, inteiro b):
+    retornar a+b
+inteiro x, y <- 5, 15
+inteiro z <- func(y, x)

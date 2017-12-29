@@ -1,0 +1,18 @@
+# Um comentário
+inteiro func(inteiro a):
+	retornar a+a
+
+
+
+
+   
+
+ 
+ 
+
+   
+ 
+ 
+ 
+   
+escrever(func(2))

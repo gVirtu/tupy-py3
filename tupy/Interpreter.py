@@ -43,7 +43,7 @@ class Interpreter(object):
         cls.traceOut = None
 
     @classmethod
-    def interpret(cls, input, rule="r", trace=False):
+    def interpret(cls, input, rule="r", trace=False, printTokens=False):
         logger.debug("Input is {0}".format(str(input)))
         cls.outStream.close()
         cls.initialize()
@@ -52,6 +52,17 @@ class Interpreter(object):
         tupy.Builtins.initialize()
         lexer = langLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
+
+        if printTokens:
+            symbolicNames = lexer.symbolicNames + ["INDENT", "DEDENT"]
+
+            for token in lexer.getAllTokens():
+                if (token.type != Token.EOF):
+                    logger.info("{0} => {1}".format(symbolicNames[token.type], cls.format_token(token)))
+
+            lexer = langLexer(InputStream(input))
+            stream = CommonTokenStream(lexer)
+
         parser = langParser(stream)
         #parser.setTrace(True)
         treenode = getattr(parser, rule)
@@ -304,7 +315,7 @@ class Interpreter(object):
 
     @classmethod
     def output(cls, string):
-        logger.info("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
+        logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
         if cls.traceOut is None:
             print(string)
         cls.outStream.write(string)
@@ -317,6 +328,10 @@ class Interpreter(object):
             returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
         if cls.traceOut is not None:
             cls.traceOut.trace(line, returnData)
+
+    @classmethod
+    def format_token(cls, token):
+        return token.text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
 
 # Memory access functions
 
