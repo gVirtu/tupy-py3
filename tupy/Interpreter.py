@@ -68,39 +68,41 @@ class Interpreter(object):
         else:
             sys.excepthook = exception_handler
 
-        tupy.Builtins.initialize()
-        lexer = langLexer(InputStream(input))
-        lexer.removeErrorListeners()
-        lexer.addErrorListener(TupyErrorListener.INSTANCE)
-        stream = CommonTokenStream(lexer)
-
-        if printTokens:
-            symbolicNames = lexer.symbolicNames + ["INDENT", "DEDENT"]
-
-            for token in lexer.getAllTokens():
-                if (token.type != Token.EOF):
-                    logger.info("{0:<15} {1:>15}".format(symbolicNames[token.type], cls.format_token(token)))
-
+        try:
+            tupy.Builtins.initialize()
             lexer = langLexer(InputStream(input))
             lexer.removeErrorListeners()
             lexer.addErrorListener(TupyErrorListener.INSTANCE)
             stream = CommonTokenStream(lexer)
 
-        parser = langParser(stream)
-        parser.removeErrorListeners()
-        parser.addErrorListener(TupyErrorListener.INSTANCE)
-        #parser.setTrace(True)
-        treenode = getattr(parser, rule)
-        tree = treenode()
-        cls.visitor.setParser(parser)
-        funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
-        logger.debug("Using rule " + rule)
-        funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
-        funcvisit(tree)
-        #logger.debug(tree.toStringTree())
-        visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
-        #logger.debug(visit)
-        try:
+            if printTokens:
+                symbolicNames = lexer.symbolicNames + ["INDENT", "DEDENT"]
+
+                for token in lexer.getAllTokens():
+                    if (token.type != Token.EOF):
+                        logger.info("{0:<15} {1:>15}".format(symbolicNames[token.type], cls.format_token(token)))
+
+                lexer = langLexer(InputStream(input))
+                lexer.removeErrorListeners()
+                lexer.addErrorListener(TupyErrorListener.INSTANCE)
+                stream = CommonTokenStream(lexer)
+
+            parser = langParser(stream)
+            parser.removeErrorListeners()
+            parser.addErrorListener(TupyErrorListener.INSTANCE)
+            parser._errHandler = error.ErrorStrategy.BailErrorStrategy()
+            #parser.setTrace(True)
+            treenode = getattr(parser, rule)
+            tree = treenode()
+            cls.visitor.setParser(parser)
+            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
+            logger.debug("Using rule " + rule)
+            funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
+            funcvisit(tree)
+            #logger.debug(tree.toStringTree())
+            visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
+            #logger.debug(visit)
+        
             ret_visit = visit(tree)
         except tupy.errorHelper.TupyError as e:
             cls.trace(e.args[1], exception=e.args[0])
@@ -397,7 +399,7 @@ class TupyErrorListener(error.ErrorListener.ErrorListener):
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         msg = self.translate(msg)
-        print("Linha: " + str(line) + ", posição " + str(column) + " - " + msg, file=sys.stderr)
+        tupy.errorHelper.parseError(msg, line)
 
     def translate(self, msg):
         dicionario = {"mismatched input": "entrada incompatível", 

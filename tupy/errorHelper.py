@@ -6,6 +6,9 @@ class TupyError(Exception):
 class TupyNameError(TupyError):
     pass
 
+class TupyParseError(TupyError):
+    pass
+
 class TupyValueError(TupyError):
     pass
 
@@ -26,6 +29,9 @@ def valueError(message, ctx:antlr4.ParserRuleContext):
 
 def typeError(message, ctx:antlr4.ParserRuleContext):
     raise TupyTypeError("ERRO: {0}".format(message), ctx.start.line)
+
+def parseError(message, line):
+    raise TupyParseError("ERRO: {0}".format(message), line)
 
 def syntaxError(message, ctx:antlr4.ParserRuleContext):
     raise TupySyntaxError("ERRO: {0}".format(message), ctx.start.line)
