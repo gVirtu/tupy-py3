@@ -58,7 +58,7 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
 def escrever(argsTuple):
     out = ' '.join([stringProcess(printInstance(tupy.Interpreter.memRead(arg))) for arg in argsTuple.get().value])
     tupy.Interpreter.Interpreter.output(out)
-    return out
+    return tupy.Instance.Instance(Type.STRING, out)
 
 def printInstance(arg):
     inst = arg
