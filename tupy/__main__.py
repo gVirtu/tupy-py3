@@ -4,6 +4,7 @@ import tupy.Interpreter
 import gettext
 import argparse
 import logging
+import readline
 
 gettext.bindtextdomain('argparse', '.')
 gettext.textdomain('argparse')
@@ -20,16 +21,32 @@ def main(argv):
     if args.arquivo:
         try:
             with open(args.arquivo, 'r') as myfile:
-                input = myfile.read()
+                myinput = myfile.read()
 
         except FileNotFoundError as err:
             print("Arquivo "+args.arquivo+" não encontrado!")
             sys.exit(2)
     else:
-        input = sys.stdin.read()
+        print("Interpretador TuPy interativo v1.0 (TCC UERJ)\n")
+        print("   Digite o seu programa abaixo, e então use CTRL+D para executá-lo.│")
+        print("   ┌────────────────────────────────────────────────────────────────┘")
+        commandList = []
+        myinput = ''
+        line = 0
+        while True:
+            try:
+                line = line + 1
+                commandList.append(input("{0:<3}│ ".format(line)))
+            except EOFError:
+                myinput = '\n'.join(commandList)
+                print("\n   └─────────────────────────────────────────────────────────────────")
+                break
+            except KeyboardInterrupt:
+                print("\nExecução terminada a comando do usuário.\nDica: Para executar o programa digitado, utilize CTRL+D.")
+                sys.exit(2)
 
     tupy.Interpreter.Interpreter.isDebug = args.debug
-    return tupy.Interpreter.Interpreter.interpret(input, trace=args.trace, printTokens=args.tokens)
+    return tupy.Interpreter.Interpreter.interpret(myinput, trace=args.trace, printTokens=args.tokens)
 
 if __name__ == '__main__': # pragma: no cover
     main(sys.argv)

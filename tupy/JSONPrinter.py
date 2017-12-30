@@ -16,7 +16,7 @@ class JSONPrinter(object):
     def dump(self):
         return json.dumps(self.data, indent=None)
 
-    def trace(self, line, returnData=None):
+    def trace(self, line, returnData=None, exception=None):
         tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
@@ -54,7 +54,11 @@ class JSONPrinter(object):
         self.format_heap(heap)
         element["heap"] = heap #self.format_heap(heap)
         element["line"] = line
-        element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(), 
+        if (exception):
+            element["event"] = "exception"
+            element["exception_msg"] = exception
+        else:
+            element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(), 
                                                     returnData is not None)
 
         # All done!

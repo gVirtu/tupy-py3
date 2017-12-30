@@ -700,7 +700,7 @@ class evalVisitor(ParseTreeVisitor):
             try:
                 return tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, list(res)));
             except TypeError:
-                error(TypeError, "Types in array must be consistent!", ctx)
+                tupy.errorHelper.typeError("Os tipos dos elementos de uma lista devem ser consistentes!", ctx)
         else:
             return self.visitChildren(ctx)
 

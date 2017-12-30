@@ -10,6 +10,7 @@ import tupy.JSONPrinter
 import tupy.Variable
 import tupy.Instance
 import tupy.Builtins
+import tupy.errorHelper
 import logging
 import re
 import sys
@@ -29,7 +30,10 @@ class FlowEvent(Enum):
     RETURN = 3
 
 def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook):
-    print("[{0}] {1}".format(exception_type.__name__, exception))
+    if len(exception.args) > 1:
+        print("[{0}] {1} - Linha {2}".format(exception_type.__name__, exception.args[0], exception.args[1]))
+    else: 
+        print("[{0}] {1}".format(exception_type.__name__, exception))
 
 class Interpreter(object):
     isDebug = False
@@ -51,6 +55,9 @@ class Interpreter(object):
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False):
         logger.debug("Input is {0}".format(str(input)))
+        if (input[-1] != '\n'):
+            input = input + "\n"
+            print("")
         cls.outStream.close()
         cls.initialize()
 
@@ -93,7 +100,18 @@ class Interpreter(object):
         #logger.debug(tree.toStringTree())
         visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
         #logger.debug(visit)
-        ret_visit = visit(tree)
+        try:
+            ret_visit = visit(tree)
+        except tupy.errorHelper.TupyError as e:
+            cls.trace(e.args[1], exception=e.args[0])
+            if (cls.traceOut is None):
+                raise e
+                return None
+            else:
+                ret = cls.traceOut.dump()
+                print(ret)
+                return ret
+
         if (cls.traceOut is None):
             return ret_visit
         else:
@@ -340,12 +358,12 @@ class Interpreter(object):
         cls.outStream.write("\n")
 
     @classmethod
-    def trace(cls, line, returnData=None):
+    def trace(cls, line, returnData=None, exception=None):
         if (returnData and isinstance(returnData, tuple)):
             ret_res = [tupy.Interpreter.memAlloc(element) for element in returnData]
             returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
         if cls.traceOut is not None:
-            cls.traceOut.trace(line, returnData)
+            cls.traceOut.trace(line, returnData, exception)
 
     @classmethod
     def format_token(cls, token):
