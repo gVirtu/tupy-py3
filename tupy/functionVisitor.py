@@ -5,6 +5,8 @@ from tupy.Type import TrailerType, Type
 from antlr4 import *
 from tupy.langParser import langParser
 
+import tupy.errorHelper
+
 import tupy.Interpreter
 import tupy.Argument
 import tupy.evalVisitor
@@ -30,26 +32,36 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:langParser.FunctionDefinitionContext):
-        function_name = str(ctx.NAME().getText())
-        codeTree = ctx.block()
-        return_type = Type.NULL
         try:
-            return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
-        except Exception: 
-            # Is a function with no return
-            pass
+            function_name = str(ctx.NAME().getText())
+            codeTree = ctx.block()
+            return_type = Type.NULL
+            try:
+                return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
+            except Exception: 
+                # Is a function with no return
+                pass
 
-        if return_type == Type.NULL:
-            array_dimensions = 0
-        else:
-            array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
-        argumentList = self.visitParameters(ctx.parameters())
-        isConstructor = (function_name == self.className)
+            if return_type == Type.NULL:
+                array_dimensions = 0
+            else:
+                array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
+            argumentList = self.visitParameters(ctx.parameters())
+            isConstructor = (function_name == self.className)
 
-        myContext = self.constructorContext if (isConstructor) else self.functionContext
-        myContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
-        return True
-
+            myContext = self.constructorContext if (isConstructor) else self.functionContext
+            myContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
+            return True
+        except NameError as e:
+            tupy.errorHelper.nameError(e.args[0], ctx)
+        except TypeError as e:
+            tupy.errorHelper.typeError(e.args[0], ctx)
+        except SyntaxError as e:
+            tupy.errorHelper.syntaxError(e.args[0], ctx)
+        except RuntimeError as e:
+            tupy.errorHelper.runtimeError(e.args[0], ctx)
+        except ValueError as e:
+            tupy.errorHelper.valueError(e.args[0], ctx)
 
     # Visit a parse tree produced by langParser#parameters.
     def visitParameters(self, ctx:langParser.ParametersContext):

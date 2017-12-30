@@ -5,7 +5,7 @@ from tupy.Type import TrailerType, Type
 from antlr4 import *
 from tupy.langParser import langParser
 
-from tupy.errorHelper import error
+import tupy.errorHelper
 
 import copy
 import tupy.Instance
@@ -120,7 +120,7 @@ class evalVisitor(ParseTreeVisitor):
         current_child = 1
         is_reference_assign = False
         if (isDeclaration and childcount == current_child):
-            self.doDeclare(lhs, decltype, declaredClass)
+            self.doDeclare(lhs, decltype, ctx.testOrExpressionList(childcount-1), declaredClass)
         
         i_children = iter(reversed(list(ctx.getChildren())))
         next(i_children) # all except last
@@ -133,7 +133,7 @@ class evalVisitor(ParseTreeVisitor):
                 lhs = self.visitTestOrExpressionList(c)
                 current_child += 1
                 if (isDeclaration and childcount == current_child):
-                    self.doDeclare(lhs, decltype, declaredClass)
+                    self.doDeclare(lhs, decltype, c, declaredClass)
 
                 tupy.Interpreter.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
                 # tupy.Interpreter.logger.debug("LHS = "+str(lhs))
@@ -163,10 +163,10 @@ class evalVisitor(ParseTreeVisitor):
                                         try:
                                             cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), rval.trailers)
                                         except tupy.Interpreter.InvalidMemoryAccessException as e:
-                                            raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
+                                            tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), c)
                                     tupy.Interpreter.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
                                 else:
-                                    error(SyntaxError, "Cannot reference a literal!", ctx)
+                                    tupy.errorHelper.syntaxError("Não é possível referenciar um literal!", c)
                             else:
                                 tupy.Interpreter.Interpreter.storeSymbol(lval.name, rval.get(), effectiveTrailers)
 
@@ -177,9 +177,9 @@ class evalVisitor(ParseTreeVisitor):
                             #                                 lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
                                 
                         else:
-                            error(SyntaxError, "Cannot assign to literal!", ctx)
+                            tupy.errorHelper.syntaxError("Não é possível atribuir a um literal!", c)
                 else:
-                    error(ValueError, "Cannot assign expression lists of different sizes!", ctx)
+                    tupy.errorHelper.valueError("Não é possível fazer uma atribuição com duas listas de expressões de tamanhos diferentes!", ctx)
                 rhs = lhs
                 is_reference_assign = False
 
@@ -199,7 +199,18 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#testOrExpression.
     def visitTestOrExpression(self, ctx:langParser.TestOrExpressionContext):
-        return self.visitChildren(ctx)
+        try:
+            return self.visitChildren(ctx)
+        except NameError as e:
+            tupy.errorHelper.nameError(e.args[0], ctx)
+        except TypeError as e:
+            tupy.errorHelper.typeError(e.args[0], ctx)
+        except SyntaxError as e:
+            tupy.errorHelper.syntaxError(e.args[0], ctx)
+        except RuntimeError as e:
+            tupy.errorHelper.runtimeError(e.args[0], ctx)
+        except ValueError as e:
+            tupy.errorHelper.valueError(e.args[0], ctx)
 
 
     # NOT IMPLEMENTED
@@ -300,7 +311,7 @@ class evalVisitor(ParseTreeVisitor):
                     break
             iterations += 1
             if iterations > tupy.Interpreter.Interpreter.iterationLimit:
-                raise RuntimeError("Iteration limit reached!")
+                tupy.errorHelper.runtimeError("Limite de iterações alcançado!", ctx.block())
         return ret
 
 
@@ -308,20 +319,26 @@ class evalVisitor(ParseTreeVisitor):
     def visitForStatement(self, ctx:langParser.ForStatementContext):
         names = self.visitNameList(ctx.nameList())
         ranges = self.visitRangeList(ctx.rangeList())
+        fillSteps = False
         if (ctx.expressionList() is None):
-            steps = [tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1))] * len(names)
+            steps = []
+            fillSteps = True
         else:
             steps = self.visitExpressionList(ctx.expressionList())
         stopFuncs = []
         stopFuncGT = lambda iterator, limit : (iterator > limit)
         stopFuncLT = lambda iterator, limit : (iterator < limit)
         
-        if (len(names) == len(ranges) and len(ranges) == len(steps)):
+        if (len(names) == len(ranges) and (len(ranges) == len(steps) or fillSteps)):
             for r in ranges:
                 if (r[1].value >= r[0].value):
                     stopFuncs.append(stopFuncGT)
+                    if fillSteps:
+                        steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1)))
                 else:
                     stopFuncs.append(stopFuncLT)
+                    if fillSteps:
+                        steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, -1)))
 
             # Trace - For Statement
             tupy.Interpreter.Interpreter.trace(ctx.start.line)
@@ -330,7 +347,7 @@ class evalVisitor(ParseTreeVisitor):
 
             return ret
         else:
-            raise SyntaxError("For loop must have the same number of iterators and ranges!")
+            tupy.errorHelper.syntaxError("Laço 'for' precisa ter o mesmo número de iteradores e intervalos!", ctx.nameList())
 
     def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block):
         remaining = len(names)
@@ -353,7 +370,7 @@ class evalVisitor(ParseTreeVisitor):
 
             iterations += 1
             if iterations > tupy.Interpreter.Interpreter.iterationLimit:
-                raise RuntimeError("Iteration limit reached!")  
+                tupy.errorHelper.runtimeError("Limite de iterações alcançado!", block)
         return ret
 
     # Visit a parse tree produced by langParser#block.
@@ -376,9 +393,9 @@ class evalVisitor(ParseTreeVisitor):
 
             if inst.array_dimensions != arrayDimensions:
                 if arrayDimensions == 0:
-                    raise TypeError("Function was not expecting an array!")
+                    tupy.errorHelper.typeError("A função {0} não esperava uma lista como argumento!".format(funcName), ctx)
                 else:
-                    raise TypeError("Function was expecting a {0}-dimensional array!".format(arrayDimensions))
+                    tupy.errorHelper.typeError("A função {0} esperava uma lista de {1} dimensões!".format(funcName, arrayDimensions), ctx)
 
             className = None
 
@@ -403,7 +420,7 @@ class evalVisitor(ParseTreeVisitor):
                     try:
                         cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), referenceTrailers)
                     except tupy.Interpreter.InvalidMemoryAccessException as e:
-                        raise SyntaxError("Cannot reference {0}!".format(e.args[0]))
+                        tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), ctx.parentCtx)
 
                 tupy.Interpreter.Interpreter.referenceSymbol(name, cell)
                 # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
@@ -720,7 +737,7 @@ class evalVisitor(ParseTreeVisitor):
                 return Subscript(begin=begin_pos, 
                                 end=end_pos)
             else:
-                raise SyntaxError("Invalid range!")
+                tupy.errorHelper.syntaxError("Intervalo inválido!", ctx)
         else:
             return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
                              end=int(self.visitExpression(ctx.expression(0)).get().value),
@@ -811,69 +828,81 @@ class evalVisitor(ParseTreeVisitor):
             self.parser.NAME: Type.STRUCT
         }.get(lextype, Type.NULL)
 
-    def doDeclare(self, lhs, decltype, className=None):
+    def doDeclare(self, lhs, decltype, ctx, className=None):
         for lval in lhs:
             if len(lval.trailers) > 0:
                 if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
                     subscriptList = lval.trailers[0][1]
                 else:
-                    raise SyntaxError("Invalid declaration!")
+                    tupy.errorHelper.syntaxError("Declaração inválida!", ctx)
             else:
                 subscriptList = []
 
             if any((not x.isSingle and not x.isWildcard) for x in subscriptList):
-                raise SyntaxError("Declaration subscripts cannot be ranges!")
+                tupy.errorHelper.syntaxError("As dimensões de uma declaração não devem conter intervalos!", ctx)
 
             if any((x.begin < 1 and not x.isWildcard) for x in subscriptList):
-                raise SyntaxError("Declaration subscripts must be greater than zero!")
+                tupy.errorHelper.syntaxError("As dimensões de uma declaração devem ser maiores que zero!", ctx)
 
             if decltype==Type.STRUCT and not tupy.Interpreter.Interpreter.isValidClass(className):
-                raise TypeError("Class {0} was not declared!".format(className))
+                tupy.errorHelper.typeError("A classe {0} não foi declarada!".format(className), ctx)
 
             tupy.Interpreter.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
 
     def executeStatements(self, statementList):
-        ret = None
-        for s in statementList:
-            # tupy.Interpreter.logger.debug("visiting {0}".format(s))
-            tupy.Interpreter.logger.debug("Executing statement at line {0}...".format(s.start.line))
-            ret = self.visitStatement(s)
-
-            # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
-            flow = tupy.Interpreter.Interpreter.flow
-            if flow == tupy.Interpreter.FlowEvent.BREAK or flow == tupy.Interpreter.FlowEvent.CONTINUE:
-                tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
-                if tupy.Interpreter.Interpreter.canBreak():
-                    tupy.Interpreter.Interpreter.doStep()
-                break 
-            elif flow == tupy.Interpreter.FlowEvent.RETURN:
-                ret = tupy.Interpreter.Interpreter.returnData
-                tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
-                if tupy.Interpreter.Interpreter.canReturn():
-                    retType = Type.NULL
-                    retDimensions = 0
-                    if (ret is not None):
-                        retType = ret[0].roottype
-                        retDimensions = ret[0].array_dimensions
-                    (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
-                    #desiredType = None -> Don't care
-                    if desiredType is None or \
-                       (desiredType == retType and arrayDimensions == retDimensions):
-                        tupy.Interpreter.Interpreter.doStep()
-                    else:
-                        tupy.Interpreter.logger.debug("Returned {0}".format(retType))
-                        raise TypeError("Function expected to return {0}!".format(tupy.Interpreter.Interpreter.getReturnType()))
-                break
-            
-        #TODO: Double check whether this is intended
-        # try:
+        s = statementList[0]
         try:
-            if (len(ret)<=1):
-                return ret[0]
-            else:
+            ret = None
+            for s in statementList:
+                # tupy.Interpreter.logger.debug("visiting {0}".format(s))
+                tupy.Interpreter.logger.debug("Executing statement at line {0}...".format(s.start.line))
+                ret = self.visitStatement(s)
+
+                # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
+                flow = tupy.Interpreter.Interpreter.flow
+                if flow == tupy.Interpreter.FlowEvent.BREAK or flow == tupy.Interpreter.FlowEvent.CONTINUE:
+                    tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
+                    if tupy.Interpreter.Interpreter.canBreak():
+                        tupy.Interpreter.Interpreter.doStep()
+                    break 
+                elif flow == tupy.Interpreter.FlowEvent.RETURN:
+                    ret = tupy.Interpreter.Interpreter.returnData
+                    tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
+                    if tupy.Interpreter.Interpreter.canReturn():
+                        retType = Type.NULL
+                        retDimensions = 0
+                        if (ret is not None):
+                            retType = ret[0].roottype
+                            retDimensions = ret[0].array_dimensions
+                        (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
+                        #desiredType = None -> Don't care
+                        if desiredType is None or \
+                        (desiredType == retType and arrayDimensions == retDimensions):
+                            tupy.Interpreter.Interpreter.doStep()
+                        else:
+                            tupy.Interpreter.logger.debug("Returned {0}".format(retType))
+                            tupy.errorHelper.typeError("A função deveria retornar {0}!".format(tupy.Interpreter.Interpreter.getReturnType()), s)
+                    break
+                
+            #TODO: Double check whether this is intended
+            # try:
+            try:
+                if (len(ret)<=1):
+                    return ret[0]
+                else:
+                    return ret
+            except TypeError:
                 return ret
-        except TypeError:
-            return ret
+        except NameError as e:
+            tupy.errorHelper.nameError(e.args[0], s)
+        except TypeError as e:
+            tupy.errorHelper.typeError(e.args[0], s)
+        except SyntaxError as e:
+            tupy.errorHelper.syntaxError(e.args[0], s)
+        except RuntimeError as e:
+            tupy.errorHelper.runtimeError(e.args[0], s)
+        except ValueError as e:
+            tupy.errorHelper.valueError(e.args[0], s)
             
         # except Exception as e:
             # tupy.Interpreter.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))

@@ -11,6 +11,8 @@ import tupy.Variable
 import tupy.Instance
 import tupy.Builtins
 import logging
+import re
+import sys
 
 FORMAT = "=> %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -26,7 +28,11 @@ class FlowEvent(Enum):
     CONTINUE = 2
     RETURN = 3
 
+def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook):
+    print("[{0}] {1}".format(exception_type.__name__, exception))
+
 class Interpreter(object):
+    isDebug = False
     outStream = StringIO()
     iterationLimit = 1000
     classContextDepth = 7777777
@@ -47,10 +53,18 @@ class Interpreter(object):
         logger.debug("Input is {0}".format(str(input)))
         cls.outStream.close()
         cls.initialize()
+
         if (trace):
             cls.traceOut = tupy.JSONPrinter.JSONPrinter(input)
+        if (cls.isDebug):
+            logging.getLogger().setLevel(logging.DEBUG)
+        else:
+            sys.excepthook = exception_handler
+
         tupy.Builtins.initialize()
         lexer = langLexer(InputStream(input))
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(TupyErrorListener.INSTANCE)
         stream = CommonTokenStream(lexer)
 
         if printTokens:
@@ -58,12 +72,16 @@ class Interpreter(object):
 
             for token in lexer.getAllTokens():
                 if (token.type != Token.EOF):
-                    logger.info("{0} => {1}".format(symbolicNames[token.type], cls.format_token(token)))
+                    logger.info("{0:<15} {1:>15}".format(symbolicNames[token.type], cls.format_token(token)))
 
             lexer = langLexer(InputStream(input))
+            lexer.removeErrorListeners()
+            lexer.addErrorListener(TupyErrorListener.INSTANCE)
             stream = CommonTokenStream(lexer)
 
         parser = langParser(stream)
+        parser.removeErrorListeners()
+        parser.addErrorListener(TupyErrorListener.INSTANCE)
         #parser.setTrace(True)
         treenode = getattr(parser, rule)
         tree = treenode()
@@ -102,7 +120,7 @@ class Interpreter(object):
         except Exception:
             # We can only access "name" in argValues above if it's a Symbol.
             # Otherwise we are thrown an Exception.
-            raise SyntaxError("Invalid reference!")
+            raise SyntaxError("Referência inválida!")
 
         # Variadic handling
         if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
@@ -169,7 +187,7 @@ class Interpreter(object):
             objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
         except KeyError as exc:
-            raise NameError("Class {0} does not exist!".format(name)) from exc
+            raise NameError("Classe {0} não existe!".format(name)) from exc
         return tupy.tupy.Instance.Instance(Type.STRUCT, objContext, className=name)
 
     @classmethod
@@ -177,7 +195,7 @@ class Interpreter(object):
         if cls.callStack.top().locals.hasKey(name):
             return cls.callStack.top().locals.get(name)
         else:
-            raise NameError(name+" is not defined!")
+            raise NameError(name+" não está definido!")
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
@@ -207,16 +225,16 @@ class Interpreter(object):
                 parent.value.locals.data[(trailer, memberDepth)] = memoryCell
                 return True
             elif (depth == -1): # A TT.CALL is referencing memoryCell
-                raise SyntaxError("Cannot assign a reference to function call!")
+                raise SyntaxError("Não é possível atribuir uma referência a uma chamada de função!")
             else: # A TT.SUBSCRIPT is referencing memoryCell
                 if (trailer.isSingle):
                     if parent.type == Type.STRING:
-                        raise SyntaxError("Cannot assign a reference to a string's character!")
+                        raise SyntaxError("Não é possível atribuir uma referência a um caracter de uma string!")
                     else:
                         parent.value[trailer.begin] = memoryCell
                         return True
                 else:
-                    raise SyntaxError("Cannot assign a reference to a range-subscripted array!")
+                    raise SyntaxError("Não é possível atribuir uma referência a um intervalo de array!")
 
     @classmethod
     def getDeepMemoryCell(cls, inst, trailers):
@@ -353,3 +371,33 @@ def memRead(cell):
 
 def memWrite(cell, data):
     cell.data = data
+
+# Custom Error Listener
+
+class TupyErrorListener(error.ErrorListener.ErrorListener):
+    INSTANCE = None
+
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        msg = self.translate(msg)
+        print("Linha: " + str(line) + ", posição " + str(column) + " - " + msg, file=sys.stderr)
+
+    def translate(self, msg):
+        dicionario = {"mismatched input": "entrada incompatível", 
+                      "expecting": "era esperado",
+                      "no viable alternative at input": "não foi possível interpretar as instruções",
+                      "unknown recognition error type": "erro desconhecido de reconhecimento",
+                      "EOF": "FIM DE ARQUIVO",
+                      "<unknown input>": "<entrada desconhecida>",
+                      "rule": "regra",
+                      "extraneous input": "entrada inválida",
+                      "missing": "faltando",
+                      " at ": " em "
+                      } 
+
+        rep = dict((re.escape(k), v) for k, v in dicionario.items())
+        pattern = re.compile("|".join(rep.keys()))
+        msg = pattern.sub(lambda m: rep[re.escape(m.group(0))], msg)
+        return msg
+
+TupyErrorListener.INSTANCE = TupyErrorListener()
+        

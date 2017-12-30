@@ -59,7 +59,7 @@ class Variable(object):
         tupy.Interpreter.logger.debug("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
         if level == 0:
             if not inst.is_subscriptable_array():
-                raise TypeError("{0} cannot be subscripted.".format(inst.type))
+                raise TypeError("{0} não contém elementos para acesso posicional!".format(inst.type))
             
             if (single):
                 if inst.type == Type.STRING:
@@ -126,7 +126,7 @@ class Variable(object):
 
     def bitwise_flip(self):
         if (self.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise NOT with non-integer type!")
+            raise TypeError("Não é possível fazer negação de bits com tipo não-inteiro!")
         return Literal(tupy.Instance.Instance(Type.INT, ~self.get().value))
 
     def multiply(self, rhs:'Variable'):
@@ -158,31 +158,31 @@ class Variable(object):
 
     def left_shift(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise shift with non-integer types!")
+            raise TypeError("Não é possível fazer deslocamento de bits para a esquerda com tipo não-inteiro!")
         typ = Type.INT
         return Literal(tupy.Instance.Instance(typ, self.get().value << rhs.get().value))
 
     def right_shift(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise shift with non-integer types!")
+            raise TypeError("Não é possível fazer deslocamento de bits para a direita com tipo não-inteiro!")
         typ = Type.INT
         return Literal(tupy.Instance.Instance(typ, self.get().value >> rhs.get().value))
 
     def bitwise_and(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise AND with non-integer types!")
+            raise TypeError("Não é possível fazer E (AND) de bits com tipo não-inteiro!")
         typ = Type.INT
         return Literal(tupy.Instance.Instance(typ, self.get().value & rhs.get().value))
 
     def bitwise_or(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise OR with non-integer types!")
+            raise TypeError("Não é possível fazer OU (OR) de bits com tipo não-inteiro!")
         typ = Type.INT
         return Literal(tupy.Instance.Instance(typ, self.get().value | rhs.get().value))
 
     def bitwise_xor(self, rhs:'Variable'):
         if (self.get().type != Type.INT or rhs.get().type != Type.INT):
-            raise TypeError("Cannot do bit-wise XOR with non-integer types!")
+            raise TypeError("Não é possível fazer OU EXCLUSIVO (XOR) de bits com tipo não-inteiro!")
         typ = Type.INT
         return Literal(tupy.Instance.Instance(typ, self.get().value ^ rhs.get().value))
 
@@ -221,18 +221,18 @@ class Variable(object):
         # if (a == Type.REFERENCE or b == Type.REFERENCE):
         #   raise TypeError("Cannot operate on instance of type REFERENCE!")
         if (a == Type.STRUCT or b == Type.STRUCT):
-            raise TypeError("Cannot operate on STRUCTS!")
+            raise TypeError("Operação proibida para tipos compostos!")
         elif (a == Type.FUNCTION or b == Type.FUNCTION):
-            raise TypeError("Cannot operate on FUNCTIONS!")
+            raise TypeError("Operação proibida para funções!")
         elif (a == Type.NULL or b == Type.NULL):
-            raise TypeError("Cannot operate on instance of type NULL!")
+            raise TypeError("Operação proibida para o tipo nulo!")
         # elif (a == Type.RANGE or b == Type.RANGE):
             # raise TypeError("Cannot operate on instance of type RANGE!")
         elif (a == Type.ARRAY or b == Type.ARRAY):
             if (a == Type.ARRAY and b == Type.ARRAY):
                 return Type.ARRAY
             else:
-                raise TypeError("ARRAY cannot operate with other types!")
+                raise TypeError("Uma lista somente pode fazer operações com outras listas!")
         else:
             if (a == Type.STRING or b == Type.STRING):
                 return Type.STRING

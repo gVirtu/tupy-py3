@@ -45,11 +45,11 @@ class Function(object):
                 try:
                     current_level = current_level[Type.TUPLE]
                 except Exception:
-                    raise TypeError("Unexpected argument {0}! ({1}, {2})".format(literal.get().value, literal.get().type, literal.get().roottype))
+                    raise TypeError("Argumento inesperado {0}!".format(literal.get().value))
         try:
             return current_level[_args_end]
         except Exception:
-            raise TypeError("Missing arguments for function {0}!".format(self.name))
+            raise TypeError("Faltam argumentos para a função {0}!".format(self.name))
 
 
     def is_ambiguous(self, argumentList):

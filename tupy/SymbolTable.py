@@ -54,7 +54,7 @@ class SymbolTable(object):
             self.data[(name, depth)] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
         finally:
             if entry.is_ambiguous(argumentList):
-                raise NameError("Overloaded function {0} is ambiguous!".format(name))
+                raise NameError("A função sobrecarregada {0} está ambígua!".format(name))
             else:
                 entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
 
@@ -63,9 +63,9 @@ class SymbolTable(object):
             if self.hasValidType(name, instance, trailerList):
                 self.updateData(name, instance, trailerList)
             else:
-                raise TypeError("Assignment types do not match!")
+                raise TypeError("Tipos incompatíveis na atribuição!")
         else:
-            raise NameError(name+" is not defined!")
+            raise NameError("O nome "+name+" não está definido!")
 
     def ref(self, name, cell):
         depth = self.declaredDepth[name]
@@ -327,7 +327,7 @@ class SymbolTable(object):
                 subscriptList = subscriptList + trailer[1]
             else:
                 # MEMBER trailertypes have already been handled above
-                raise SyntaxError("Cannot assign to function calls!")
+                raise SyntaxError("Não é possível atribuir a chamadas de função!")
 
         # We need to be able to tell which sizes our INSTANCE should ideally have
         # Here we automatically fill every omitted subscript with a wildcard
@@ -362,7 +362,7 @@ class SymbolTable(object):
             # self.data[(name, depth)].print_roottype()
             return True
         else:
-            raise TypeError("Assignment exceeds allocated space!")
+            raise TypeError("Atribuição excede o espaço alocado!")
 
     def updateChildren(self, target_data, target_subscript, depth, instance):
         tupy.Interpreter.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
