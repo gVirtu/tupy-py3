@@ -521,7 +521,7 @@ GREATER_THAN : '>';
 EQUALS : '=';
 GT_EQ : '>=';
 LT_EQ : '<=';
-NOT_EQ : '~=';
+NOT_EQ : '!=';
 AT : '@';
 ARROW : '->';
 VAL: 'val';

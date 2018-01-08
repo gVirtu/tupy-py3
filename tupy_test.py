@@ -12,7 +12,8 @@ class TestTupyProgram(unittest.TestCase):
         p = subprocess.Popen(['python3', '-m', 'tupy'], stdout=subprocess.PIPE, 
                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         output = p.communicate(input=b'escrever("Teste")\n')[0]
-        self.assertEqual(output.decode(), "Teste\n")
+        outputlines = output.decode().split("\n")
+        self.assertEqual(outputlines[-2], "Teste")
 
 if __name__ == '__main__':
     unittest.main()

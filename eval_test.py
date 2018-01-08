@@ -2,6 +2,9 @@ import unittest
 import pytest
 import sys
 import io
+import random
+import math
+import builtins
 from antlr4 import InputStream
 from tupy.Instance import Instance
 from tupy.Type import Type
@@ -258,16 +261,16 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("\'a\' <= \'A\'\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
-        ret = self.evalExpression("1 ~= 0\n")
+        ret = self.evalExpression("1 != 0\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
-        ret = self.evalExpression("1 ~= 1\n")
+        ret = self.evalExpression("1 != 1\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
-        ret = self.evalExpression("1 == 1\n")
+        ret = self.evalExpression("1 = 1\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
-        ret = self.evalExpression("1 == 1.01\n")
+        ret = self.evalExpression("1 = 1.01\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
 
@@ -278,7 +281,7 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("nao falso\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
-        ret = self.evalExpression("nao não 3 == 4\n")
+        ret = self.evalExpression("nao não 3 = 4\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
         ret = self.evalExpression("verdadeiro e verdadeiro\n")
@@ -290,7 +293,7 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("não falso ou falso\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
-        ret = self.evalExpression("não verdadeiro ou 1 == 2\n")
+        ret = self.evalExpression("não verdadeiro ou 1 = 2\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, False)
 
@@ -883,7 +886,7 @@ class TestEvalVisitor(unittest.TestCase):
                          ))
         self.assertRaises(TupyRuntimeError, Interpreter.interpret, 
                          ("inteiro i\n"
-                          "para i <- 1..0 passo 1\n"
+                          "para i <- 1..0 passo 1:\n"
                           "\t1\n"
                          ))
 
@@ -1248,7 +1251,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\tLista p <- Lista(10-(i*2))\n"
                                      "\tatual.prox <- ref p\n"
                                      "\tatual <- ref p\n"
-                                     "enquanto cab ~= nulo:\n"
+                                     "enquanto cab != nulo:\n"
                                      "\tescrever(cab.chave)\n"
                                      "\tcab <- ref cab.prox\n"
                                     ))
@@ -1270,6 +1273,87 @@ class TestEvalVisitor(unittest.TestCase):
                           "\tretornar x+x\n"
                           "func(1) <- func2(1)\n"
                          ))
+
+    def test_math_builtins(self):
+        x = random.uniform(2.0, 100.0)
+        y = random.uniform(2.0, 100.0)
+        a = random.uniform(-1.0, 1.0)
+        ix = random.randint(2, 100)
+        ret = Interpreter.interpret("ln({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.log(x))
+        ret = Interpreter.interpret("raiz({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.sqrt(x))
+        ret = Interpreter.interpret("exp({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.exp(x))
+        ret = Interpreter.interpret("abs({0})\n".format(-x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, builtins.abs(-x))
+        ret = Interpreter.interpret("abs({0})\n".format(-ix))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, builtins.abs(-ix))
+        ret = Interpreter.interpret("sinal({0})\n".format(-x))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, math.copysign(1,-x))
+        ret = Interpreter.interpret("piso({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.floor(x))
+        ret = Interpreter.interpret("teto({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.ceil(x))
+        ret = Interpreter.interpret("graus({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.degrees(x))
+        ret = Interpreter.interpret("radianos({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.radians(x))
+        ret = Interpreter.interpret("sen({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.sin(x))
+        ret = Interpreter.interpret("arcsen({0})\n".format(a))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.asin(a))
+        ret = Interpreter.interpret("senh({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.sinh(x))
+        ret = Interpreter.interpret("arsenh({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.asinh(x))
+        ret = Interpreter.interpret("cos({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.cos(x))
+        ret = Interpreter.interpret("arccos({0})\n".format(a))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.acos(a))
+        ret = Interpreter.interpret("cosh({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.cosh(x))
+        ret = Interpreter.interpret("arcosh({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.acosh(x))
+        ret = Interpreter.interpret("tg({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.tan(x))
+        ret = Interpreter.interpret("arctg({0})\n".format(a))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.atan(a))
+        ret = Interpreter.interpret("arctg2({0}, {1})\n".format(y, -x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.atan2(y, -x))
+        ret = Interpreter.interpret("tgh({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.tanh(x))
+        ret = Interpreter.interpret("artgh({0})\n".format(a))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.atanh(a))
+
+    def test_string_split(self):
+        ret = Interpreter.interpret("lista(\"a b c d efg\")")
+        self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
+        ret = Interpreter.interpret("lista(\"a, b, c, d, efg\", \", \")")
+        self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
         
 if __name__ == '__main__':
     unittest.main()
