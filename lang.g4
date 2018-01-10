@@ -405,6 +405,7 @@ atom
  | string+ 
  | character
  | NULL
+ | PI
  | TRUE
  | FALSE
  ;
@@ -526,6 +527,7 @@ AT : '@';
 ARROW : '->';
 VAL: 'val';
 REF: 'ref';
+PI: 'pi' | 'π';
 
 INTEGER: 'inteiro';
 REAL: 'real';

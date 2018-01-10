@@ -11,7 +11,6 @@ from tupy.Type import Type
 def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
     function("caracter", Type.CHAR, [Type.INT])
-    function("caracter", Type.CHAR, [Type.FLOAT])
     function("real", Type.FLOAT, [Type.INT])
     function("real", Type.FLOAT, [Type.CHAR])
     function("real", Type.FLOAT, [Type.BOOL])
@@ -19,13 +18,18 @@ def initialize():
     function("inteiro", Type.INT, [Type.FLOAT])
     function("inteiro", Type.INT, [Type.CHAR])
     function("inteiro", Type.INT, [Type.BOOL])
-    function("inteiro", Type.INT, [Type.STRING])
+    function("inteiro", Type.INT, [Type.STRING, Type.INT],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 10))])
     function("cadeia", Type.STRING, [Type.FLOAT])
     function("cadeia", Type.STRING, [Type.CHAR])
     function("cadeia", Type.STRING, [Type.BOOL])
     function("cadeia", Type.STRING, [Type.INT])
     function("cadeia", Type.STRING, [Type.ARRAY])
     function("cadeia", Type.STRING, [Type.NULL])
+    function("binário", Type.STRING, [Type.INT])
+    function("binario", Type.STRING, [Type.INT])
+    function("octal", Type.STRING, [Type.INT])
+    function("hexadecimal", Type.STRING, [Type.INT])
     function("logico", Type.BOOL, [Type.FLOAT])
     function("logico", Type.BOOL, [Type.CHAR])
     function("logico", Type.BOOL, [Type.INT])
@@ -101,7 +105,9 @@ def printInstance(arg):
     elif typ == Type.CHAR:
         out = chr(inst.value)
     elif typ == Type.BOOL:
-        out = str(bool(inst.value))
+        out = "verdadeiro" if (bool(inst.value)) else "falso"
+    elif typ == Type.NULL:
+        out = "nulo"
     else:
         out = inst.value #str(inst.value)
     return out
@@ -118,14 +124,29 @@ def real(literal):
     except ValueError:
         raise ValueError("Erro na conversão para REAL!")
 
-def inteiro(literal):
-    try:
+def inteiro(literal, base=None):
+    if (base):
+        try:
+            return tupy.Instance.Instance(Type.INT, int(literal.get().value, base.get().value))
+        except ValueError:
+            raise ValueError("Erro na conversão para INTEIRO!")
+    else:
         return tupy.Instance.Instance(Type.INT, int(literal.get().value))
-    except ValueError:
-        raise ValueError("Erro na conversão para INTEIRO!")
 
 def cadeia(literal):
-    return tupy.Instance.Instance(Type.STRING, printInstance(literal.get()))
+    return tupy.Instance.Instance(Type.STRING, stringProcess(printInstance(literal.get())))
+
+def binário(literal):
+    return tupy.Instance.Instance(Type.STRING, bin(literal.get().value)[2:])
+
+def binario(literal):
+    return binário(literal)
+
+def octal(literal):
+    return tupy.Instance.Instance(Type.STRING, oct(literal.get().value)[2:])
+
+def hexadecimal(literal):
+    return tupy.Instance.Instance(Type.STRING, hex(literal.get().value)[2:].upper())
 
 def lógico(literal):
     return tupy.Instance.Instance(Type.BOOL, bool(literal.get().value))

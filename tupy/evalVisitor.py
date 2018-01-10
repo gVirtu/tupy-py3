@@ -7,6 +7,7 @@ from tupy.langParser import langParser
 
 import tupy.errorHelper
 
+import math
 import copy
 import tupy.Instance
 import tupy.Interpreter
@@ -680,6 +681,8 @@ class evalVisitor(ParseTreeVisitor):
             return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False));
         elif ctx.NULL() is not None:
             return tupy.Variable.Literal(tupy.Instance.Instance(Type.NULL, 0));
+        elif ctx.PI() is not None:
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, math.pi));
         elif len(ctx.CARDINALITY_OP()) == 2:
             res = self.visitTestOrExpression(ctx.testOrExpression())
             return res.cardinality()

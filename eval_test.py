@@ -10,7 +10,7 @@ from tupy.Instance import Instance
 from tupy.Type import Type
 from tupy.Interpreter import Interpreter, memRead
 from tupy.errorHelper import TupyNameError, TupyRuntimeError, TupySyntaxError, \
-                             TupyTypeError, TupyValueError
+                             TupyTypeError, TupyValueError, TupyParseError
 
 class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"
@@ -65,6 +65,14 @@ class TestEvalVisitor(unittest.TestCase):
     def test_null(self):
         ret = self.evalExpression("nulo\n")
         self.assertEqual(ret.type, Type.NULL)
+
+    def test_pi(self):
+        ret = self.evalExpression("pi\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.pi)
+        ret = self.evalExpression("π\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, math.pi)
 
     def test_tuple(self):
         ret = self.evalExpression("(1, 3.14, \"ok\", [1,5])\n")
@@ -1350,10 +1358,101 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, math.atanh(a))
 
     def test_string_split(self):
-        ret = Interpreter.interpret("lista(\"a b c d efg\")")
+        ret = Interpreter.interpret("lista(\"a b c d efg\")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
-        ret = Interpreter.interpret("lista(\"a, b, c, d, efg\", \", \")")
+        ret = Interpreter.interpret("lista(\"a, b, c, d, efg\", \", \")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
+
+    def test_print_base(self):
+        ret = Interpreter.interpret("binário(5461)\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "1010101010101")
+        ret = Interpreter.interpret("binario(455)\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "111000111")
+        ret = Interpreter.interpret("octal(342391)\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "1234567")
+        ret = Interpreter.interpret("hexadecimal(11259375)\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ABCDEF")
+
+    def test_string_modify(self):
+        ret = Interpreter.interpret(("inteiro i\n"
+                                     "cadeia S <- \"Uma string\"\n"
+                                     "para i <- 0..|S|-1:\n"
+                                     "  S[i] <- 'A'\n"
+                                     "S\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "AAAAAAAAAA")
+        ret = Interpreter.interpret(("cadeia S <- \"Uma string\"\n"
+                                     "S[2..6] <- \"AAAAA\"\n"
+                                     "S\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "UmAAAAAing")
+        ret = Interpreter.interpret(("cadeia S <- \"Uma string\"\n"
+                                     "S[4..9] <- \'z\'\n"
+                                     "S\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "Uma zzzzzz")
+        ret = Interpreter.interpret(("cadeia S <- \"Uma string\"\n"
+                                     "S[*] <- \'k\'\n"
+                                     "S\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "kkkkkkkkkk")
+    
+    def test_string_modify_errors(self):
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                            ("cadeia S <- \"Uma string\"\n"
+                             "S <- \'k\'\n"
+                             "S\n"))
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                            ("cadeia S <- \"Uma string\"\n"
+                             "S[2..6] <- \"AA\"\n"
+                             "S\n"))
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                            ("cadeia S <- \"Uma string\"\n"
+                             "S[2] <- \"AA\"\n"
+                             "S\n"))
+
+    def test_type_cast(self):
+        ret = Interpreter.interpret("caracter(71)\n")
+        self.assertEqual(ret.type, Type.CHAR); self.assertEqual(ret.value, 71)
+
+        ret = Interpreter.interpret("real(35), real(\"36\"), real('a'), real(verdadeiro)\n")
+        self.assertEqual(ret[0].type, Type.FLOAT); self.assertEqual(ret[0].value, 35)
+        self.assertEqual(ret[1].type, Type.FLOAT); self.assertEqual(ret[1].value, 36)
+        self.assertEqual(ret[2].type, Type.FLOAT); self.assertEqual(ret[2].value, ord('a'))
+        self.assertEqual(ret[3].type, Type.FLOAT); self.assertEqual(ret[3].value, 1)
+
+        ret = Interpreter.interpret("inteiro(35.4), inteiro(\"FF\", 16), inteiro('a'), inteiro(falso)\n")
+        self.assertEqual(ret[0].type, Type.INT); self.assertEqual(ret[0].value, 35)
+        self.assertEqual(ret[1].type, Type.INT); self.assertEqual(ret[1].value, 255)
+        self.assertEqual(ret[2].type, Type.INT); self.assertEqual(ret[2].value, ord('a'))
+        self.assertEqual(ret[3].type, Type.INT); self.assertEqual(ret[3].value, 0)
+
+        ret = Interpreter.interpret("cadeia(35.4), cadeia(36), cadeia('a'), cadeia(verdadeiro), cadeia([1, 2, 3]), cadeia(nulo)\n")
+        self.assertEqual(ret[0].type, Type.STRING); self.assertEqual(ret[0].value, "35.4")
+        self.assertEqual(ret[1].type, Type.STRING); self.assertEqual(ret[1].value, "36")
+        self.assertEqual(ret[2].type, Type.STRING); self.assertEqual(ret[2].value, "a")
+        self.assertEqual(ret[3].type, Type.STRING); self.assertEqual(ret[3].value, "verdadeiro")
+        self.assertEqual(ret[4].type, Type.STRING); self.assertEqual(ret[4].value, "[1, 2, 3]")
+        self.assertEqual(ret[5].type, Type.STRING); self.assertEqual(ret[5].value, "nulo")
+
+        ret = Interpreter.interpret("logico(35.4), logico(\"\"), logico('a'), logico(0)\n")
+        self.assertEqual(ret[0].type, Type.BOOL); self.assertEqual(ret[0].value, True)
+        self.assertEqual(ret[1].type, Type.BOOL); self.assertEqual(ret[1].value, False)
+        self.assertEqual(ret[2].type, Type.BOOL); self.assertEqual(ret[2].value, True)
+        self.assertEqual(ret[3].type, Type.BOOL); self.assertEqual(ret[3].value, False)
+
+    def test_type_cast_errors(self):
+        self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro(\"a\")\n")
+        self.assertRaises(TupyValueError, Interpreter.interpret, "real(\"ff\")\n")
+
+    def test_parse_error(self):
+        self.assertRaises(TupyParseError, Interpreter.interpret, "a({=\n")
         
 if __name__ == '__main__':
     unittest.main()

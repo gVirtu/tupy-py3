@@ -191,16 +191,28 @@ class SymbolTable(object):
 
                 if targetSubscript.isSingle:
                     targetIndex = targetSubscript.begin
-                    valid = self.processDimensions(childSubscripts, instance, rootType, 
+                    if currentData.type == tupy.Type.Type.STRING:
+                        valid = self.processDimensions(childSubscripts, instance, rootType, 
+                                               childSizes, tupy.Instance.Instance(tupy.Type.Type.CHAR, currentData.value[targetIndex]), className)
+                    else:
+                        valid = self.processDimensions(childSubscripts, instance, rootType, 
                                                childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex]), className)
                 else:
-                    new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
-                    instance.__init__(tupy.Type.Type.ARRAY, new_value)
+                    if currentData.type == tupy.Type.Type.STRING:
+                        if instance.type == tupy.Type.Type.STRING:
+                            valid = len(instance.value) == targetSize
+                        elif instance.type == tupy.Type.Type.CHAR:
+                            new_value = chr(instance.value) * targetSize
+                            instance.__init__(tupy.Type.Type.STRING, new_value)
+                            valid = True
+                    else:
+                        new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                        instance.__init__(tupy.Type.Type.ARRAY, new_value)
 
-                    for targetIndex in range(len(instance.value)):
-                        offset = targetSubscript.begin
-                        valid = self.processDimensions(childSubscripts, tupy.Interpreter.memRead(instance.value[targetIndex]), rootType, 
-                                                   childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex+offset]), className)
+                        for targetIndex in range(len(instance.value)):
+                            offset = targetSubscript.begin
+                            valid = self.processDimensions(childSubscripts, tupy.Interpreter.memRead(instance.value[targetIndex]), rootType, 
+                                                    childSizes, tupy.Interpreter.memRead(currentData.value[targetIndex+offset]), className)
                 
                 return valid;
         else:
@@ -233,10 +245,13 @@ class SymbolTable(object):
         tupy.Interpreter.logger.debug("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
         targetSubscript = subscriptList[0]
         if targetSubscript.isWildcard:
-            if sizeList[0].isWildcard:
-                return currentData.array_length() if currentData.is_pure_array() else 1
+            if currentData.type == tupy.Type.Type.STRING:
+                return len(currentData.value)
             else:
-                return sizeList[0].begin
+                if sizeList[0].isWildcard:
+                    return currentData.array_length() if currentData.is_pure_array() else 1
+                else:
+                    return sizeList[0].begin
         elif targetSubscript.isSingle:
             if len(subscriptList)==1:
                 return 1
@@ -264,7 +279,12 @@ class SymbolTable(object):
 
             # tupy.Interpreter.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
 
-            equivalent_types = (inst.roottype == instance.roottype)
+            equivalent_types = (inst.roottype == instance.roottype) \
+                               or (len(trailerList) > 0 and \
+                                   trailerList[-1][0] == tupy.Type.TrailerType.SUBSCRIPT and \
+                                   inst.roottype == tupy.Type.Type.STRING and \
+                                   instance.roottype == tupy.Type.Type.CHAR) 
+
             if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
                 # tupy.Interpreter.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
                 return inst.class_name == instance.class_name
@@ -367,13 +387,26 @@ class SymbolTable(object):
     def updateChildren(self, target_data, target_subscript, depth, instance):
         tupy.Interpreter.logger.debug("updateChildren(target_data={0}, target_subscript={1}, depth={2}, instance={3})".format(target_data, target_subscript, depth, instance))
         if depth == 0:
-            if target_subscript.isSingle:
-                target_data.value[target_subscript.begin] = tupy.Interpreter.memAlloc(instance)
-            elif target_subscript.isWildcard:
-                target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
+            if target_data.type == tupy.Type.Type.STRING:
+                if target_subscript.isSingle:
+                    orig_str = target_data.value
+                    pos = target_subscript.begin
+                    target_data.value = orig_str[:pos] + chr(instance.value) + orig_str[pos+1:]
+                elif target_subscript.isWildcard:
+                    target_data.value = instance.value
+                else:
+                    orig_str = target_data.value
+                    pos_begin = target_subscript.begin
+                    pos_end = target_subscript.end
+                    target_data.value = orig_str[:pos_begin] + instance.value + orig_str[pos_end:]
             else:
-                target_data.value[target_subscript.begin:target_subscript.end] = \
-                    self.deepMerge(target_data.value[target_subscript.begin:target_subscript.end], instance.value)
+                if target_subscript.isSingle:
+                    target_data.value[target_subscript.begin] = tupy.Interpreter.memAlloc(instance)
+                elif target_subscript.isWildcard:
+                    target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
+                else:
+                    target_data.value[target_subscript.begin:target_subscript.end] = \
+                        self.deepMerge(target_data.value[target_subscript.begin:target_subscript.end], instance.value)
         else:
             # Here we assume target_data and instance will have the exact same structure
             for ind in range(len(target_data.value)):
