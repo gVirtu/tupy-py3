@@ -74,6 +74,9 @@ class evalVisitor(ParseTreeVisitor):
     def visitStatement(self, ctx:langParser.StatementContext):
         return self.visitChildren(ctx)
 
+    # Visit a parse tree produced by langParser#traceOffset
+    def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
+        return
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):

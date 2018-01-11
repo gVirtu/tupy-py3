@@ -51,6 +51,7 @@ class Interpreter(object):
         cls.returnData = None
         cls.outStream = StringIO()
         cls.traceOut = None
+        cls.traceOffset = 0
 
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False):
@@ -361,11 +362,12 @@ class Interpreter(object):
 
     @classmethod
     def trace(cls, line, returnData=None, exception=None):
-        if (returnData and isinstance(returnData, tuple)):
-            ret_res = [tupy.Interpreter.memAlloc(element) for element in returnData]
-            returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
-        if cls.traceOut is not None:
-            cls.traceOut.trace(line, returnData, exception)
+        if (line > cls.traceOffset):
+            if (returnData and isinstance(returnData, tuple)):
+                ret_res = [tupy.Interpreter.memAlloc(element) for element in returnData]
+                returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
+            if cls.traceOut is not None:
+                cls.traceOut.trace(line, returnData, exception)
 
     @classmethod
     def format_token(cls, token):

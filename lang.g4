@@ -161,6 +161,11 @@ importStatement
 statement
  : simpleStatement 
  | compoundStatement
+ | traceOffset
+ ;
+
+traceOffset
+ : MINUS MINUS MINUS+ NEWLINE
  ;
 
 /* DECLARAÇÃO SIMPLES */

@@ -1482,6 +1482,10 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, 2)
         self.assertEqual(ret[1].type, Type.INT)
         self.assertEqual(ret[1].value, 4)
+
+    def test_trace_offset(self):
+        ret = Interpreter.interpret("-----\n")
+        self.assertEqual(Interpreter.traceOffset, 1)
         
 if __name__ == '__main__':
     unittest.main()

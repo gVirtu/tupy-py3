@@ -119,6 +119,10 @@ class functionVisitor(ParseTreeVisitor):
     def visitStatement(self, ctx:langParser.StatementContext):
         return self.visitChildren(ctx)
 
+    # Visit a parse tree produced by langParser#traceOffset
+    def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
+        tupy.Interpreter.Interpreter.traceOffset = ctx.start.line
+        return self.visitChildren(ctx)
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):
