@@ -28,7 +28,7 @@ var tupyHighlightRules = function() {
     );
     
     var builtinFunctions = (
-        "escrever|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio" +
+        "escrever|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
         "log|ln|raiz|exp|abs|sinal|piso|teto|arredondar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar"
