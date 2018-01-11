@@ -37,16 +37,16 @@ class Function(object):
         # Entry point for the function with all arguments
         current_level[_args_end] = (codeIndex, depth, argumentList, returnType, builtIn, isConstructor)
 
-    def get(self, callArgs):
+    def get(self, instArgs):
         current_level = self.argumentTree
-        for literal in callArgs:
+        for inst in instArgs:
             try:
-                current_level = current_level[literal.get().roottype]
+                current_level = current_level[inst.roottype]
             except Exception:
                 try:
                     current_level = current_level[Type.TUPLE]
                 except Exception:
-                    raise TypeError("Argumento inesperado {0}!".format(literal.get().value))
+                    raise TypeError("Argumento inesperado {0}!".format(inst.value))
         try:
             return current_level[_args_end]
         except Exception:

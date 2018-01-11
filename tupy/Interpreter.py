@@ -124,7 +124,11 @@ class Interpreter(object):
 
     @classmethod
     def executeBlock(cls, function, callArgs):
-        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor) = function.get(callArgs)
+        # We evaluate all literals once beforehand, otherwise we can end up
+        # making function calls twice unnecessarily if the literal has CALL trailers.
+        instArgs = [literal.get() for literal in callArgs]
+
+        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor) = function.get(instArgs)
         logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
@@ -149,9 +153,9 @@ class Interpreter(object):
             # The fixed arguments are all the ones before it (thus we subtract 1 from len)
             fixedCount = len(argTypes)-1
             if (len(callArgs) > fixedCount):
-                extraArgs = argValues[fixedCount:]
+                extraInsts = instArgs[fixedCount:]
                 argValues = argValues[:fixedCount]
-                memExtraArgs = [memAlloc(literal.get()) for literal in extraArgs]
+                memExtraArgs = [memAlloc(inst) for inst in extraInsts]
                 packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
                 argValues.append(packed)
             else:
