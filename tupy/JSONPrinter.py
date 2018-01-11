@@ -51,6 +51,11 @@ class JSONPrinter(object):
         element["stdout"] = tupy.Interpreter.Interpreter.outStream.read()
         element["func_name"] = tupy.Interpreter.Interpreter.callStack.top().funcName
 
+        if element["func_name"].startswith("Construtor de"):
+            # Hack to slightly improve visualization: any constructor would have an empty
+            # instance context pop up above it which turns the line step harder to understand
+            del stack[-2]
+
         self.format_heap(heap)
         element["heap"] = heap #self.format_heap(heap)
         element["line"] = line
