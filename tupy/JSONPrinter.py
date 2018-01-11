@@ -122,7 +122,8 @@ class JSONPrinter(object):
             tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
             for (name, depth) in sorted(instLocals.data.keys()):
                 tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
-                if depth == tupy.Interpreter.Interpreter.classContextDepth: 
+                if depth >= tupy.Interpreter.Interpreter.classContextDepth and \
+                   depth < tupy.Interpreter.Interpreter.instContextDepth: 
                     attribute = []
                     subMemoryCell = instLocals.data[(name, depth)]
                     attribute.append(name)

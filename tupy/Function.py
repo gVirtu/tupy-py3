@@ -13,6 +13,7 @@ class Function(object):
 
     def put(self, context, argumentList, returnType, code, builtIn=False, isConstructor=False):
         current_level = self.argumentTree
+        depth = context.depth
 
         if builtIn:
             codeIndex = code
@@ -30,11 +31,11 @@ class Function(object):
                     # Variadic
                     current_level[arg.type] = current_level
             else:
-                current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn, isConstructor)
+                current_level[_args_end] = (codeIndex, depth, argumentList, returnType, builtIn, isConstructor)
             current_level = current_level.setdefault(arg.type, {})
             
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, argumentList, returnType, builtIn, isConstructor)
+        current_level[_args_end] = (codeIndex, depth, argumentList, returnType, builtIn, isConstructor)
 
     def get(self, callArgs):
         current_level = self.argumentTree
@@ -52,20 +53,21 @@ class Function(object):
             raise TypeError("Faltam argumentos para a função {0}!".format(self.name))
 
 
-    def is_ambiguous(self, argumentList):
+    def is_ambiguous(self, argumentList, depth):
         # Trying to add argumentList to the possible signatures for function 'name'
         current_level = self.argumentTree
 
         for arg in argumentList:
             if arg.defaultValue is not None:
                 if _args_end in current_level:
-                    return True
+                    if current_level[_args_end][1] >= depth:
+                        return True
             if arg.type not in current_level:
                 return False
             current_level = current_level[arg.type]
         
         if _args_end in current_level:
-            return True
+            return current_level[_args_end][1] >= depth
         else:
             return False
 

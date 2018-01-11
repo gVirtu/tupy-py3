@@ -123,7 +123,7 @@ class Interpreter(object):
 
     @classmethod
     def executeBlock(cls, function, callArgs):
-        (codeIndex, argumentList, returnType, isBuiltIn, isConstructor) = function.get(callArgs)
+        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor) = function.get(callArgs)
         logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]

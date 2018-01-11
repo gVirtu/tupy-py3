@@ -1,0 +1,12 @@
+tipo Pessoa:
+  inteiro func(inteiro a):
+    retornar a*2
+    
+tipo Aluno(Pessoa):
+  inteiro func(inteiro a):
+    retornar a
+    
+Aluno a <- Aluno()
+escrever(a.func(2))
+Pessoa p <- Pessoa()
+escrever(p.func(2))

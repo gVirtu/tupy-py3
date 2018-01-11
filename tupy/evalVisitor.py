@@ -375,7 +375,7 @@ class evalVisitor(ParseTreeVisitor):
         return ret
 
     # Visit a parse tree produced by langParser#block.
-    def visitBlock(self, ctx:langParser.BlockContext, injectList=None, returnType=None, funcName=None):
+    def visitBlock(self, ctx:langParser.BlockContext, injectList=None, returnType=None, funcName=None, originalContext=None):
         if (injectList is None): injectList = []
 
         returnable = isinstance(ctx.parentCtx, langParser.FunctionDefinitionContext)
@@ -425,7 +425,16 @@ class evalVisitor(ParseTreeVisitor):
 
                 tupy.Interpreter.Interpreter.referenceSymbol(name, cell)
                 # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
-            
+
+        if isClassDef:
+            className = funcName
+            classContext = tupy.Interpreter.Interpreter.callStack.top()
+            funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
+        else:
+            funcvisitor = fv.functionVisitor(self.parser, tupy.Interpreter.Interpreter.callStack.top())
+
+        funcvisitor.visitChildren(ctx)
+
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
         else:
@@ -765,6 +774,7 @@ class evalVisitor(ParseTreeVisitor):
             classContext.locals = copy.deepcopy(inherited.locals)
             classContext.locals.context = classContext
             classContext.functions = copy.copy(inherited.functions)
+            classContext.depth = inherited.depth + 1
 
         tupy.Interpreter.Interpreter.putClassContext(className, classContext)
         tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
@@ -772,9 +782,7 @@ class evalVisitor(ParseTreeVisitor):
         tupy.Interpreter.Interpreter.callStack.push(classContext)
         tupy.Interpreter.Interpreter.putClassContext(className, classContext) # Make autoreferences possible
 
-        funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
-        funcvisitor.visitBlock(ctx.block())
-        ret = self.visitBlock(ctx.block(), funcName=className)
+        ret = self.visitBlock(ctx.block(), funcName=className, originalContext=originalContext)
         tupy.Interpreter.Interpreter.callStack.pop()
         return ret
 
@@ -804,8 +812,14 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#integer.
     def visitInteger(self, ctx:langParser.IntegerContext):
-        return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx))))
-
+        if ctx.DECIMAL_INTEGER() is not None:
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx))))
+        elif ctx.BIN_INTEGER() is not None:
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx), 2)))
+        elif ctx.HEX_INTEGER() is not None:
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx), 16)))
+        else: #ctx.OCT_INTEGER() is not None
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, int(self.visitChildren(ctx), 8)))
 
     def visitTerminal(self, node):
         # tupy.Interpreter.logger.debug("Got to terminal "+str(node))

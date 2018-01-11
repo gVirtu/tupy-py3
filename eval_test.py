@@ -1453,6 +1453,35 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_parse_error(self):
         self.assertRaises(TupyParseError, Interpreter.interpret, "a({=\n")
+
+    def test_function_depth_priority(self):
+        ret = Interpreter.interpret(("inteiro func(inteiro a):\n"
+                                     "\tretornar a\n"
+                                     "\n"
+                                     "se verdadeiro:\n"
+                                     "\tinteiro func(inteiro a):\n"
+                                     "\t\tretornar 2*a\n"
+                                     "\n"
+                                     "\tfunc(2)"))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 4)
+
+    def test_polymorphism(self):
+        ret = Interpreter.interpret(("tipo Pessoa:\n"
+                                     "\tinteiro func(inteiro a):\n"
+                                     "\t\tretornar a*2\n"
+                                     "\n"
+                                     "tipo Aluno(Pessoa):\n"
+                                     "\tinteiro func(inteiro a):\n"
+                                     "\t\tretornar a\n"
+                                     "\n"
+                                     "Aluno a <- Aluno()\n"
+                                     "Pessoa p <- Pessoa()\n"
+                                     "a.func(2), p.func(2)\n"))
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 2)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 4)
         
 if __name__ == '__main__':
     unittest.main()

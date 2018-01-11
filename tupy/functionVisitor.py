@@ -225,7 +225,8 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext):
-        return self.visitChildren(ctx)
+        return # self.visitChildren(ctx)
+    # Leave parsing of block functions to the evalVisitor.
 
 
     # Visit a parse tree produced by langParser#test.

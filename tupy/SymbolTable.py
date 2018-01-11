@@ -53,7 +53,7 @@ class SymbolTable(object):
             entry = tupy.Function.Function(name)
             self.data[(name, depth)] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
         finally:
-            if entry.is_ambiguous(argumentList):
+            if entry.is_ambiguous(argumentList, depth):
                 raise NameError("A função sobrecarregada {0} está ambígua!".format(name))
             else:
                 entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
