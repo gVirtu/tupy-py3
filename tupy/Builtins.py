@@ -4,6 +4,7 @@ import tupy.Instance
 import tupy.Variable
 import inspect
 import math
+import random
 import copy
 import builtins
 from tupy.Type import Type
@@ -51,6 +52,7 @@ def initialize():
     function("sinal", Type.INT, [Type.INT])
     function("piso", Type.FLOAT, [Type.FLOAT])
     function("teto", Type.FLOAT, [Type.FLOAT])
+    function("arredondar", Type.FLOAT, [Type.FLOAT])
     function("graus", Type.FLOAT, [Type.FLOAT])
     function("graus", Type.FLOAT, [Type.INT])
     function("radianos", Type.FLOAT, [Type.FLOAT])
@@ -68,8 +70,21 @@ def initialize():
     function("arsenh", Type.FLOAT, [Type.FLOAT])
     function("arcosh", Type.FLOAT, [Type.FLOAT])
     function("artgh", Type.FLOAT, [Type.FLOAT])
+    function("aleatorio", Type.FLOAT, [])
+    function("aleatorio", Type.FLOAT, [Type.FLOAT])
+    function("aleatorio", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("aleatório", Type.FLOAT, [])
+    function("aleatório", Type.FLOAT, [Type.FLOAT])
+    function("aleatório", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("inteiro_aleatorio", Type.INT, [Type.INT])
+    function("inteiro_aleatorio", Type.INT, [Type.INT, Type.INT])
+    function("inteiro_aleatório", Type.INT, [Type.INT])
+    function("inteiro_aleatório", Type.INT, [Type.INT, Type.INT])
     function("lista", Type.ARRAY, [Type.STRING, Type.STRING],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ' '))])
+    function("embaralhar", Type.ARRAY, [Type.TUPLE])
+    function("inserir", Type.ARRAY, [Type.TUPLE])
+    function("remover", Type.ARRAY, [Type.TUPLE])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -178,6 +193,9 @@ def piso(n):
 def teto(n):
     return tupy.Instance.Instance(Type.FLOAT, math.ceil(n.get().value))
 
+def arredondar(n):
+    return tupy.Instance.Instance(Type.FLOAT, builtins.round(n.get().value))
+
 def graus(n):
     return tupy.Instance.Instance(Type.FLOAT, math.degrees(n.get().value))
 
@@ -228,3 +246,90 @@ def lista(string, sep):
     splitted = string_raw.split(sep.get().value)
     array = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(Type.STRING, s)) for s in splitted]
     return tupy.Instance.Instance(Type.ARRAY, array)
+
+def aleatorio(x=None, y=None):
+    return aleatório(x,y)
+
+def aleatório(x=None, y=None):
+    if (x is None):
+        return tupy.Instance.Instance(Type.FLOAT, random.random())
+    elif (y is None):
+        return tupy.Instance.Instance(Type.FLOAT, random.uniform(0, x.get().value))
+    else:
+        return tupy.Instance.Instance(Type.FLOAT, random.uniform(x.get().value, y.get().value))
+
+def inteiro_aleatorio(x, y=None):
+    return inteiro_aleatório(x,y)
+
+def inteiro_aleatório(x, y=None):
+    if (y is None):
+        a = 0; b = x.get().value
+    else:
+        a = y.get().value; b = x.get().value
+
+    return tupy.Instance.Instance(Type.INT, random.randint(min(a,b), max(a,b)))
+
+def embaralhar(argsTuple):
+    argsTuple = argsTuple.get().value
+    if (len(argsTuple) == 1):
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (inst.is_pure_array()):
+            val = inst.value
+            return tupy.Instance.Instance(Type.ARRAY, random.sample(val, len(val)))
+        else:
+            raise TypeError("A função embaralhar não pode receber tipos que não sejam listas!")
+    else:
+        raise TypeError("A função embaralhar deve receber apenas uma lista!")
+
+def inserir(argsTuple):
+    argsTuple = argsTuple.get().value
+    if (len(argsTuple) < 2):
+        raise TypeError("Faltam argumentos para a função inserir(lista, elemento, [pos])!")
+    elif (len(argsTuple) > 3):
+        raise TypeError("A função inserir(lista, elemento, [pos]) recebeu argumentos demais!")
+    else:
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (inst.is_pure_array()):
+            val = inst.value
+            elem_inst = tupy.Interpreter.memRead(argsTuple[1])
+
+            if (elem_inst.type != inst.roottype and inst.roottype != Type.ARRAY): # Root type == Array when is empty
+                raise TypeError("A função inserir espera receber como segundo argumento um elemento de mesmo tipo que os contidos na lista!")
+
+            if len(argsTuple)>2:
+                pos_inst = tupy.Interpreter.memRead(argsTuple[2])
+                if (pos_inst.type == Type.INT):
+                    pos = pos_inst.value
+                else:
+                    raise TypeError("A função inserir espera receber um inteiro como terceiro argumento!")
+            else:
+                pos = len(val)
+
+            new_inst = copy.deepcopy(inst)
+            new_inst.value.insert(pos, tupy.Interpreter.memAlloc(elem_inst))
+
+            return new_inst
+        else:
+            raise TypeError("A função inserir espera receber uma lista como primeiro argumento!")
+
+def remover(argsTuple):
+    argsTuple = argsTuple.get().value
+    if (len(argsTuple) != 2):
+        raise TypeError("A função remover(lista, pos) espera receber dois argumentos!")
+    else:
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (inst.is_pure_array()):
+            val = inst.value
+
+            pos_inst = tupy.Interpreter.memRead(argsTuple[1])
+            if (pos_inst.type == Type.INT):
+                pos = pos_inst.value
+            else:
+                raise TypeError("A função remover espera receber um inteiro como segundo argumento!")
+
+            new_inst = copy.deepcopy(inst)
+            new_inst.value.pop(pos)
+
+            return new_inst
+        else:
+            raise TypeError("A função remover espera receber uma lista como primeiro argumento!")

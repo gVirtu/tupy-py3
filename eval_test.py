@@ -1311,6 +1311,9 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("teto({0})\n".format(x))
         self.assertEqual(ret.type, Type.FLOAT)
         self.assertEqual(ret.value, math.ceil(x))
+        ret = Interpreter.interpret("arredondar({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, builtins.round(x))
         ret = Interpreter.interpret("graus({0})\n".format(x))
         self.assertEqual(ret.type, Type.FLOAT)
         self.assertEqual(ret.value, math.degrees(x))
@@ -1356,12 +1359,35 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("artgh({0})\n".format(a))
         self.assertEqual(ret.type, Type.FLOAT)
         self.assertEqual(ret.value, math.atanh(a))
+        ret = Interpreter.interpret("aleatorio()\n")
+        self.assertEqual(ret.type, Type.FLOAT)
+        ret = Interpreter.interpret("aleatorio({0})\n".format(x))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertTrue(ret.value <= x)
+        ret = Interpreter.interpret("aleatorio({0}, {1})\n".format(x, y))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertTrue(min(x, y) <= ret.value and ret.value <= max(x, y))
+        ret = Interpreter.interpret("inteiro_aleatorio({0})\n".format(int(x)))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertTrue(ret.value <= x)
+        ret = Interpreter.interpret("inteiro_aleatorio({0}, {1})\n".format(int(x), int(y)))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertTrue(int(min(x, y)) <= ret.value and ret.value <= int(max(x, y)))
 
     def test_string_split(self):
         ret = Interpreter.interpret("lista(\"a b c d efg\")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
         ret = Interpreter.interpret("lista(\"a, b, c, d, efg\", \", \")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
+
+    def test_list_shuffle(self):
+        ret = Interpreter.interpret("embaralhar([1, 3, 5, 7, 9])\n")
+        self.assertEqual(ret.type, Type.ARRAY)
+        retValues = [memRead(val).value for val in ret.value]
+        self.assertTrue( set([1, 3, 5, 7, 9]) == set(retValues) )
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "embaralhar([1, 2], [3, 4])")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "embaralhar(\"abcd\")")
 
     def test_print_base(self):
         ret = Interpreter.interpret("binário(5461)\n")
@@ -1482,6 +1508,36 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, 2)
         self.assertEqual(ret[1].type, Type.INT)
         self.assertEqual(ret[1].value, 4)
+
+    def test_list_insert(self):
+        ret = Interpreter.interpret("inserir([1, 2, 3], 4)\n")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 4]) 
+        ret = Interpreter.interpret("inserir([1, 2, 3], 4, 0)\n")
+        self.assertArrayEquals(ret, Type.INT, [4, 1, 2, 3]) 
+        ret = Interpreter.interpret("inserir([], \"olá\")\n")
+        self.assertArrayEquals(ret, Type.STRING, ["olá"]) 
+        ret = Interpreter.interpret("inserir([], [])\n")
+        self.assertArrayEquals(ret, Type.ARRAY, [[]]) 
+        ret = Interpreter.interpret("inserir([1, 2, 3], 4, 25)\n")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 4])
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 3.0)\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2])\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 3, 4, 5)\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir(1, 2, 3)\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 2, \"hein\")\n") 
+        ret = Interpreter.interpret(("inteiro M[3] <- [1, 2, 3]\n"
+                                     "inserir(M, 4)\n"
+                                     "M\n"))
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3])
+
+    def test_list_remove(self):
+        ret = Interpreter.interpret("remover([1, 2, 3, 4], 1)\n")
+        self.assertArrayEquals(ret, Type.INT, [1, 3, 4]) 
+        ret = Interpreter.interpret("remover([1, 2, 3, 4], -1)\n")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3]) 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "remover([1, 2, 3], 2, 4)\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "remover([1, 2, 3], 3.0)\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "remover(1, 2)\n") 
 
     def test_trace_offset(self):
         ret = Interpreter.interpret("-----\n")
