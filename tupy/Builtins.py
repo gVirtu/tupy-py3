@@ -85,6 +85,22 @@ def initialize():
     function("embaralhar", Type.ARRAY, [Type.TUPLE])
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
+    function("min", Type.INT, [Type.INT, Type.INT])
+    function("mín", Type.INT, [Type.INT, Type.INT])
+    function("min", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("mín", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("min", Type.CHAR, [Type.CHAR, Type.CHAR])
+    function("mín", Type.CHAR, [Type.CHAR, Type.CHAR])
+    function("min", Type.STRING, [Type.STRING, Type.STRING])
+    function("mín", Type.STRING, [Type.STRING, Type.STRING])
+    function("máx", Type.INT, [Type.INT, Type.INT])
+    function("max", Type.INT, [Type.INT, Type.INT])
+    function("máx", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("max", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
+    function("máx", Type.CHAR, [Type.CHAR, Type.CHAR])
+    function("max", Type.CHAR, [Type.CHAR, Type.CHAR])
+    function("máx", Type.STRING, [Type.STRING, Type.STRING])
+    function("max", Type.STRING, [Type.STRING, Type.STRING])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -267,7 +283,7 @@ def inteiro_aleatório(x, y=None):
     else:
         a = y.get().value; b = x.get().value
 
-    return tupy.Instance.Instance(Type.INT, random.randint(min(a,b), max(a,b)))
+    return tupy.Instance.Instance(Type.INT, random.randint(builtins.min(a,b), builtins.max(a,b)))
 
 def embaralhar(argsTuple):
     argsTuple = argsTuple.get().value
@@ -333,3 +349,15 @@ def remover(argsTuple):
             return new_inst
         else:
             raise TypeError("A função remover espera receber uma lista como primeiro argumento!")
+
+def min(x, y):
+    return tupy.Instance.Instance(x.get().type, builtins.min(x.get().value, y.get().value))
+
+def max(x, y):
+    return tupy.Instance.Instance(x.get().type, builtins.max(x.get().value, y.get().value))
+
+def mín(x, y):
+    return min(x, y)
+
+def máx(x, y):
+    return max(x, y)

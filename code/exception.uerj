@@ -1,0 +1,4 @@
+inteiro func():
+    retornar 1, 2
+
+func()

@@ -5,6 +5,8 @@ from tupy.Type import TrailerType, Type
 from antlr4 import *
 from tupy.langParser import langParser
 
+import bisect
+
 import tupy.errorHelper
 
 import tupy.Interpreter
@@ -54,14 +56,14 @@ class functionVisitor(ParseTreeVisitor):
             return True
         except NameError as e:
             tupy.errorHelper.nameError(e.args[0], ctx)
-        except TypeError as e:
-            tupy.errorHelper.typeError(e.args[0], ctx)
-        except SyntaxError as e:
-            tupy.errorHelper.syntaxError(e.args[0], ctx)
-        except RuntimeError as e:
-            tupy.errorHelper.runtimeError(e.args[0], ctx)
-        except ValueError as e:
-            tupy.errorHelper.valueError(e.args[0], ctx)
+        # except TypeError as e:
+        #     tupy.errorHelper.typeError(e.args[0], ctx)
+        # except SyntaxError as e:
+        #     tupy.errorHelper.syntaxError(e.args[0], ctx)
+        # except RuntimeError as e:
+        #     tupy.errorHelper.runtimeError(e.args[0], ctx)
+        # except ValueError as e:
+        #     tupy.errorHelper.valueError(e.args[0], ctx)
 
     # Visit a parse tree produced by langParser#parameters.
     def visitParameters(self, ctx:langParser.ParametersContext):
@@ -121,8 +123,8 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#traceOffset
     def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
-        tupy.Interpreter.Interpreter.traceOffset = ctx.start.line
-        return self.visitChildren(ctx)
+        if (self.functionContext.depth == 0):
+            bisect.insort_left(tupy.Interpreter.Interpreter.traceBars, ctx.start.line)
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):

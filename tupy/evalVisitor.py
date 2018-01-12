@@ -205,16 +205,16 @@ class evalVisitor(ParseTreeVisitor):
     def visitTestOrExpression(self, ctx:langParser.TestOrExpressionContext):
         try:
             return self.visitChildren(ctx)
-        except NameError as e:
-            tupy.errorHelper.nameError(e.args[0], ctx)
+        # except NameError as e:
+        #     tupy.errorHelper.nameError(e.args[0], ctx)
         except TypeError as e:
             tupy.errorHelper.typeError(e.args[0], ctx)
-        except SyntaxError as e:
-            tupy.errorHelper.syntaxError(e.args[0], ctx)
-        except RuntimeError as e:
-            tupy.errorHelper.runtimeError(e.args[0], ctx)
-        except ValueError as e:
-            tupy.errorHelper.valueError(e.args[0], ctx)
+        # except SyntaxError as e:
+        #     tupy.errorHelper.syntaxError(e.args[0], ctx)
+        # except RuntimeError as e:
+        #     tupy.errorHelper.runtimeError(e.args[0], ctx)
+        # except ValueError as e:
+        #     tupy.errorHelper.valueError(e.args[0], ctx)
 
 
     # NOT IMPLEMENTED
@@ -444,15 +444,43 @@ class evalVisitor(ParseTreeVisitor):
             ret = self.executeStatements(ctx.statement())
         #ret = self.visitChildren(ctx)
 
+        returned_explicitly = tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN
+
         # Trace return (end block)
         if (breakable and not returnable): # loops shouldn't trace returns per iteration
             pass
-        else:
+        elif returned_explicitly:
+            if (ret and isinstance(ret, list)):
+                ret_res = [tupy.Interpreter.memAlloc(element) for element in ret]
+                ret = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
+
             tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
 
+        # Check if return is valid
+        if tupy.Interpreter.Interpreter.canReturn():
+            retType = Type.NULL
+            retDimensions = 0
+
+            if (ret is not None):
+                if (returned_explicitly):
+                    retType = ret.roottype
+                    retDimensions = ret.array_dimensions
+                else:
+                    # Cannot return from a function without "retornar"
+                    ret = tupy.Instance.Instance(Type.NULL, 0)
+
+            (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
+            #desiredType = None -> Don't care
+            if desiredType is None or \
+            (desiredType == retType and arrayDimensions == retDimensions):
+                tupy.Interpreter.Interpreter.doStep()
+            else:
+                tupy.Interpreter.logger.debug("Returned {0}".format(retType))
+                tupy.errorHelper.typeError("A função deveria retornar {0}!".format(tupy.Interpreter.Interpreter.getReturnType()[0]), ctx)
+        
         if not isClassDef:
             tupy.Interpreter.Interpreter.popFrame()
-        
+
         return ret
 
 
@@ -888,20 +916,6 @@ class evalVisitor(ParseTreeVisitor):
                 elif flow == tupy.Interpreter.FlowEvent.RETURN:
                     ret = tupy.Interpreter.Interpreter.returnData
                     tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
-                    if tupy.Interpreter.Interpreter.canReturn():
-                        retType = Type.NULL
-                        retDimensions = 0
-                        if (ret is not None):
-                            retType = ret[0].roottype
-                            retDimensions = ret[0].array_dimensions
-                        (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
-                        #desiredType = None -> Don't care
-                        if desiredType is None or \
-                        (desiredType == retType and arrayDimensions == retDimensions):
-                            tupy.Interpreter.Interpreter.doStep()
-                        else:
-                            tupy.Interpreter.logger.debug("Returned {0}".format(retType))
-                            tupy.errorHelper.typeError("A função deveria retornar {0}!".format(tupy.Interpreter.Interpreter.getReturnType()), s)
                     break
                 
             #TODO: Double check whether this is intended
@@ -919,8 +933,8 @@ class evalVisitor(ParseTreeVisitor):
             tupy.errorHelper.typeError(e.args[0], s)
         except SyntaxError as e:
             tupy.errorHelper.syntaxError(e.args[0], s)
-        except RuntimeError as e:
-            tupy.errorHelper.runtimeError(e.args[0], s)
+        # except RuntimeError as e:
+        #     tupy.errorHelper.runtimeError(e.args[0], s)
         except ValueError as e:
             tupy.errorHelper.valueError(e.args[0], s)
             

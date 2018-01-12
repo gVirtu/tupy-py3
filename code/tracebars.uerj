@@ -1,0 +1,5 @@
+---------------
+inteiro a <- aleatorio(5)
+inteiro b <- aleatorio(5)
+inteiro c <- a*b
+---------------

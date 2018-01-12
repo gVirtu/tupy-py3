@@ -1,0 +1,18 @@
+inteiro a <- nulo
+
+inteiro M[3, 3] <- [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+se verdadeiro:
+    se não falso:
+        inteiro func(inteiro a):
+            retornar a*2
+
+        func(10)
+
+tipo Teste:
+    inteiro x
+    Teste(inteiro a):
+        x <- a*a
+
+Teste t <- Teste(5)
+t.x <- 100

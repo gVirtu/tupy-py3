@@ -41,7 +41,7 @@ def main(argv):
                 myinput = '\n'.join(commandList)
                 print("\n   └─────────────────────────────────────────────────────────────────")
                 break
-            except KeyboardInterrupt:
+            except KeyboardInterrupt: # pragma: no cover
                 print("\nExecução terminada a comando do usuário.\nDica: Para executar o programa digitado, utilize CTRL+D.")
                 sys.exit(2)
 

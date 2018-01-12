@@ -36,6 +36,15 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("123\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 123)
+        ret = self.evalExpression("0XFF\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 255)
+        ret = self.evalExpression("0o17\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 15)
+        ret = self.evalExpression("0b11011\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 27)
 
     def test_float(self):
         ret = self.evalExpression("123.0\n")
@@ -806,6 +815,11 @@ class TestEvalVisitor(unittest.TestCase):
                           "func()\n"
                          ))
         self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                         ("inteiro func():\n"
+                          "\t2.3\n"
+                          "func()\n"
+                         ))
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
                          ("inteiro func(inteiro a):\n"
                           "\t retornar 200\n"
                           "func(\"xyz\")\n"
@@ -1032,6 +1046,13 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 1)
+        ret = Interpreter.interpret(("inteiro i\n"
+                                     "inteiro A[*]\n"
+                                     "para i <- 9..1:\n"
+                                     "\tA <- inserir(A, i)\n"
+                                     "A\n"
+                                    ))
+        self.assertArrayEquals(ret, Type.INT, [9, 8, 7, 6, 5, 4, 3, 2, 1])
         ret = Interpreter.interpret(("inteiro i, j\n"
                                      "inteiro tot <- 0\n"
                                      "para i, j <- 1..3, 1..3:\n"
@@ -1479,6 +1500,8 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_parse_error(self):
         self.assertRaises(TupyParseError, Interpreter.interpret, "a({=\n")
+        # Falha inesperada de sintaxe:
+        self.assertRaises(TupyParseError, Interpreter.interpret, "tipo Aluno():\n\tinteiro a\n")
 
     def test_function_depth_priority(self):
         ret = Interpreter.interpret(("inteiro func(inteiro a):\n"
@@ -1540,8 +1563,30 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "remover(1, 2)\n") 
 
     def test_trace_offset(self):
-        ret = Interpreter.interpret("-----\n")
-        self.assertEqual(Interpreter.traceOffset, 1)
+        ret = Interpreter.interpret("-----\ninteiro a <- 1\n---")
+        self.assertEqual(Interpreter.traceBars, [1,3])
+
+    def test_minmax(self):
+        ret = Interpreter.interpret("mín(50, -4), máx(50, -4)\n")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, -4)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 50)
+        ret = Interpreter.interpret("mín(-4.01, 50.35), máx(-4.01, 50.35)\n")
+        self.assertEqual(ret[0].type, Type.FLOAT)
+        self.assertEqual(ret[0].value, -4.01)
+        self.assertEqual(ret[1].type, Type.FLOAT)
+        self.assertEqual(ret[1].value, 50.35)
+        ret = Interpreter.interpret("mín('d', 'z'), máx('d', 'z')\n")
+        self.assertEqual(ret[0].type, Type.CHAR)
+        self.assertEqual(ret[0].value, ord('d'))
+        self.assertEqual(ret[1].type, Type.CHAR)
+        self.assertEqual(ret[1].value, ord('z'))
+        ret = Interpreter.interpret("mín(\"adf\", \"abc\"), máx(\"adf\", \"abc\")\n")
+        self.assertEqual(ret[0].type, Type.STRING)
+        self.assertEqual(ret[0].value, "abc")
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, "adf")
         
 if __name__ == '__main__':
     unittest.main()

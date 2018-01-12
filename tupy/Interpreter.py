@@ -12,8 +12,8 @@ import tupy.Instance
 import tupy.Builtins
 import tupy.errorHelper
 import logging
-import re
 import sys
+import bisect
 
 FORMAT = "=> %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -29,7 +29,7 @@ class FlowEvent(Enum):
     CONTINUE = 2
     RETURN = 3
 
-def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook):
+def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook): # pragma: no cover
     if len(exception.args) > 1:
         print("[{0}] {1} - Linha {2}".format(exception_type.__name__, exception.args[0], exception.args[1]))
     else: 
@@ -51,7 +51,7 @@ class Interpreter(object):
         cls.returnData = None
         cls.outStream = StringIO()
         cls.traceOut = None
-        cls.traceOffset = 0
+        cls.traceBars = []
 
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False):
@@ -91,7 +91,7 @@ class Interpreter(object):
             parser = langParser(stream)
             parser.removeErrorListeners()
             parser.addErrorListener(TupyErrorListener.INSTANCE)
-            parser._errHandler = error.ErrorStrategy.BailErrorStrategy()
+            parser._errHandler = TupyErrorStrategy()
             #parser.setTrace(True)
             treenode = getattr(parser, rule)
             tree = treenode()
@@ -109,7 +109,6 @@ class Interpreter(object):
             cls.trace(e.args[1], exception=e.args[0])
             if (cls.traceOut is None):
                 raise e
-                return None
             else:
                 ret = cls.traceOut.dump()
                 print(ret)
@@ -291,8 +290,6 @@ class Interpreter(object):
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
         logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
-        if (funcName is None):
-            funcName = cls.callStack.top().funcName
         newContext = tupy.Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
         newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
@@ -366,16 +363,25 @@ class Interpreter(object):
 
     @classmethod
     def trace(cls, line, returnData=None, exception=None):
-        if (line > cls.traceOffset):
-            if (returnData and isinstance(returnData, tuple)):
-                ret_res = [tupy.Interpreter.memAlloc(element) for element in returnData]
-                returnData = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
-            if cls.traceOut is not None:
+        if cls.traceOut is not None:
+            if (cls.should_print(line)):
                 cls.traceOut.trace(line, returnData, exception)
 
     @classmethod
     def format_token(cls, token):
         return token.text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+    @classmethod
+    def should_print(cls, line):
+        if len(cls.traceBars) == 0: return True
+        else: return cls.find_next_tracebar(line)%2 == len(cls.traceBars)%2
+
+    @classmethod
+    def find_next_tracebar(cls, line):
+        # Find leftmost value greater than 'line' in traceBars
+        # returns len(traceBars) if no match
+        ind = bisect.bisect_right(cls.traceBars, line)
+        return ind
 
 # Memory access functions
 
@@ -404,26 +410,29 @@ class TupyErrorListener(error.ErrorListener.ErrorListener):
     INSTANCE = None
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        msg = self.translate(msg)
         tupy.errorHelper.parseError(msg, line)
 
-    def translate(self, msg):
-        dicionario = {"mismatched input": "entrada incompatível", 
-                      "expecting": "era esperado",
-                      "no viable alternative at input": "não foi possível interpretar as instruções",
-                      "unknown recognition error type": "erro desconhecido de reconhecimento",
-                      "EOF": "FIM DE ARQUIVO",
-                      "<unknown input>": "<entrada desconhecida>",
-                      "rule": "regra",
-                      "extraneous input": "entrada inválida",
-                      "missing": "faltando",
-                      " at ": " em "
-                      } 
-
-        rep = dict((re.escape(k), v) for k, v in dicionario.items())
-        pattern = re.compile("|".join(rep.keys()))
-        msg = pattern.sub(lambda m: rep[re.escape(m.group(0))], msg)
-        return msg
-
 TupyErrorListener.INSTANCE = TupyErrorListener()
+
+# Custom Error Strategy
+
+class TupyErrorStrategy(error.ErrorStrategy.DefaultErrorStrategy):
+    def recover(self, recognizer:Parser, e:RecognitionException):
+        context = recognizer._ctx
+        while context is not None:
+            context.exception = e
+            context = context.parentCtx
+
+        msg = "Falha inesperada de sintaxe!" if (e.message is None) else e.message
+        recognizer.notifyErrorListeners(msg, recognizer.getCurrentToken(), e)
+
+    # Make sure we don't attempt to recover inline; if the parser
+    #  successfully recovers, it won't throw an exception.
+    #
+    def recoverInline(self, recognizer:Parser):
+        self.recover(recognizer, error.Errors.InputMismatchException(recognizer))
+
+    # Make sure we don't attempt to recover from problems in subrules.#
+    def sync(self, recognizer:Parser):
+        pass
         
