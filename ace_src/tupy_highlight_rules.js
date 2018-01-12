@@ -29,7 +29,7 @@ var tupyHighlightRules = function() {
     
     var builtinFunctions = (
         "escrever|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
-        "log|ln|raiz|exp|abs|sinal|piso|teto|arredondar|"+
+        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar"
     );
@@ -76,7 +76,7 @@ var tupyHighlightRules = function() {
                 regex : "lógico"
             }, {
                 token : "support.function",
-                regex : "binário|aleatório|inteiro_aleatório"
+                regex : "binário|aleatório|inteiro_aleatório|mín|máx"
             }, {
                 token : "constant.language",
                 regex : "π"
