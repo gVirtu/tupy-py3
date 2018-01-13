@@ -10,7 +10,8 @@ from tupy.Instance import Instance
 from tupy.Type import Type
 from tupy.Interpreter import Interpreter, memRead
 from tupy.errorHelper import TupyNameError, TupyRuntimeError, TupySyntaxError, \
-                             TupyTypeError, TupyValueError, TupyParseError
+                             TupyTypeError, TupyValueError, TupyParseError, \
+                             TupyIndexError
 
 class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"
@@ -1587,6 +1588,9 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, "abc")
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, "adf")
+
+    def test_access_out_of_range(self):
+        self.assertRaises(TupyIndexError, Interpreter.interpret, "inteiro M[2] <- [1, 5]\nescrever(M[3])")
         
 if __name__ == '__main__':
     unittest.main()

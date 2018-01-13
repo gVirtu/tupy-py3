@@ -4,6 +4,9 @@ import re
 class TupyError(Exception):
     pass
 
+class TupyIndexError(TupyError):
+    pass
+
 class TupyNameError(TupyError):
     pass
 
@@ -21,6 +24,9 @@ class TupySyntaxError(TupyError):
 
 class TupyRuntimeError(TupyError):
     pass
+
+def indexError(message, ctx:antlr4.ParserRuleContext):
+    raise TupyIndexError("ERRO: {0}".format(translate(message)), ctx.start.line)
 
 def nameError(message, ctx:antlr4.ParserRuleContext):
     raise TupyNameError("ERRO: {0}".format(translate(message)), ctx.start.line)
@@ -52,6 +58,7 @@ def translate(msg):
                     "extraneous input": "entrada inválida",
                     "missing": "faltando",
                     " at ": " em ",
+                    "list index out of range": "Acesso fora dos limites da lista!",
                     "Type.INT": "INTEIRO",
                     "Type.CHAR": "CARACTER",
                     "Type.FLOAT": "REAL",

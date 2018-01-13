@@ -938,6 +938,8 @@ class evalVisitor(ParseTreeVisitor):
         #     tupy.errorHelper.runtimeError(e.args[0], s)
         except ValueError as e:
             tupy.errorHelper.valueError(e.args[0], s)
+        except IndexError as e:
+            tupy.errorHelper.indexError(e.args[0], s)
             
         # except Exception as e:
             # tupy.Interpreter.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))
