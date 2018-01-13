@@ -95,8 +95,12 @@ class JSONPrinter(object):
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
     def add_to_heap(self, heap, instance):
-        iid = str(id(instance))
-        heap[iid] = self.parse_instance(instance, heap)
+        iid = id(instance)
+        if iid not in self.globalHeap:
+            self.globalHeap[iid] = str(len(self.globalHeap)+1)
+        
+        ind = self.globalHeap[iid]
+        heap[ind] = self.parse_instance(instance, heap)
         # heap.add(mcID)
         # if mcID not in self.globalHeap:
         #     ind = len(self.globalHeap)+1
@@ -105,7 +109,7 @@ class JSONPrinter(object):
 
         # self.globalHeap[mcID] = (ind, self.parse_memory_cell(memoryCell, heap))
 
-        return iid
+        return ind
 
     # Formats the output heap. To be rendered correctly, primitives need
     # to be in a HEAP_PRIMITIVE structure.
@@ -127,14 +131,16 @@ class JSONPrinter(object):
             tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
             for (name, depth) in sorted(instLocals.data.keys()):
                 tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
-                if depth >= tupy.Interpreter.Interpreter.classContextDepth and \
-                   depth < tupy.Interpreter.Interpreter.instContextDepth and \
+                if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
                    instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
                     attribute = []
                     subMemoryCell = instLocals.data[(name, depth)]
                     attribute.append(name)
+                    #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
                     self.handle_submemory_cell(subMemoryCell, attribute, heap)  
                     data.append(attribute)
+                #else:
+                    #print("WELP, NAME = {0} DEPTH = {1} WAS NOT ADDED".format(name, depth))
 
         elif (inst.is_pure_array()):
             data = ["LIST"]

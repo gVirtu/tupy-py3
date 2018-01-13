@@ -40,7 +40,7 @@ class Interpreter(object):
     outStream = StringIO()
     iterationLimit = 1000
     classContextDepth = 7777777
-    instContextDepth = 9999999
+    instContextDepth = 7777777 #9999999
 
     @classmethod
     def initialize(cls):

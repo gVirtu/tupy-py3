@@ -430,13 +430,14 @@ class evalVisitor(ParseTreeVisitor):
                 # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
 
         if isClassDef:
-            className = funcName
-            classContext = tupy.Interpreter.Interpreter.callStack.top()
-            funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
+            if not funcName.startswith("Construtor de"):
+                className = funcName
+                classContext = tupy.Interpreter.Interpreter.callStack.top()
+                funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
+                funcvisitor.visitChildren(ctx)
         else:
             funcvisitor = fv.functionVisitor(self.parser, tupy.Interpreter.Interpreter.callStack.top())
-
-        funcvisitor.visitChildren(ctx)
+            funcvisitor.visitChildren(ctx)
 
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
