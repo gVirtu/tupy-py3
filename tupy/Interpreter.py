@@ -364,7 +364,7 @@ class Interpreter(object):
     @classmethod
     def trace(cls, line, returnData=None, exception=None):
         if cls.traceOut is not None:
-            if (cls.should_print(line)):
+            if (exception or cls.should_print(line)):
                 cls.traceOut.trace(line, returnData, exception)
 
     @classmethod
