@@ -192,7 +192,7 @@ class Interpreter(object):
 
     @classmethod
     def putClassContext(cls, name, context):
-        cls.callStack.top().classes[name] = context;
+        cls.callStack.top().classes[name] = context
 
     @classmethod
     def isValidClass(cls, name):

@@ -187,22 +187,40 @@ class Variable(object):
         return Literal(tupy.Instance.Instance(typ, self.get().value ^ rhs.get().value))
 
     def gt(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value > rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, 
+                                              self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) and
+                                              self.get().value > rhs.get().value))
 
     def lt(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value < rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, 
+                                              self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) and
+                                              self.get().value < rhs.get().value))
 
     def gt_eq(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value >= rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, 
+                                              self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) and
+                                              self.get().value >= rhs.get().value))
 
     def lt_eq(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value <= rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL,
+                                              self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) and
+                                              self.get().value <= rhs.get().value))
 
     def eq(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value == rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, 
+                                              self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) and
+                                              self.get().value == rhs.get().value))
 
     def neq(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value != rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, 
+                                              not self.validateComparisonTypes(self.get().type,
+                                                                           rhs.get().type) or
+                                              self.get().value != rhs.get().value))
 
     def logic_not(self):
         return Literal(tupy.Instance.Instance(Type.BOOL, not self.get().value))
@@ -215,6 +233,23 @@ class Variable(object):
 
     def cardinality(self):
         return Literal(tupy.Instance.Instance(Type.INT, self.get().size))
+
+    def validateComparisonTypes(self, a, b):
+        if (a == Type.FUNCTION or b == Type.FUNCTION):
+            raise TypeError("Comparação proibida para funções!")
+        elif (a == b):
+            # Comparison is always ok for the same type
+            return True
+        elif (a == Type.NULL or b == Type.NULL):
+            return False
+        elif (a == Type.ARRAY or b == Type.ARRAY):
+            raise TypeError("Uma lista somente pode ser comparada com outras listas!")
+        elif (a == Type.TUPLE or b == Type.TUPLE):
+            raise TypeError("Uma tupla somente pode ser comparada com outras listas!")
+        elif (a == Type.FLOAT or b == Type.FLOAT):
+            raise TypeError("Um número real somente pode ser comparado com outros números reais!")
+        elif (a == Type.STRING or b == Type.STRING):
+            raise TypeError("Uma cadeia somente pode ser comparada com outras cadeias!")
 
     def resultType(self, a, b):
         # Deprecated type

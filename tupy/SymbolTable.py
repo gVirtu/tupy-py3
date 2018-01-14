@@ -208,6 +208,7 @@ class SymbolTable(object):
                     else:
                         new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
                         instance.__init__(tupy.Type.Type.ARRAY, new_value)
+                        valid = True
 
                         for targetIndex in range(len(instance.value)):
                             offset = targetSubscript.begin
@@ -286,7 +287,7 @@ class SymbolTable(object):
                                    instance.roottype == tupy.Type.Type.CHAR) 
 
             if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
-                # tupy.Interpreter.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
+                # tupy.Interpreter.logger.info("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
                 return inst.class_name == instance.class_name
             else:
                 return equivalent_types
@@ -314,8 +315,6 @@ class SymbolTable(object):
 
         old_instance = instance
         instance = copy.deepcopy(old_instance)
-        if (self.datatype[name] == tupy.Type.Type.STRUCT):
-            instance.class_name = self.classname[name]
 
         for ind, trailer in enumerate(trailers):
             if trailer[0] == tupy.Type.TrailerType.MEMBER:
@@ -327,6 +326,9 @@ class SymbolTable(object):
                 class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
                 # self.updateRefs(name, depth, visited)
                 return True
+
+        if (self.datatype[name] == tupy.Type.Type.STRUCT):
+            instance.class_name = self.classname[name]
 
         # First, apply the trailers to the name to get what's currently stored there
         # Also get "parent_triple", which contains the pair (DATA, SUBSCRIPT, DEPTH) which tells us
@@ -439,8 +441,12 @@ class SymbolTable(object):
     def __str__(self):
         ret = ""
         for key in self.data:
-            ret += str(key)
-            ret += " -> "
-            ret += str(self.data[key])
-            ret += "\n"
+            (name, depth) = key
+            # We shouldn't need to check this... TODO: Check why
+            if name in self.datatype.keys() and \
+                self.datatype[name] != tupy.Type.Type.FUNCTION:
+                ret += str(key)
+                ret += " -> "
+                ret += str(self.data[key])
+                ret += "\n"
         return ret

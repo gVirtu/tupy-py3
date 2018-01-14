@@ -101,6 +101,14 @@ def initialize():
     function("max", Type.CHAR, [Type.CHAR, Type.CHAR])
     function("máx", Type.STRING, [Type.STRING, Type.STRING])
     function("max", Type.STRING, [Type.STRING, Type.STRING])
+    function("grafo_MA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
+    function("digrafo_MA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
+    function("grafo_LA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
+    function("digrafo_LA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -119,6 +127,32 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
     args = [tupy.Argument.Argument(*params) for params in argParamList]
     tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
+# HELPERS
+
+def matrix_access(matrixVal, i, j):
+    return cell_value(tupy.Interpreter.memRead(matrixVal[i]).value[j])
+
+def cell_value(memoryCell):
+    return tupy.Interpreter.memRead(memoryCell).value
+
+def graph_nodes_and_highlights(node_count, highlights):
+    # List nodes
+    node_list = ["{0}; ".format(i) for i in range(node_count)]
+
+    # Parse highlights
+    parsed_highlights = ["{0} {1}".format(cell_value(elem), 
+                                            _graph_highlight) for elem in highlights]
+
+    return "".join(node_list + parsed_highlights)
+
+def make_graph_LA_edge(i, j, edges:set):
+    edges.add( (i, j) ); edges.add( (j, i) )
+    return "{0} -- {1}; ".format(i, j)
+
+def digraph_adj_in_bounds(node, node_count):
+    if (node < node_count): return True
+    else: raise IndexError()
+
 # BUILT-IN FUNCTIONS
 
 def escrever(argsTuple):
@@ -130,9 +164,9 @@ def printInstance(arg):
     inst = arg
     typ = inst.type
     if typ == Type.ARRAY: 
-        out = str([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value])
+        out = [printInstance(tupy.Interpreter.memRead(child)) for child in inst.value]
     elif typ == Type.TUPLE: 
-        out = str(tuple([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value]))
+        out = tuple([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value])
     elif typ == Type.CHAR:
         out = chr(inst.value)
     elif typ == Type.BOOL:
@@ -361,3 +395,108 @@ def mín(x, y):
 
 def máx(x, y):
     return max(x, y)
+
+_graph_opts = "overlap=false; node [fontsize=16 width=0.2 margin=0.05 shape=circle]; edge [arrowsize=0.8]; "
+_graph_highlight = "[style = filled fillcolor = yellow]; "
+
+def grafo_MA(matrix, highlights):
+    header = "[[DOT strict graph {"
+    trailer = "}]]"
+    matrix = matrix.get().value
+    highlights = highlights.get().value
+
+    n_lines = len(matrix)
+    if all(len(cell_value(line)) == n_lines for line in matrix):
+        if all(cell_value(elem) < n_lines for elem in highlights):
+            # Parse connections
+            parsed_connections = ["{0} -- {1}; ".format(i, j) for i in range(n_lines) \
+                                                             for j in range(i, n_lines) \
+                                                             if matrix_access(matrix, i, j) \
+                                                             and matrix_access(matrix, j, i)]
+            parsed_connections = "".join(parsed_connections)
+
+            ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
+                            parsed_connections, trailer])
+            return tupy.Instance.Instance(Type.STRING, ret)
+        else:
+            raise ValueError("A lista de nós destacados contém nós que não existem!")
+    else:
+        raise ValueError("A matriz de adjacências deve ser quadrada!")
+
+def digrafo_MA(matrix, highlights):
+    header = "[[DOT digraph {"
+    trailer = "}]]"
+    matrix = matrix.get().value
+    highlights = highlights.get().value
+
+    n_lines = len(matrix)
+    if all(len(cell_value(line)) == n_lines for line in matrix):
+        if all(cell_value(elem) < n_lines for elem in highlights):            
+            # Parse connections
+            parsed_connections = ["{0} -> {1}; ".format(i, j) for i in range(n_lines) \
+                                                             for j in range(n_lines) \
+                                                             if matrix_access(matrix, i, j)]
+            parsed_connections = "".join(parsed_connections)
+
+            ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
+                            parsed_connections, trailer])
+            return tupy.Instance.Instance(Type.STRING, ret)
+        else:
+            raise ValueError("A lista de nós destacados contém nós que não existem!")
+    else:
+        raise ValueError("A matriz de adjacências deve ser quadrada!")
+
+def grafo_LA(adjList, highlights):
+    header = "[[DOT strict graph {"
+    trailer = "}]]"
+    adjList = adjList.get().value
+    highlights = highlights.get().value
+
+    n_nodes = len(adjList)
+    if all(cell_value(elem) < n_nodes for elem in highlights):
+            try:           
+                existing_connections = set()    
+                # Parse connections
+                parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections) \
+                                                            for i, elem in enumerate(adjList) \
+                                                            for elemJ in cell_value(elem) \
+                                                            for valJ in [cell_value(elemJ)] \
+                                                            if (i, valJ) not in existing_connections \
+                                                            and i in [cell_value(cell) \
+                                                                      for cell in cell_value(adjList[valJ])] 
+                                                            ]
+                parsed_connections = "".join(parsed_connections)
+
+                ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
+                                parsed_connections, trailer])
+                return tupy.Instance.Instance(Type.STRING, ret)
+            except IndexError as ex:
+                raise IndexError("A lista contém uma ou mais adjacências com nós que não existem!")
+    else:
+        raise ValueError("A lista de nós destacados contém nós que não existem!")
+
+def digrafo_LA(adjList, highlights):
+    header = "[[DOT digraph {"
+    trailer = "}]]"
+    adjList = adjList.get().value
+    highlights = highlights.get().value
+
+    n_nodes = len(adjList)
+    if all(cell_value(elem) < n_nodes for elem in highlights):
+            try:               
+                # Parse connections
+                parsed_connections = ["{0} -> {1}; ".format(i, valJ) \
+                                                            for i, elem in enumerate(adjList) \
+                                                            for elemJ in cell_value(elem) \
+                                                            for valJ in [cell_value(elemJ)] \
+                                                            if digraph_adj_in_bounds(valJ, n_nodes)
+                                                            ]
+                parsed_connections = "".join(parsed_connections)
+
+                ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
+                                parsed_connections, trailer])
+                return tupy.Instance.Instance(Type.STRING, ret)
+            except IndexError as ex:
+                raise IndexError("A lista contém uma ou mais adjacências com nós que não existem!")
+    else:
+        raise ValueError("A lista de nós destacados contém nós que não existem!")

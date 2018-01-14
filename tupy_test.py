@@ -30,7 +30,7 @@ class TestTupyProgram(unittest.TestCase):
         result = json.loads(output)
         self.assertTrue("code" in result.keys())            
         self.assertTrue("trace" in result.keys())            
-        self.assertEqual(len(result["trace"]), 0)
+        self.assertEqual(len(result["trace"]), 1)
 
     def test_entrypoint_traceexception(self):
         output = subprocess.getoutput("python3 -m tupy code/exception.uerj -t")

@@ -1,0 +1,25 @@
+inteiro G[5, 5] <- [ [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0]]
+
+inteiro LA[5, *] <- []
+
+adicionaArestaMA(inteiro i, inteiro j):
+    G[i, j] <- 1
+    G[j, i] <- 1
+
+adicionaArestaLA(inteiro i, inteiro j):
+    LA[i] <- inserir(LA[i], j)
+    LA[j] <- inserir(LA[j], i)
+
+adicionaArestaMA(1, 2)
+
+escrever(digrafo_MA(G, [2]))
+escrever(grafo_MA(G, [1]))
+
+adicionaArestaLA(1, 2)
+
+escrever(digrafo_LA(LA, [2]))
+escrever(grafo_LA(LA, [2]))
