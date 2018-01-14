@@ -1,0 +1,4 @@
+inteiro func(inteiro a):
+   retornar func(a+1)
+   
+escrever(func(2))

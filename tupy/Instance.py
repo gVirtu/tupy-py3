@@ -37,7 +37,10 @@ class Instance(object):
     #    return "INST({0}, {1})".format(self.type.name, self.value)
 
     def __repr__(self):
-        return "I{0}".format(self.value)
+        if self.class_name:
+            return "I|C{0}|{1}".format(self.class_name,self.value)
+        else:
+            return "I{0}".format(self.value)
 
     def update_size(self, deep=False):
         if self.type == Type.STRING:

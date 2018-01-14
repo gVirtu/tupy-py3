@@ -262,13 +262,17 @@ class evalVisitor(ParseTreeVisitor):
     def visitReturnStatement(self, ctx:langParser.ReturnStatementContext):
         try:
             expr = [literal.get() for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList())]
+        except RecursionError:
+            tupy.errorHelper.runtimeError("Limite de recursão alcançado!", ctx)
+        except tupy.errorHelper.TupyRuntimeError as e:
+            raise e
         except Exception:
             expr = None
-        finally: 
-            # Trace - Flow Statement 3
-            tupy.Interpreter.Interpreter.trace(ctx.start.line)
+        
+        # Trace - Flow Statement 3
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
 
-            tupy.Interpreter.Interpreter.doReturn(expr)
+        tupy.Interpreter.Interpreter.doReturn(expr)
         return None
 
 
@@ -469,6 +473,9 @@ class evalVisitor(ParseTreeVisitor):
                 else:
                     # Cannot return from a function without "retornar"
                     ret = tupy.Instance.Instance(Type.NULL, 0)
+            else:
+                # Retorna nulo
+                ret = tupy.Instance.Instance(retType, retDimensions)
 
             (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
             #desiredType = None -> Don't care

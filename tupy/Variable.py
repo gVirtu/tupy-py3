@@ -27,14 +27,18 @@ class Variable(object):
                     elif ss.isSingle:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
                         orig_root_type = ret.roottype
+                        orig_class_name = ret.class_name
                         ret = tupy.Instance.Instance(newtype, newvalue)
                         if (orig_root_type != Type.STRING): #Let STRING become CHAR
                             ret.roottype = orig_root_type
+                        ret.class_name = orig_class_name
                     else:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
                         orig_root_type = ret.roottype
+                        orig_class_name = ret.class_name
                         ret = tupy.Instance.Instance(newtype, newvalue)
                         ret.roottype = orig_root_type
+                        ret.class_name = orig_class_name
                         depth += 1
             elif ttype == TrailerType.CALL:
                 # try:
@@ -97,7 +101,7 @@ class Variable(object):
         elif datatype == Type.TUPLE:
             return tupy.Instance.Instance(datatype, ())
         elif datatype == Type.STRUCT:
-            return tupy.Instance.Instance(Type.NULL, None, className=className) #tupy.Interpreter.Interpreter.newClassInstance(className)
+            return tupy.Instance.Instance(Type.NULL, 0, className=className) #tupy.Interpreter.Interpreter.newClassInstance(className)
         else:
             return tupy.Instance.Instance(datatype, 0)
 

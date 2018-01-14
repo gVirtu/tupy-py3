@@ -10,22 +10,21 @@ inteiro L[5] <- [1, 2, 4, 5, 6]
 L <- embaralhar(L)
 
 inserir_BST(ref Árvore raiz, ref Árvore ins):
-    enquanto(verdadeiro):
-        escrever("Comparando",ins.c,"com",raiz.c)
-        se ins.c < raiz.c:
-            se raiz.filhos[0] = nulo:
-                raiz.filhos[0] <- ref ins
-                parar
-            senão:
-                escrever("O filho 0 de",raiz.c,"é",raiz.filhos[0].c)
-                inserir_BST(raiz.filhos[0], ins)
+    escrever("Comparando",ins.c,"com",raiz.c)
+    se ins.c < raiz.c:
+        se raiz.filhos[0] = nulo:
+            raiz.filhos[0] <- ref ins
+            parar
         senão:
-            se raiz.filhos[1] = nulo:
-                raiz.filhos[1] <- ref ins
-                parar
-            senão:
-                escrever("O filho 1 de",raiz.c,"é",raiz.filhos[1].c)
-                inserir_BST(raiz.filhos[1], ins)
+            escrever("O filho 0 de",raiz.c,"é",raiz.filhos[0].c)
+            inserir_BST(raiz.filhos[0], ins)
+    senão:
+        se raiz.filhos[1] = nulo:
+            raiz.filhos[1] <- ref ins
+            parar
+        senão:
+            escrever("O filho 1 de",raiz.c,"é",raiz.filhos[1].c)
+            inserir_BST(raiz.filhos[1], ins)
 
 imprime_BST(ref Árvore atual):
     se atual.filhos[0] != nulo:
