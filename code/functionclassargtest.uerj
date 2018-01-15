@@ -1,0 +1,11 @@
+tipo Teste:
+    inteiro a
+
+tipo Outro:
+    inteiro a
+
+inteiro func(Teste t):
+    retornar t.a
+
+Outro x <- Outro()
+escrever(func(x))

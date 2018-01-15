@@ -802,6 +802,10 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(Interpreter.outStream.getvalue(), "[1, 2, 3]\n")
         ret = Interpreter.interpret("escrever((4, 5, 6))\n")
         self.assertEqual(Interpreter.outStream.getvalue(), "(4, 5, 6)\n")
+        ret = Interpreter.interpret("inteiro func():\n\tretornar 5\nescrever(func)\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "função\n")
+        ret = Interpreter.interpret("tipo Aluno:\n\tinteiro nota\nAluno a <- Aluno()\nescrever(a)\n")
+        self.assertEqual(Interpreter.outStream.getvalue(), "Aluno\n")
         ret = Interpreter.interpret(("inteiro escrever(inteiro n):\n"
                                      "\t retornar 100\n"
                                      "escrever(5)\n"
@@ -1013,6 +1017,13 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_class_errors(self):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "Aluno a\n")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "tipo Aluno(Pessoa):\n\tinteiro a\n")
+        self.assertRaises(TupyNameError, Interpreter.interpret, 
+                         ("tipo Teste:\n"
+                          "\tinteiro a\n"
+                          "Teste t <- Teste()\n"
+                          "t.b <- 10\n"
+                          ))
         self.assertRaises(TupyNameError, Interpreter.interpret, 
                          ("tipo Teste:\n"
                           "\tinteiro func(inteiro a, inteiro b):\n"
@@ -1028,6 +1039,15 @@ class TestEvalVisitor(unittest.TestCase):
                           "Quadrado Q <- Quadrado()\n"
                           "Círculo C <- Círculo()\n"
                           "Q <- C\n"
+                          ))
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                         ("tipo Teste:\n"
+                          "\tinteiro v\n"
+                          "tipo Outro:\n"
+                          "\tinteiro v\n"
+                          "inteiro func(Teste t):\n"
+                          "\tretornar t.v\n"
+                          "func(Outro())\n"
                           ))
         self.assertRaises(NameError, Interpreter.newClassInstance, "classeInexistente")
 
@@ -1550,6 +1570,13 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 3, 4, 5)\n") 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir(1, 2, 3)\n") 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 2, \"hein\")\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo A:\n"
+                                                                 "\tinteiro v\n"
+                                                                 "tipo B:\n"
+                                                                 "\tinteiro v\n"
+                                                                 "A x <- A()\n"
+                                                                 "B V[*]\n"
+                                                                 "inserir(V, x)\n")) 
         ret = Interpreter.interpret(("inteiro M[3] <- [1, 2, 3]\n"
                                      "inserir(M, 4)\n"
                                      "M\n"))
@@ -1595,16 +1622,16 @@ class TestEvalVisitor(unittest.TestCase):
         
     def test_graphviz_prints(self):
         desired_graph = "".join(["[[DOT strict graph {", _graph_opts, "0; 1; 2; 3; 1 ", _graph_highlight,
-                         "0 -- 1; 0 -- 3; 1 -- 2; 2 -- 3; }]]"])
+                         "0 -- 1; 0 -- 3; 1 -- 2; 2 -- 3; 0 [label = \"ABC\"]; }]]"])
         desired_digraph = "".join(["[[DOT digraph {", _graph_opts, "0; 1; 2; 3; 2 ", _graph_highlight,
-                         "0 -> 1; 1 -> 2; 2 -> 3; 3 -> 0; }]]"])
+                         "0 -> 1; 1 -> 2; 2 -> 3; 3 -> 0; 0 [label = \"ABC\"]; }]]"])
 
         ret = Interpreter.interpret(("inteiro grafo[4,4]\n"
                                      "grafo[0,1] <- grafo[1,0] <- 1\n"
                                      "grafo[2,1] <- grafo[1,2] <- 2\n"
                                      "grafo[2,3] <- grafo[3,2] <- 100\n"
                                      "grafo[0,3] <- grafo[3,0] <- 4\n"
-                                     "grafo_MA(grafo, [1])\n"))
+                                     "grafo_MA(grafo, [1], \"0 [label = \\\"ABC\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -1614,7 +1641,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "digrafo[1,2] <- 7\n"
                                      "digrafo[2,3] <- 3\n"
                                      "digrafo[3,0] <- 44\n"
-                                     "digrafo_MA(digrafo, [2])\n"))
+                                     "digrafo_MA(digrafo, [2], \"0 [label = \\\"ABC\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
@@ -1628,7 +1655,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "grafo[2] <- inserir(grafo[2], 3)\n"
                                      "grafo[3] <- inserir(grafo[3], 2)\n"
                                      "grafo[3] <- inserir(grafo[3], 0)\n"
-                                     "grafo_LA(grafo, [1])\n"))
+                                     "grafo_LA(grafo, [1], \"0 [label = \\\"ABC\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -1638,7 +1665,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "digrafo[1] <- inserir(digrafo[1], 2)\n"
                                      "digrafo[2] <- inserir(digrafo[2], 3)\n"
                                      "digrafo[3] <- inserir(digrafo[3], 0)\n"
-                                     "digrafo_LA(digrafo, [2])\n"))
+                                     "digrafo_LA(digrafo, [2], \"0 [label = \\\"ABC\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
@@ -1684,6 +1711,9 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "(1, 2) = 1")
         self.assertRaises(TupyTypeError, Interpreter.interpret, "123 = \"123\"")
         self.assertRaises(TupyTypeError, Interpreter.interpret, "func():\n\tretornar 1\nfunc2():\n\tretornar 2\nfunc = func2")
+
+    def test_recursion_error(self):
+        self.assertRaises(TupyRuntimeError, Interpreter.interpret, "inteiro func(inteiro a):\n\tretornar func(a+1)\nfunc(1)\n")
 
 if __name__ == '__main__':
     unittest.main()

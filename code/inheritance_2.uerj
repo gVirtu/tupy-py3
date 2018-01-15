@@ -1,0 +1,39 @@
+tipo Pessoa:
+  inteiro idade
+    
+tipo Aluno(Pessoa):
+  inteiro nota
+
+  lógico func():
+    retornar verdadeiro
+
+tipo NadaAVer:
+  inteiro seinao
+    
+Aluno a <- Aluno()
+a.nota <- 10
+a.idade <- 20
+
+escrever(a.func())
+
+Pessoa p <- Pessoa()
+p.idade <- 40
+
+Pessoa p2 <- a
+escrever(p2.func())
+
+NadaAVer n <- NadaAVer()
+n.seinao <- 999
+
+Pessoa V[*]
+
+V <- inserir(V, a)
+V <- inserir(V, p)
+V <- inserir(V, p2)
+#V <- inserir(V, n)
+
+inteiro i
+para i <- 0..|V|-1:
+    escrever(V[i].idade)
+
+escrever(V)

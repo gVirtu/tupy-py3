@@ -132,6 +132,7 @@ class Interpreter(object):
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
+        argClassNames = [a.className for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
@@ -165,7 +166,7 @@ class Interpreter(object):
                 packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple()))
                 argValues[-1] = packed
         
-        finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argValues))
+        finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argClassNames, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             logger.debug("CodeIndex is {0}".format(codeIndex))
@@ -191,8 +192,17 @@ class Interpreter(object):
         return cls.callStack.top().classes[name]
 
     @classmethod
-    def putClassContext(cls, name, context):
+    def getClassLineage(cls, name):
+        return cls.callStack.top().classLineage[name]
+
+    @classmethod
+    def areClassNamesCompatible(cls, lhs, rhs):
+        return lhs in cls.getClassLineage(rhs)
+
+    @classmethod
+    def putClassContext(cls, name, context, lineage):
         cls.callStack.top().classes[name] = context
+        cls.callStack.top().classLineage[name] = lineage
 
     @classmethod
     def isValidClass(cls, name):
@@ -301,6 +311,7 @@ class Interpreter(object):
         context.functions = copy.copy(cls.callStack.top().functions)
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
+        context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
 
         cls.callStack.push(context)
 

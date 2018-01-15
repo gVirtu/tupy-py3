@@ -1,0 +1,4 @@
+cadeia A <- "💩\"\n"
+escrever(A)
+caracter C <- '\''
+escrever(C)

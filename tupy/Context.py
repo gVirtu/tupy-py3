@@ -38,8 +38,11 @@ class Context(object):
         # symbol is then updated to point to the same instance reference.
         # self.refMappings = {}
 
-        # Dict of classes (TODO)
+        # Dict of classes 
         self.classes = {}
+
+        # Dict mapping a className to a list of parents
+        self.classLineage = {}
 
         # In Class Contexts, this is the name of the class this belongs to
         self.structName = struct
@@ -66,6 +69,7 @@ class Context(object):
         setattr(result, 'functions', copy.copy(self.functions))
         # setattr(result, 'refMappings', copy.copy(self.refMappings))
         setattr(result, 'classes', copy.copy(self.classes))
+        setattr(result, 'classLineage', copy.deepcopy(self.classLineage))
         setattr(result, 'funcName', copy.copy(self.funcName))
         setattr(result, 'structName', copy.copy(self.structName))
         return result

@@ -101,16 +101,21 @@ def initialize():
     function("max", Type.CHAR, [Type.CHAR, Type.CHAR])
     function("máx", Type.STRING, [Type.STRING, Type.STRING])
     function("max", Type.STRING, [Type.STRING, Type.STRING])
-    function("grafo_MA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
-    function("digrafo_MA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
-    function("grafo_LA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
-    function("digrafo_LA", Type.STRING, [Type.INT, Type.INT], arrayDimensions=[2,1],
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, []))])
+    function("grafo_MA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("digrafo_MA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("grafo_LA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("digrafo_LA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    #function("árvore", Type.STRING, [Type.STRUCT, ])
 
-def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None):
+def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None, classNames=None):
     argSpecs = inspect.getargspec(globals()[name])
     argNames = copy.copy(argSpecs.args)
 
@@ -123,7 +128,10 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
     if defaults is None:
         defaults = [None] * len(argNames)
 
-    argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, defaults))
+    if classNames is None:
+        classNames = [None] * len(argNames)
+
+    argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, classNames, defaults))
     args = [tupy.Argument.Argument(*params) for params in argParamList]
     tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
@@ -173,6 +181,10 @@ def printInstance(arg):
         out = "verdadeiro" if (bool(inst.value)) else "falso"
     elif typ == Type.NULL:
         out = "nulo"
+    elif typ == Type.STRUCT:
+        out = inst.class_name
+    elif typ == Type.FUNCTION:
+        out = "função"
     else:
         out = inst.value #str(inst.value)
     return out
@@ -346,6 +358,10 @@ def inserir(argsTuple):
             if (elem_inst.type != inst.roottype and inst.roottype != Type.ARRAY): # Root type == Array when is empty
                 raise TypeError("A função inserir espera receber como segundo argumento um elemento de mesmo tipo que os contidos na lista!")
 
+            if (elem_inst.type == Type.STRUCT and 
+                not tupy.Interpreter.Interpreter.areClassNamesCompatible(inst.class_name, elem_inst.class_name)):
+                raise TypeError("A classe {1} não pode ser inserida em uma lista de {0}!".format(inst.class_name, elem_inst.class_name))
+
             if len(argsTuple)>2:
                 pos_inst = tupy.Interpreter.memRead(argsTuple[2])
                 if (pos_inst.type == Type.INT):
@@ -399,11 +415,12 @@ def máx(x, y):
 _graph_opts = "overlap=false; node [fontsize=16 width=0.2 margin=0.05 shape=circle]; edge [arrowsize=0.8]; "
 _graph_highlight = "[style = filled fillcolor = yellow]; "
 
-def grafo_MA(matrix, highlights):
+def grafo_MA(matrix, highlights, extra):
     header = "[[DOT strict graph {"
     trailer = "}]]"
     matrix = matrix.get().value
     highlights = highlights.get().value
+    extra = extra.get().value
 
     n_lines = len(matrix)
     if all(len(cell_value(line)) == n_lines for line in matrix):
@@ -416,18 +433,19 @@ def grafo_MA(matrix, highlights):
             parsed_connections = "".join(parsed_connections)
 
             ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
-                            parsed_connections, trailer])
+                            parsed_connections, extra, trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
             raise ValueError("A lista de nós destacados contém nós que não existem!")
     else:
         raise ValueError("A matriz de adjacências deve ser quadrada!")
 
-def digrafo_MA(matrix, highlights):
+def digrafo_MA(matrix, highlights, extra):
     header = "[[DOT digraph {"
     trailer = "}]]"
     matrix = matrix.get().value
     highlights = highlights.get().value
+    extra = extra.get().value
 
     n_lines = len(matrix)
     if all(len(cell_value(line)) == n_lines for line in matrix):
@@ -439,18 +457,19 @@ def digrafo_MA(matrix, highlights):
             parsed_connections = "".join(parsed_connections)
 
             ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
-                            parsed_connections, trailer])
+                            parsed_connections, extra, trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
             raise ValueError("A lista de nós destacados contém nós que não existem!")
     else:
         raise ValueError("A matriz de adjacências deve ser quadrada!")
 
-def grafo_LA(adjList, highlights):
+def grafo_LA(adjList, highlights, extra):
     header = "[[DOT strict graph {"
     trailer = "}]]"
     adjList = adjList.get().value
     highlights = highlights.get().value
+    extra = extra.get().value
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
@@ -468,18 +487,19 @@ def grafo_LA(adjList, highlights):
                 parsed_connections = "".join(parsed_connections)
 
                 ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
-                                parsed_connections, trailer])
+                                parsed_connections, extra, trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
                 raise IndexError("A lista contém uma ou mais adjacências com nós que não existem!")
     else:
         raise ValueError("A lista de nós destacados contém nós que não existem!")
 
-def digrafo_LA(adjList, highlights):
+def digrafo_LA(adjList, highlights, extra):
     header = "[[DOT digraph {"
     trailer = "}]]"
     adjList = adjList.get().value
     highlights = highlights.get().value
+    extra = extra.get().value
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
@@ -494,7 +514,7 @@ def digrafo_LA(adjList, highlights):
                 parsed_connections = "".join(parsed_connections)
 
                 ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
-                                parsed_connections, trailer])
+                                parsed_connections, extra, trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
                 raise IndexError("A lista contém uma ou mais adjacências com nós que não existem!")

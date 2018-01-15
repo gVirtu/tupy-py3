@@ -39,11 +39,13 @@ class SymbolTable(object):
         else:
             data = tupy.Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
+        data.class_name = className
         self.data[(name, depth)] = tupy.Interpreter.memAlloc(data)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
         tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
         self.datatype[name] = tupy.Type.Type.FUNCTION
+        self.classname[name] = None
         self.subscriptlist[name] = None
         depth = self.context.depth
         self.declaredDepth[name] = depth
@@ -72,7 +74,14 @@ class SymbolTable(object):
         self.data[(name, depth)] = cell
 
     def get(self, name):
-        depth = self.declaredDepth[name]
+        try:
+            depth = self.declaredDepth[name]
+        except KeyError as e:
+            if self.context.structName:
+                raise NameError("O tipo {0} não possui o atributo {1}!".format(self.context.structName, name))
+            else: # pragma: no cover
+                raise e # unknown fallback
+        
         return tupy.Interpreter.memRead(self.data[(name, depth)])
 
     def hasKey(self, name):
@@ -288,7 +297,7 @@ class SymbolTable(object):
 
             if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
                 # tupy.Interpreter.logger.info("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
-                return inst.class_name == instance.class_name
+                return tupy.Interpreter.Interpreter.areClassNamesCompatible(inst.class_name, instance.class_name) #inst.class_name == instance.class_name
             else:
                 return equivalent_types
             # if instance.is_pure_array():
@@ -327,7 +336,7 @@ class SymbolTable(object):
                 # self.updateRefs(name, depth, visited)
                 return True
 
-        if (self.datatype[name] == tupy.Type.Type.STRUCT):
+        if (self.classname[name]): #self.datatype[name] == tupy.Type.Type.STRUCT):
             instance.class_name = self.classname[name]
 
         # First, apply the trailers to the name to get what's currently stored there

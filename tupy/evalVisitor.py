@@ -396,19 +396,19 @@ class evalVisitor(ParseTreeVisitor):
                                      returnType=returnType, funcName=funcName)
         tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
-        for (name, datatype, arrayDimensions, referenceData, literal) in injectList:
+        for (name, datatype, arrayDimensions, referenceData, className, literal) in injectList:
             inst = literal.get()
 
             if inst.array_dimensions != arrayDimensions:
                 if arrayDimensions == 0:
-                    tupy.errorHelper.typeError("A função {0} não esperava uma lista como argumento!".format(funcName), ctx)
+                    tupy.errorHelper.typeError("A {0} não esperava uma lista como argumento!".format(funcName), ctx)
                 else:
-                    tupy.errorHelper.typeError("A função {0} esperava uma lista de {1} dimensões!".format(funcName, arrayDimensions), ctx)
+                    tupy.errorHelper.typeError("A {0} esperava uma lista de {1} dimensões!".format(funcName, arrayDimensions), ctx)
 
-            className = None
 
             if inst.type == Type.STRUCT: # then inst.value contains a Context
-                className = inst.value.structName
+                if not tupy.Interpreter.Interpreter.areClassNamesCompatible(className, inst.value.structName):
+                    tupy.errorHelper.typeError("A {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(funcName, className, inst.value.structName), ctx)
 
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
             tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className)
@@ -807,19 +807,31 @@ class evalVisitor(ParseTreeVisitor):
         classContext = tupy.Context.Context(tupy.Interpreter.Interpreter.classContextDepth, 
                                 True, struct=className, funcName="Classe {0}".format(className))
 
+        lineage = [className]
+
         if (len(names) > 1):
-            inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 
+            try:
+                inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 
+            except KeyError:
+                tupy.errorHelper.typeError("A classe herdada {0} não foi encontrada!".format(names[1].getText()), ctx)
+
+            # Because classes are parsed during eval (unlike functions),
+            # there cannot be cycles in lineage
+            # e.g.: A has child B which has child C which has child A
+
+            inheritLineage = tupy.Interpreter.Interpreter.getClassLineage(names[1].getText())
+            lineage.extend(inheritLineage)
             tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.locals = copy.deepcopy(inherited.locals)
             classContext.locals.context = classContext
             classContext.functions = copy.copy(inherited.functions)
             classContext.depth = inherited.depth + 1
 
-        tupy.Interpreter.Interpreter.putClassContext(className, classContext)
+        tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage)
         tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
         originalContext = tupy.Interpreter.Interpreter.callStack.top()
         tupy.Interpreter.Interpreter.callStack.push(classContext)
-        tupy.Interpreter.Interpreter.putClassContext(className, classContext) # Make autoreferences possible
+        tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage) # Make autoreferences possible
 
         ret = self.visitBlock(ctx.block(), funcName=className, originalContext=originalContext)
         tupy.Interpreter.Interpreter.callStack.pop()
@@ -833,12 +845,12 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#string.
     def visitString(self, ctx:langParser.StringContext):
-        return tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, str(self.visitChildren(ctx))))
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, str(self.visitChildren(ctx)).replace("\\\"", "\"")))
 
 
     # Visit a parse tree produced by langParser#character.
     def visitCharacter(self, ctx:langParser.StringContext):
-        return tupy.Variable.Literal(tupy.Instance.Instance(Type.CHAR, ord(self.visitChildren(ctx))))
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.CHAR, ord(self.visitChildren(ctx).replace('\\\'', '\''))))
 
 
     # Visit a parse tree produced by langParser#number.
