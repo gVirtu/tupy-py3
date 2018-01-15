@@ -953,8 +953,8 @@ class evalVisitor(ParseTreeVisitor):
             tupy.errorHelper.typeError(e.args[0], s)
         except SyntaxError as e:
             tupy.errorHelper.syntaxError(e.args[0], s)
-        # except RuntimeError as e:
-        #     tupy.errorHelper.runtimeError(e.args[0], s)
+        except RuntimeError as e:
+            tupy.errorHelper.runtimeError(e.args[0], s)
         except ValueError as e:
             tupy.errorHelper.valueError(e.args[0], s)
         except IndexError as e:

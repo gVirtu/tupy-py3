@@ -193,7 +193,7 @@ class Interpreter(object):
 
     @classmethod
     def getClassLineage(cls, name):
-        return cls.callStack.top().classLineage[name]
+        return cls.callStack.top().classLineage.get(name, [])
 
     @classmethod
     def areClassNamesCompatible(cls, lhs, rhs):

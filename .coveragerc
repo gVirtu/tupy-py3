@@ -3,8 +3,6 @@ omit =
 	tupy/langLexer.py
 	tupy/langVisitor.py
 	tupy/langListener.py
-	eval_test.py
-	json_test.py
-	tupy_test.py
+	*_test.py
 	langVisitor.py
 	langListener.py

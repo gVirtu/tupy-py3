@@ -110,6 +110,12 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(memRead(ret.value[2]).type, Type.INT)
         self.assertEqual(memRead(ret.value[2]).value, 3)
         self.assertRaises(TupyTypeError, self.evalExpression, "[1, 2, \"not_ok\"]\n")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+            ("tipo A:\n"
+             "\tinteiro x\n"
+             "tipo B:\n"
+             "\tinteiro x\n"
+             "[A(), B()]\n"))
         ret = self.evalExpression("[]\n")
         self.assertEqual(ret.type, Type.ARRAY)
         self.assertEqual(ret.size, 0)
@@ -1619,85 +1625,6 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_access_out_of_range(self):
         self.assertRaises(TupyIndexError, Interpreter.interpret, "inteiro M[2] <- [1, 5]\nescrever(M[3])")
-        
-    def test_graphviz_prints(self):
-        desired_graph = "".join(["[[DOT strict graph {", _graph_opts, "0; 1; 2; 3; 1 ", _graph_highlight,
-                         "0 -- 1; 0 -- 3; 1 -- 2; 2 -- 3; 0 [label = \"ABC\"]; }]]"])
-        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, "0; 1; 2; 3; 2 ", _graph_highlight,
-                         "0 -> 1; 1 -> 2; 2 -> 3; 3 -> 0; 0 [label = \"ABC\"]; }]]"])
-
-        ret = Interpreter.interpret(("inteiro grafo[4,4]\n"
-                                     "grafo[0,1] <- grafo[1,0] <- 1\n"
-                                     "grafo[2,1] <- grafo[1,2] <- 2\n"
-                                     "grafo[2,3] <- grafo[3,2] <- 100\n"
-                                     "grafo[0,3] <- grafo[3,0] <- 4\n"
-                                     "grafo_MA(grafo, [1], \"0 [label = \\\"ABC\\\"]; \")\n"))
-
-        self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_graph)
-
-        ret = Interpreter.interpret(("inteiro digrafo[4,4]\n"
-                                     "digrafo[0,1] <- 1\n"
-                                     "digrafo[1,2] <- 7\n"
-                                     "digrafo[2,3] <- 3\n"
-                                     "digrafo[3,0] <- 44\n"
-                                     "digrafo_MA(digrafo, [2], \"0 [label = \\\"ABC\\\"]; \")\n"))
-
-        self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_digraph)
-
-        ret = Interpreter.interpret(("inteiro grafo[4,*]\n"
-                                     "grafo[0] <- inserir(grafo[0], 1)\n"
-                                     "grafo[0] <- inserir(grafo[0], 3)\n"
-                                     "grafo[1] <- inserir(grafo[1], 0)\n"
-                                     "grafo[1] <- inserir(grafo[1], 2)\n"
-                                     "grafo[2] <- inserir(grafo[2], 1)\n"
-                                     "grafo[2] <- inserir(grafo[2], 3)\n"
-                                     "grafo[3] <- inserir(grafo[3], 2)\n"
-                                     "grafo[3] <- inserir(grafo[3], 0)\n"
-                                     "grafo_LA(grafo, [1], \"0 [label = \\\"ABC\\\"]; \")\n"))
-
-        self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_graph)
-
-        ret = Interpreter.interpret(("inteiro digrafo[4,*]\n"
-                                     "digrafo[0] <- inserir(digrafo[0], 1)\n"
-                                     "digrafo[1] <- inserir(digrafo[1], 2)\n"
-                                     "digrafo[2] <- inserir(digrafo[2], 3)\n"
-                                     "digrafo[3] <- inserir(digrafo[3], 0)\n"
-                                     "digrafo_LA(digrafo, [2], \"0 [label = \\\"ABC\\\"]; \")\n"))
-
-        self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_digraph)
-
-    def test_graphviz_errors(self):
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro grafo[2,1]\n"
-                            "grafo_MA(grafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro grafo[2,2]\n"
-                            "grafo_MA(grafo, [0, 3])\n"))
-
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro digrafo[1,2]\n"
-                            "digrafo_MA(digrafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro digrafo[2,2]\n"
-                            "digrafo_MA(digrafo, [1, 3])\n"))
-
-        self.assertRaises(TupyIndexError, Interpreter.interpret, 
-                           ("inteiro grafo[2,*] <- [ [3], [] ]\n"
-                            "grafo_LA(grafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro grafo[2,*]\n"
-                            "grafo_LA(grafo, [0, 3])\n"))
-
-        self.assertRaises(TupyIndexError, Interpreter.interpret, 
-                           ("inteiro digrafo[2,*] <- [ [], [3] ]\n"
-                            "digrafo_LA(digrafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-                           ("inteiro digrafo[2,*]\n"
-                            "digrafo_LA(digrafo, [1, 3])\n"))
 
     def test_intertype_comparison(self):
         ret = Interpreter.interpret("132 = nulo, nulo = nulo\n")

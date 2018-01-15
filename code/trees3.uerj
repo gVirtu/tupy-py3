@@ -1,0 +1,5 @@
+tipo Nó:
+    inteiro c
+    inteiro prox[2]
+Nó raiz <- Nó();
+arvore(raiz, "c", "prox")

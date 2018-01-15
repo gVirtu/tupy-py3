@@ -26,12 +26,12 @@ inserir_BST(ref Árvore raiz, ref Árvore ins):
             escrever("O filho 1 de",raiz.c,"é",raiz.filhos[1].c)
             inserir_BST(raiz.filhos[1], ins)
 
-imprime_BST(ref Árvore atual):
-    se atual.filhos[0] != nulo:
-        imprime_BST(atual.filhos[0])
-    escrever("Estou em", atual.c)
-    se atual.filhos[1] != nulo:
-        imprime_BST(atual.filhos[1])
+# imprime_BST(ref Árvore atual):
+#    se atual.filhos[0] != nulo:
+#        imprime_BST(atual.filhos[0])
+#    escrever("Estou em", atual.c)
+#    se atual.filhos[1] != nulo:
+#        imprime_BST(atual.filhos[1])
 
 inteiro i
 para i <- 1..|L|:
@@ -39,4 +39,6 @@ para i <- 1..|L|:
     nova.c <- L[i-1]
     inserir_BST(T, nova)
 
-imprime_BST(T)
+escrever(árvore(T, "c", "filhos", [T], "node [shape = square]; "))
+
+#imprime_BST(T)

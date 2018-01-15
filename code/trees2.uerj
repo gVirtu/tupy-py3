@@ -1,0 +1,18 @@
+tipo Nó:
+    inteiro c
+    Nó prox[2]
+    Nó(inteiro chave):
+        c <- chave
+
+Nó raiz <- Nó(5)
+Nó n1 <- Nó(10)
+Nó n2 <- Nó(3)
+Nó n3 <- Nó(15)
+Nó n4 <- Nó(20)
+
+raiz.prox[0], raiz.prox[1] <- ref n1, n2
+
+n1.prox[1] <- ref n3
+n2.prox[0] <- ref n4
+
+escrever(arvore(raiz, "c", "prox", [n2], "node [shape = square];"))

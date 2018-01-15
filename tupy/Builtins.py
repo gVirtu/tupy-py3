@@ -113,7 +113,8 @@ def initialize():
     function("digrafo_LA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
-    #function("árvore", Type.STRING, [Type.STRUCT, ])
+    function("árvore", Type.STRING, [Type.TUPLE])
+    function("arvore", Type.STRING, [Type.TUPLE])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None, classNames=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -432,7 +433,7 @@ def grafo_MA(matrix, highlights, extra):
                                                              and matrix_access(matrix, j, i)]
             parsed_connections = "".join(parsed_connections)
 
-            ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
+            ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_lines, highlights), 
                             parsed_connections, extra, trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
@@ -456,7 +457,7 @@ def digrafo_MA(matrix, highlights, extra):
                                                              if matrix_access(matrix, i, j)]
             parsed_connections = "".join(parsed_connections)
 
-            ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_lines, highlights), 
+            ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_lines, highlights), 
                             parsed_connections, extra, trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
@@ -486,7 +487,7 @@ def grafo_LA(adjList, highlights, extra):
                                                             ]
                 parsed_connections = "".join(parsed_connections)
 
-                ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
+                ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_nodes, highlights), 
                                 parsed_connections, extra, trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
@@ -513,10 +514,108 @@ def digrafo_LA(adjList, highlights, extra):
                                                             ]
                 parsed_connections = "".join(parsed_connections)
 
-                ret = "".join([header, _graph_opts, graph_nodes_and_highlights(n_nodes, highlights), 
+                ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_nodes, highlights), 
                                 parsed_connections, extra, trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
                 raise IndexError("A lista contém uma ou mais adjacências com nós que não existem!")
     else:
         raise ValueError("A lista de nós destacados contém nós que não existem!")
+
+def árvore(argsTuple):
+    argsTuple = argsTuple.get().value
+    if (len(argsTuple) < 3):
+        raise TypeError("Faltam argumentos para a função árvore(estrutura, nome_chave, nome_filhos, [destaques, opções])!")
+    elif (len(argsTuple) > 5):
+        raise TypeError("A função árvore(estrutura, nome_chave, nome_filhos, [destaques, opções]) recebeu argumentos demais!")
+    else:
+        header = "[[DOT digraph {"
+        trailer = "}]]"
+
+        # Gather and validate parameters
+
+        treeInst = tupy.Interpreter.memRead(argsTuple[0])
+        treeKeyNameInst = tupy.Interpreter.memRead(argsTuple[1])
+        treeEdgesNameInst = tupy.Interpreter.memRead(argsTuple[2])
+        highlightsInst = tupy.Interpreter.memRead(argsTuple[3]) if len(argsTuple) > 3 \
+                                                        else tupy.Instance.Instance(Type.ARRAY, [])
+        optsInst = tupy.Interpreter.memRead(argsTuple[4]) if len(argsTuple) > 4 \
+                                                    else tupy.Instance.Instance(Type.STRING, "")
+
+        if (treeInst.type != Type.STRUCT):
+            raise TypeError("O primeiro parâmetro para a função árvore deve ser uma estrutura representando a raiz da árvore!")
+        if (treeKeyNameInst.type != Type.STRING):
+            raise TypeError("O segundo parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém a chave do nó!")
+        if (treeEdgesNameInst.type != Type.STRING):
+            raise TypeError("O terceiro parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém uma lista de filhos!")
+        if (not highlightsInst.is_pure_array() or 
+            (highlightsInst.array_length() > 0 and
+             not tupy.Interpreter.Interpreter.areClassNamesCompatible(treeInst.class_name, highlightsInst.class_name))):
+            raise TypeError("O quarto parâmetro para a função árvore (opcional) deve ser uma lista de referências para nós que serão destacados!")
+        if (optsInst.type != Type.STRING):
+            raise TypeError("O quinto parâmetro para a função árvore (opcional) deve ser uma cadeia com instruções DOT que serão acrescentadas à definição!")
+
+        treeKeyName = treeKeyNameInst.value
+        treeEdgesName = treeEdgesNameInst.value
+        if (not treeInst.value.locals.hasKey(treeKeyName)):
+            raise NameError("A árvore fornecida não possui o atributo '{0}' para a chave!".format(treeKeyName))
+        if (not treeInst.value.locals.hasKey(treeEdgesName)):
+            raise NameError("A árvore fornecida não possui o atributo '{0}' para a lista de filhos!".format(treeEdgesName))
+        if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(treeInst.class_name, treeInst.value.locals.classname[treeEdgesName])):
+            raise TypeError("A lista de filhos da árvore deve possuir referências para estruturas compatíveis com o tipo da árvore!")
+        
+        levelMap = {}
+        highlights = set( [id(tupy.Interpreter.memRead(treeCell)) for treeCell in highlightsInst.value ] )
+        treeDefinition = "".join(recurse_tree(treeInst, None, 0, treeKeyName, treeEdgesName, highlights, set(), levelMap))
+        levelDefinitions = []
+        for nodeLevel, nodeList in levelMap.items():
+            level = "".join("{0}; ".format(node) for node in nodeList)  
+            level = ["{rank = same; ", level, "}; "]
+            level = "".join(level)
+            levelDefinitions.append(level)
+        levelDefinitions = "".join(levelDefinitions)
+
+        extra = optsInst.value
+
+        ret = "".join([header, _graph_opts, extra, treeDefinition, levelDefinitions, extra, trailer])
+        return tupy.Instance.Instance(Type.STRING, ret)
+
+def arvore(argsTuple):
+    return árvore(argsTuple)
+
+def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName, 
+                    highlights:set, nameMapping:set, levelMap:dict):
+    identifier = len(nameMapping)
+    if (id(treeInst) in nameMapping):
+        raise RuntimeError("A estrutura fornecida para a função árvore não pode conter ciclos!")
+
+    nameMapping.add(id(treeInst))
+
+    if (level not in levelMap):
+        levelMap[level] = []
+    levelMap[level].append(identifier)
+
+    if (treeInst.type == Type.NULL):
+        return "{0} -> {1} [style = invis]; {1} [style = invis]; ".format(parentIdentifier, identifier)
+    else :
+        neighbors = [tupy.Interpreter.memRead(neighbor) \
+                        for neighbor in treeInst.value.locals.get(edgesName).value]
+
+        if all(neighbor.type == Type.NULL for neighbor in neighbors):
+            result = [] # avoid putting unnecessary stuff
+        else:
+            result = [recurse_tree(neighbor, identifier, level+1, keyName, edgesName, \
+                                highlights, nameMapping, levelMap) \
+                                for neighbor in neighbors]
+
+        if (parentIdentifier is not None):
+            result.append("{0} -> {1}; ".format(parentIdentifier, identifier))
+        if (id(treeInst) in highlights):
+            result.append("{0} {1}".format(identifier, _graph_highlight))
+        
+        keyInst = treeInst.value.locals.get(keyName)
+        result.append("{0} [label = \"{1}\"]; ".format(identifier, stringProcess(printInstance(keyInst))))
+        resultString = "".join(result)
+
+        return resultString
+        

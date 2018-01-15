@@ -27,6 +27,11 @@ class Instance(object):
             self.array_dimensions = tupy.Interpreter.memRead(self.value[0]).array_dimensions + 1
             if not all(tupy.Interpreter.memRead(element).type == self.heldtype for element in self.value):
                 raise TypeError()
+            heldclasses = [element for element in self.value if tupy.Interpreter.memRead(element).type == Type.STRUCT]
+            if len(heldclasses) > 0:
+                self.class_name = tupy.Interpreter.memRead(heldclasses[0]).class_name
+                if not all(tupy.Interpreter.memRead(element).class_name == self.class_name for element in heldclasses):
+                    raise TypeError()
 
         if self.type == Type.STRING:
             self.heldtype = Type.CHAR
