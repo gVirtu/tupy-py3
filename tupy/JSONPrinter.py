@@ -20,6 +20,8 @@ class JSONPrinter(object):
         tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
+        if (returnData is not None):
+            returnData = tupy.Interpreter.memAlloc(returnData)
 
         element["globals"] = self.scan_context_locals(tupy.Interpreter.Interpreter.callStack.items[0], self.globalVars, 
                                  self.globalVarList, heap)
@@ -39,8 +41,8 @@ class JSONPrinter(object):
             # process highlighted frame
             stack.append(self.process_stack_element(tupy.Interpreter.Interpreter.callStack.top(), True, heap, returnData))
         elif returnData:
-            if (self.instance_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
-            else: rd = self.parse_instance(returnData, heap)
+            if (self.cell_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
+            else: rd = self.parse_cell(returnData, heap)
 
             element["globals"]["__return__"] = rd
             element["ordered_globals"].append("__return__")
@@ -81,7 +83,7 @@ class JSONPrinter(object):
             if context.locals.datatype[name] == tupy.Type.Type.FUNCTION:
                 continue
 
-            heap_ind = self.add_to_heap(heap, context.locals.data[(name, depth)].data)
+            heap_ind = self.add_to_heap(heap, context.locals.data[(name, depth)])
 
             if name not in locals_set:
                 locals_set.add(name)
@@ -94,13 +96,13 @@ class JSONPrinter(object):
 
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
-    def add_to_heap(self, heap, instance):
-        iid = id(instance)
+    def add_to_heap(self, heap, cell):
+        iid = id(cell)
         if iid not in self.globalHeap:
             self.globalHeap[iid] = str(len(self.globalHeap)+1)
         
         ind = self.globalHeap[iid]
-        heap[ind] = self.parse_instance(instance, heap)
+        heap[ind] = self.parse_cell(cell, heap)
         # heap.add(mcID)
         # if mcID not in self.globalHeap:
         #     ind = len(self.globalHeap)+1
@@ -121,11 +123,12 @@ class JSONPrinter(object):
 
     # Recursively extracts data from an instance and outputs the trace-ready
     # parsed data that goes into the heap. 
-    def parse_instance(self, inst, heap):
-        tupy.Interpreter.logger.debug("PARSE_INSTANCE {0}".format(inst))
+    def parse_cell(self, cell, heap):
+        tupy.Interpreter.logger.debug("PARSE_CELL {0}".format(cell))
+        inst = cell.data
         if (inst.type == tupy.Type.Type.STRUCT):
             header = "C_STRUCT"
-            address = str(id(inst))
+            address = str(id(cell))
             data = [header, address, inst.class_name]
             instLocals = inst.value.locals
             tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
@@ -166,18 +169,17 @@ class JSONPrinter(object):
 
     # Makes sure nested lists are stored separatedly
     def handle_submemory_cell(self, subMemoryCell, data_list, heap):
-        subInst = subMemoryCell.data
         #print("Subhandling {0}, list is {1}".format(subInst, data_list))
         # Compound, link a REF.
-        if (self.instance_is_compound(subInst)):
-            data_list.append(["REF", self.add_to_heap(heap, subMemoryCell.data)])
+        if (self.cell_is_compound(subMemoryCell)):
+            data_list.append(["REF", self.add_to_heap(heap, subMemoryCell)])
         else: # Primitive, just put the C_DATA inside the LIST
-            data_list.append(self.parse_instance(subMemoryCell.data, heap))
+            data_list.append(self.parse_cell(subMemoryCell, heap))
 
-    def instance_is_compound(self, instance):
-        return instance.type == tupy.Type.Type.STRUCT or \
-               instance.type == tupy.Type.Type.TUPLE or \
-               instance.type == tupy.Type.Type.ARRAY
+    def cell_is_compound(self, cell):
+        return cell.data.type == tupy.Type.Type.STRUCT or \
+               cell.data.type == tupy.Type.Type.TUPLE or \
+               cell.data.type == tupy.Type.Type.ARRAY
 
     def process_stack_element(self, context, is_highlighted, heap, returnData=None):
         stack_element = {}
@@ -195,7 +197,7 @@ class JSONPrinter(object):
                                  self.contextVarList[unique_id], heap)
         stack_element["ordered_varnames"] = copy.copy(self.contextVarList[unique_id])
         if is_highlighted and returnData:
-            if (self.instance_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
+            if (self.cell_is_compound(returnData)): rd = ["REF", self.add_to_heap(heap, returnData)]
             else: rd = self.parse_instance(returnData, heap)
 
             stack_element["encoded_locals"]["__return__"] = rd
