@@ -39,6 +39,6 @@ para i <- 1..|L|:
     nova.c <- L[i-1]
     inserir_BST(T, nova)
 
-escrever(árvore(T, "c", "filhos", [T], "node [shape = square]; "))
+cadeia arv = árvore(T, "c", "filhos", [T], "node [shape = square]; "))
 
 #imprime_BST(T)

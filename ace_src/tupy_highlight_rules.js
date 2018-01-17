@@ -20,7 +20,7 @@ var tupyHighlightRules = function() {
     );
 
     var keywordOperators = (
-        "e|ou|mod|div|xor"
+        "e|ou|nao|mod|div|xor"
     );
 
     var builtinConstants = (
@@ -31,7 +31,8 @@ var tupyHighlightRules = function() {
         "escrever|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
         "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
-        "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar"
+        "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
+        "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({
@@ -72,11 +73,14 @@ var tupyHighlightRules = function() {
                 token : "keyword.control",
                 regex : "senão|avançar"
             }, {
+                token : "keyword.operator",
+                regex : "não"
+            }, {
                 token : "storage.type",
                 regex : "lógico"
             }, {
                 token : "support.function",
-                regex : "binário|aleatório|inteiro_aleatório|mín|máx"
+                regex : "binário|aleatório|inteiro_aleatório|mín|máx|árvore"
             }, {
                 token : "constant.language",
                 regex : "π"

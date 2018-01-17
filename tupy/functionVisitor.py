@@ -49,7 +49,7 @@ class functionVisitor(ParseTreeVisitor):
             else:
                 array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
             argumentList = self.visitParameters(ctx.parameters())
-            isConstructor = (function_name == self.className)
+            isConstructor = ("Definição da classe {0}".format(function_name) == self.className)
 
             myContext = self.constructorContext if (isConstructor) else self.functionContext
             myContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)

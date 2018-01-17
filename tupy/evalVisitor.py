@@ -72,6 +72,8 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
+        for child in ctx.getChildren():
+            tupy.Interpreter.logger.debug("This statement has a {0}".format(type(child.getChild(0))))
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by langParser#traceOffset
@@ -143,45 +145,31 @@ class evalVisitor(ParseTreeVisitor):
                 # tupy.Interpreter.logger.debug("LHS = "+str(lhs))
                 # tupy.Interpreter.logger.debug("RHS = "+str(rhs))
                 if (len(lhs) == len(rhs)):
+                    # Cache r-value evaluation so stuff like a, b, c <- b, c, a works
+                    if not all(isinstance(lval, tupy.Variable.Symbol) for lval in lhs):
+                        tupy.errorHelper.syntaxError("Não é possível atribuir a um literal!", c)
+                    rvalCache = [literal.get() for literal in rhs]
                     for ind in range(0, len(lhs)):
                         # tupy.Interpreter.logger.debug("ind="+str(ind))
                         lval = lhs[ind]
                         rval = rhs[ind]
-                        if isinstance(lval, tupy.Variable.Symbol):
-                            # E.g: a <- ref b
-                            #      a <- ref c
-                            # These next few lines will stop a from tracking b and vice-versa.
-                            # if (is_reference_assign):
-                            #     if isinstance(rval, tupy.Variable.Symbol):
-                            #         tupy.Interpreter.Interpreter.clearRefs(lval.name)
-                            #     else:
-                            #         error(SyntaxError, "Cannot reference a literal!", ctx)
 
-                            effectiveTrailers = [] if isDeclaration else lval.trailers
+                        effectiveTrailers = [] if isDeclaration else lval.trailers
 
-                            if (is_reference_assign):
-                                if isinstance(rval, tupy.Variable.Symbol):
-                                    depth = tupy.Interpreter.Interpreter.getDepth(rval.name)
-                                    cell = tupy.Interpreter.Interpreter.getMemoryCell(rval.name, depth)
-                                    if (rval.trailers):
-                                        try:
-                                            cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), rval.trailers)
-                                        except tupy.Interpreter.InvalidMemoryAccessException as e:
-                                            tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), c)
-                                    tupy.Interpreter.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
-                                else:
-                                    tupy.errorHelper.syntaxError("Não é possível referenciar um literal!", c)
+                        if (is_reference_assign):
+                            if isinstance(rval, tupy.Variable.Symbol):
+                                depth = tupy.Interpreter.Interpreter.getDepth(rval.name)
+                                cell = tupy.Interpreter.Interpreter.getMemoryCell(rval.name, depth)
+                                if (rval.trailers):
+                                    try:
+                                        cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), rval.trailers)
+                                    except tupy.Interpreter.InvalidMemoryAccessException as e:
+                                        tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), c)
+                                tupy.Interpreter.Interpreter.referenceSymbol(lval.name, cell, trailerList=effectiveTrailers)
                             else:
-                                tupy.Interpreter.Interpreter.storeSymbol(lval.name, rval.get(), effectiveTrailers)
-
-                            # if (is_reference_assign):
-                            #     tupy.Interpreter.tupy.Interpreter.mapRefParam(lval.name, rval.name, tupy.Interpreter.Interpreter.getDepth(rval.name), 
-                            #                                 rval.trailers, sourceTrailers = lval.trailers)
-                            #     tupy.Interpreter.tupy.Interpreter.mapRefParam(rval.name, lval.name, tupy.Interpreter.Interpreter.getDepth(lval.name), 
-                            #                                 lval.trailers, sourceTrailers = rval.trailers, isReferrer = False)
-                                
+                                tupy.errorHelper.syntaxError("Não é possível referenciar um literal!", c)
                         else:
-                            tupy.errorHelper.syntaxError("Não é possível atribuir a um literal!", c)
+                            tupy.Interpreter.Interpreter.storeSymbol(lval.name, rvalCache[ind], effectiveTrailers)
                 else:
                     tupy.errorHelper.valueError("Não é possível fazer uma atribuição com duas listas de expressões de tamanhos diferentes!", ctx)
                 rhs = lhs
@@ -434,7 +422,7 @@ class evalVisitor(ParseTreeVisitor):
                 # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
 
         if isClassDef:
-            if not funcName.startswith("Construtor de"):
+            if funcName.startswith("Definição da classe "):
                 className = funcName
                 classContext = tupy.Interpreter.Interpreter.callStack.top()
                 funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
@@ -472,9 +460,11 @@ class evalVisitor(ParseTreeVisitor):
                     retDimensions = ret.array_dimensions
                 else:
                     # Cannot return from a function without "retornar"
+                    tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))
                     ret = tupy.Instance.Instance(Type.NULL, 0)
             else:
                 # Retorna nulo
+                tupy.Interpreter.logger.debug("NULL RET")
                 ret = tupy.Instance.Instance(retType, retDimensions)
 
             (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
@@ -809,6 +799,8 @@ class evalVisitor(ParseTreeVisitor):
 
         lineage = [className]
 
+        callStackTop = tupy.Interpreter.Interpreter.callStack.top()
+
         if (len(names) > 1):
             try:
                 inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 
@@ -822,18 +814,21 @@ class evalVisitor(ParseTreeVisitor):
             inheritLineage = tupy.Interpreter.Interpreter.getClassLineage(names[1].getText())
             lineage.extend(inheritLineage)
             tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
-            classContext.locals = copy.deepcopy(inherited.locals)
-            classContext.locals.context = classContext
+            classContext.inheritSymbolTable(inherited)
             classContext.functions = copy.copy(inherited.functions)
             classContext.depth = inherited.depth + 1
+        else:
+            classContext.functions = copy.copy(callStackTop.functions)
+            classContext.inheritSymbolTable(callStackTop)
+            classContext.classes = copy.copy(callStackTop.classes)
+            classContext.classLineage = copy.deepcopy(callStackTop.classLineage)
 
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage)
-        tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
-        originalContext = tupy.Interpreter.Interpreter.callStack.top()
+        callStackTop.locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
         tupy.Interpreter.Interpreter.callStack.push(classContext)
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage) # Make autoreferences possible
 
-        ret = self.visitBlock(ctx.block(), funcName=className, originalContext=originalContext)
+        ret = self.visitBlock(ctx.block(), funcName="Definição da classe {0}".format(className), originalContext=callStackTop)
         tupy.Interpreter.Interpreter.callStack.pop()
         return ret
 
@@ -923,7 +918,8 @@ class evalVisitor(ParseTreeVisitor):
             ret = None
             for s in statementList:
                 # tupy.Interpreter.logger.debug("visiting {0}".format(s))
-                tupy.Interpreter.logger.debug("Executing statement at line {0}...".format(s.start.line))
+                tupy.Interpreter.logger.debug("Executing statement ({1}) at line {0}...".format(s.start.line, type(s)))
+                
                 ret = self.visitStatement(s)
 
                 # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))

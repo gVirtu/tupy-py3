@@ -1,0 +1,12 @@
+tipo Polígono3:
+    inteiro x, y
+
+    Polígono3(inteiro a, inteiro b):
+        x, y <- a, b
+
+    cadeia formatar():
+        inteiro ret <- "Polígono com X = " + cadeia(x) + " e Y = " + cadeia(y)
+        retornar ret
+
+Polígono3 P <- Polígono3(50, 60)
+cadeia R <- P.formatar()    

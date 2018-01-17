@@ -441,6 +441,15 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2, 3, 4\n")
 
+    def test_assignment_cache(self):
+        ret = Interpreter.interpret("inteiro a, b, c <- 1, 2, 3\na, b, c <- b, c, a\n")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 2)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 3)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 1)
+
     def test_unicode_identifier(self):
         ret = Interpreter.interpret("inteiro ímã <- 333; ímã\n")
         self.assertEqual(ret.type, Type.INT)

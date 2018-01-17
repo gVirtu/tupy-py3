@@ -67,6 +67,7 @@ class Context(object):
         setattr(result, 'returnable', copy.copy(self.returnable))
         setattr(result, 'breakable', copy.copy(self.breakable))
         setattr(result, 'functions', copy.copy(self.functions))
+        setattr(result, 'returnType', copy.copy(self.returnType))
         # setattr(result, 'refMappings', copy.copy(self.refMappings))
         setattr(result, 'classes', copy.copy(self.classes))
         setattr(result, 'classLineage', copy.deepcopy(self.classLineage))

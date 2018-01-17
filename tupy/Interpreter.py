@@ -217,7 +217,7 @@ class Interpreter(object):
             classContext = cls.getClassContext(name)
             objContext.locals = copy.deepcopy(classContext.locals)
             objContext.locals.context = objContext
-            logger.debug("Now my locals are {0}".format(objContext.locals))
+            logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
             objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
         except KeyError as exc:
@@ -294,14 +294,13 @@ class Interpreter(object):
 
     @classmethod
     def retrieveCodeTree(cls, functionIndex):
-        logger.debug("RETRIEVIN CODE TREE FROM CONTEXT {0}".format(cls.callStack.top().functions))
+        logger.debug("RETRIEVIN CODE TREE {0} FROM CONTEXT {1}".format(functionIndex, cls.callStack.top().functions))
         return cls.callStack.top().functions[functionIndex]
 
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
         logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
         newContext = tupy.Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
-        newContext.inheritSymbolTable(cls.callStack.top())
         # newContext.locals.context = newContext
         cls.pushContext(newContext)
 
@@ -309,6 +308,7 @@ class Interpreter(object):
     def pushContext(cls, context):
          # Code trees don't need deep copying
         context.functions = copy.copy(cls.callStack.top().functions)
+        context.inheritSymbolTable(cls.callStack.top())
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
         context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
