@@ -82,6 +82,7 @@ def initialize():
     function("inteiro_aleatório", Type.INT, [Type.INT, Type.INT])
     function("lista", Type.ARRAY, [Type.STRING, Type.STRING],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ' '))])
+    function("juntar", Type.STRING, [Type.TUPLE])
     function("embaralhar", Type.ARRAY, [Type.TUPLE])
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
@@ -309,6 +310,23 @@ def lista(string, sep):
     splitted = string_raw.split(sep.get().value)
     array = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(Type.STRING, s)) for s in splitted]
     return tupy.Instance.Instance(Type.ARRAY, array)
+
+def juntar(args):
+    args = args.get().value
+    list_inst = tupy.Interpreter.memRead(args[0])
+    if (list_inst.type != Type.ARRAY and list_inst.type != Type.TUPLE):
+        raise TypeError("O primeiro parâmetro da função juntar deve ser uma lista ou tupla!")
+
+    if (len(args) < 2):
+        sep = ""
+    else:
+        sep_inst = tupy.Interpreter.memRead(args[1])
+        if (sep_inst.type != Type.STRING):
+            raise TypeError("O segundo parâmetro da função juntar deve ser uma cadeia!")
+        sep = str(sep.get().value)
+
+    ret = sep.join([stringProcess(printInstance(tupy.Interpreter.memRead(elem))) for elem in list_inst.value])
+    return tupy.Instance.Instance(Type.STRING, ret)
 
 def aleatorio(x=None, y=None):
     return aleatório(x,y)

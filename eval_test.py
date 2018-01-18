@@ -58,6 +58,12 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("\"123.0\"\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "123.0")
+        ret = self.evalExpression("\"123.0\" \"00.32\" \"1.000\"\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "123.000.321.000")
+        ret = self.evalExpression("\"123.0\" \\\n\"00.32\" \\\n\"1.000\"\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "123.000.321.000")
     
     def test_char(self):
         ret = self.evalExpression("'a'\n")
@@ -1432,11 +1438,20 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertTrue(int(min(x, y)) <= ret.value and ret.value <= int(max(x, y)))
 
-    def test_string_split(self):
+    def test_string_split_join(self):
         ret = Interpreter.interpret("lista(\"a b c d efg\")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
         ret = Interpreter.interpret("lista(\"a, b, c, d, efg\", \", \")\n")
         self.assertArrayEquals(ret, Type.STRING, ["a", "b", "c", "d", "efg"])
+        ret = Interpreter.interpret("juntar([1, 2, 3, 4])\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "1234")
+        ret = Interpreter.interpret("juntar((1, verdadeiro, 'O', \"uFalso\"))\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "1verdadeiroOuFalso")
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "juntar(\"abcd\")")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "juntar([1, 2, 3], 4)")
 
     def test_list_shuffle(self):
         ret = Interpreter.interpret("embaralhar([1, 3, 5, 7, 9])\n")

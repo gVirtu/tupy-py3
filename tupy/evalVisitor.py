@@ -840,7 +840,8 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#string.
     def visitString(self, ctx:langParser.StringContext):
-        return tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, str(self.visitChildren(ctx)).replace("\\\"", "\"")))
+        string = "".join([str(token.getText()) for token in ctx.STRING_LITERAL()]).replace("\\\"", "\"")
+        return tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, string))
 
 
     # Visit a parse tree produced by langParser#character.

@@ -186,7 +186,7 @@ smallStatement
 
 /* DECLARAÇÕES */
 declarationStatement
- : dataType CONSTANT? testOrExpressionStatement
+ : dataType CONSTANT? INVISIBLE? testOrExpressionStatement
  ;
 
 dataType
@@ -452,7 +452,7 @@ argList
  ;
 
 string
- : STRING_LITERAL
+ : STRING_LITERAL+
  ;
 
 character
@@ -542,6 +542,7 @@ BOOLEAN: 'lógico' | 'logico';
 VARIADIC: '...';
 
 CONSTANT: 'constante';
+INVISIBLE: 'oculto' | 'oculta';
 
 NEWLINE
  : ( {self.atStartOfInput()}?   SPACES
