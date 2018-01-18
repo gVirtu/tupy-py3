@@ -1666,5 +1666,19 @@ class TestEvalVisitor(unittest.TestCase):
     def test_recursion_error(self):
         self.assertRaises(TupyRuntimeError, Interpreter.interpret, "inteiro func(inteiro a):\n\tretornar func(a+1)\nfunc(1)\n")
 
+    def test_short_circuit(self):
+        ret = Interpreter.interpret("verdadeiro ou a\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        ret = Interpreter.interpret("falso e b\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, False)
+        # Precedence: NOT > AND > OR
+        ret = Interpreter.interpret("não verdadeiro e a ou verdadeiro\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -95,7 +95,7 @@ class Variable(object):
         if declSubscripts is None:
             declSubscripts = []
         if datatype == Type.ARRAY:
-            return cls.array_init(declSubscripts, heldType)
+            return cls.array_init(declSubscripts, heldType, className)
         elif datatype == Type.STRING:
             return tupy.Instance.Instance(datatype, "")
         elif datatype == Type.TUPLE:
@@ -230,10 +230,14 @@ class Variable(object):
         return Literal(tupy.Instance.Instance(Type.BOOL, not self.get().value))
 
     def logic_and(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value and rhs.get().value))
+        if not self.get().value: return Literal(tupy.Instance.Instance(Type.BOOL, False))
+        else:
+            return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
 
     def logic_or(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, self.get().value or rhs.get().value))
+        if self.get().value: return Literal(tupy.Instance.Instance(Type.BOOL, True))
+        else:
+            return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
 
     def cardinality(self):
         return Literal(tupy.Instance.Instance(Type.INT, self.get().size))
