@@ -18,7 +18,7 @@ class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"
 
     def setUp(self):
-        Interpreter.isDebug = True
+        Interpreter.isDebug = False
 
     def evalExpression(self, expr):
         return Interpreter.interpret(expr, type(self).eex).get()
@@ -814,7 +814,6 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 120)
 
-    
     def test_builtin_function(self):
         ret = Interpreter.interpret("escrever(5)\n")
         self.assertEqual(Interpreter.outStream.getvalue(), "5\n")
@@ -1684,6 +1683,9 @@ class TestEvalVisitor(unittest.TestCase):
     def test_array_dimension_anomaly(self):
         ret = Interpreter.interpret("inteiro A[*,*]\ninteiro[][] func(ref inteiro[][] V):\n\tretornar inserir(V, [1, 2, 3])\nfunc(A)\n")
         self.assertArrayEquals(ret, Type.INT, [[1, 2, 3]])
+        ret = Interpreter.interpret(("inteiro A[*,*,*] <- [ [ [1, 2], [3], [] ], [[5], [7], [6, 4]] ]\n"
+                                     "A[*,1] <- [[], []]\nA\n"))
+        self.assertArrayEquals(ret, Type.INT, [[[1,2], [], []], [[5], [], [6, 4]]])
 
 
 if __name__ == '__main__':

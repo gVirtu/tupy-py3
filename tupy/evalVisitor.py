@@ -117,7 +117,8 @@ class evalVisitor(ParseTreeVisitor):
 
         if (isDeclaration):
             declaredDataType = ctx.parentCtx.dataType().getChild(0)
-            declaredClass = declaredDataType.getText()
+            if (ctx.parentCtx.dataType().NAME()):
+                declaredClass = declaredDataType.getText()
             decltype = self.mapLexType(declaredDataType.getSymbol().type)
 
         rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
@@ -149,6 +150,8 @@ class evalVisitor(ParseTreeVisitor):
                     if not all(isinstance(lval, tupy.Variable.Symbol) for lval in lhs):
                         tupy.errorHelper.syntaxError("Não é possível atribuir a um literal!", c)
                     rvalCache = [literal.get() for literal in rhs]
+                    rvalCache = [tupy.Instance.Instance(elem.type, elem.value, className=elem.class_name) 
+                                 for elem in rvalCache]
                     for ind in range(0, len(lhs)):
                         # tupy.Interpreter.logger.debug("ind="+str(ind))
                         lval = lhs[ind]
@@ -460,7 +463,7 @@ class evalVisitor(ParseTreeVisitor):
                     retDimensions = ret.array_dimensions
                 else:
                     # Cannot return from a function without "retornar"
-                    tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))
+                    tupy.Interpreter.logger.info("YOU SHOULD NOT BE RETURNING {0}".format(ret))
                     ret = tupy.Instance.Instance(Type.NULL, 0)
             else:
                 # Retorna nulo

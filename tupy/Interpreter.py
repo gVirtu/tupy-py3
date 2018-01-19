@@ -179,6 +179,7 @@ class Interpreter(object):
                 cls.callStack.push(classInstance.value)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
+                logger.info("Constructed {0}".format(classInstance))
                 return classInstance
             else:
                 return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
@@ -413,7 +414,9 @@ def memRead(cell):
     return cell.data
 
 def memWrite(cell, data):
-    cell.data = data
+    cell.data.type = data.type #Specifically for NULL -> TYPE
+    cell.data.value = data.value
+    cell.data.update_size()
 
 # Custom Error Listener
 

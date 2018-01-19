@@ -156,7 +156,7 @@ class SymbolTable(object):
                         # e.g.: inteiro A[5]
                         #       A <- [1, 2, 3]
                         #           result is [1, 2, 3, 0, 0]
-                        if (levelSize < targetSize):
+                        if (levelSize < targetSize and not isDynamicSize):
                             if childType is None: childType = rootType;
                             tupy.Interpreter.logger.debug("Padding {0} which holds {1} (our list is {2})".format(instance, childType, childSubscripts))
                             instance.array_pad(targetSize, tupy.Variable.Variable.makeDefaultValue, (childType, 
@@ -284,11 +284,11 @@ class SymbolTable(object):
 
             (inst, parent) = tupy.Variable.Variable.retrieveWithTrailers(current_data, trailerList)
 
-            # An instance will only keep its roottype as Type.ARRAY if it has no elements
+            # An instance will only keep its roottype as Type.ARRAY if it's a literal has no elements
             if (instance.roottype == tupy.Type.Type.ARRAY and inst.is_pure_array()):
                 return True
 
-            # tupy.Interpreter.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} but decltype is {3}".format(inst, inst.roottype, instance.roottype, self.datatype[name]))
+            tupy.Interpreter.logger.info("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} ({3}) but decltype is {4}".format(inst, inst.roottype, instance, instance.roottype, self.datatype[name]))
 
             equivalent_types = (inst.roottype == instance.roottype) \
                                or (len(trailerList) > 0 and \
@@ -297,7 +297,7 @@ class SymbolTable(object):
                                    instance.roottype == tupy.Type.Type.CHAR) 
 
             if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
-                # tupy.Interpreter.logger.info("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
+                tupy.Interpreter.logger.info("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
                 return tupy.Interpreter.Interpreter.areClassNamesCompatible(inst.class_name, instance.class_name) #inst.class_name == instance.class_name
             else:
                 return equivalent_types

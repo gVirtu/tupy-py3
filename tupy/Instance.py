@@ -14,6 +14,8 @@ class Instance(object):
         self.roottype = self.type # For arrays, set at declare time
         self.array_dimensions = 0 # For arrays
         self.class_name = className # For structs
+        if self.class_name:
+            self.roottype = Type.STRUCT # Useful during type validation with uninitialized structs
 
         if self.type == Type.INT:
             if not float(value).is_integer():
