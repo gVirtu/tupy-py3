@@ -4,7 +4,8 @@ import tupy.Interpreter
 
 class Instance(object):
     __slots__ = [
-        'value', 'type', 'heldtype', 'size', 'collection_size', 'array_dimensions', 'roottype', 'class_name'
+        'value', 'type', 'heldtype', 'size', 'collection_size', 'array_dimensions', 
+        'roottype', 'class_name'
     ]
 
     def __init__(self, datatype, value, className=None):
@@ -21,17 +22,20 @@ class Instance(object):
         
         self.value = value
 
-        if self.type == Type.ARRAY and len(self.value)>0:
-            self.heldtype = tupy.Interpreter.memRead(self.value[0]).type
-            self.roottype = tupy.Interpreter.memRead(self.value[0]).roottype
-            self.array_dimensions = tupy.Interpreter.memRead(self.value[0]).array_dimensions + 1
-            if not all(tupy.Interpreter.memRead(element).type == self.heldtype for element in self.value):
-                raise TypeError()
-            heldclasses = [element for element in self.value if tupy.Interpreter.memRead(element).type == Type.STRUCT]
-            if len(heldclasses) > 0:
-                self.class_name = tupy.Interpreter.memRead(heldclasses[0]).class_name
-                if not all(tupy.Interpreter.memRead(element).class_name == self.class_name for element in heldclasses):
+        if self.type == Type.ARRAY:
+            if len(self.value)>0:
+                self.heldtype = tupy.Interpreter.memRead(self.value[0]).type
+                self.roottype = tupy.Interpreter.memRead(self.value[0]).roottype
+                self.array_dimensions = tupy.Interpreter.memRead(self.value[0]).array_dimensions + 1
+                if not all(tupy.Interpreter.memRead(element).type == self.heldtype for element in self.value):
                     raise TypeError()
+                heldclasses = [element for element in self.value if tupy.Interpreter.memRead(element).type == Type.STRUCT]
+                if len(heldclasses) > 0:
+                    self.class_name = tupy.Interpreter.memRead(heldclasses[0]).class_name
+                    if not all(tupy.Interpreter.memRead(element).class_name == self.class_name for element in heldclasses):
+                        raise TypeError()
+            else:
+                self.array_dimensions = 1
 
         if self.type == Type.STRING:
             self.heldtype = Type.CHAR

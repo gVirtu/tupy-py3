@@ -374,7 +374,18 @@ def inserir(argsTuple):
             val = inst.value
             elem_inst = tupy.Interpreter.memRead(argsTuple[1])
 
-            if (elem_inst.type != inst.roottype and inst.roottype != Type.ARRAY): # Root type == Array when is empty
+            # Root type == Literal Array when is empty, so most things are okay
+            print(elem_inst.array_dimensions)
+            print(inst.array_dimensions)
+            if (elem_inst.array_dimensions != inst.array_dimensions - 1 and inst.roottype != Type.ARRAY):
+                dimensions = inst.array_dimensions
+                if dimensions == 0:
+                    raise TypeError("A função inserir espera receber um segundo argumento primitivo!")
+                else:
+                    raise TypeError("A função inserir espera receber como segundo argumento um elemento de {0} dimens{1}!"
+                                  .format(dimensions, "ão" if dimensions == 1 else "ões"))
+
+            if (elem_inst.roottype != inst.roottype and inst.roottype != Type.ARRAY): 
                 raise TypeError("A função inserir espera receber como segundo argumento um elemento de mesmo tipo que os contidos na lista!")
 
             if (elem_inst.type == Type.STRUCT and 
@@ -392,6 +403,7 @@ def inserir(argsTuple):
 
             new_inst = copy.deepcopy(inst)
             new_inst.value.insert(pos, tupy.Interpreter.memAlloc(elem_inst))
+            new_inst.update_size()
 
             return new_inst
         else:
@@ -414,6 +426,7 @@ def remover(argsTuple):
 
             new_inst = copy.deepcopy(inst)
             new_inst.value.pop(pos)
+            new_inst.update_size()
 
             return new_inst
         else:

@@ -18,7 +18,7 @@ class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"
 
     def setUp(self):
-        Interpreter.isDebug = False
+        Interpreter.isDebug = True
 
     def evalExpression(self, expr):
         return Interpreter.interpret(expr, type(self).eex).get()
@@ -444,6 +444,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inteiro a, b <- 3, 3.01; a, b\n")
         self.assertRaises(TupySyntaxError, Interpreter.interpret, "2 <- b\n")
         self.assertRaises(TupySyntaxError, Interpreter.interpret, "inteiro a(2) <- [1, 2]\n")
+        self.assertRaises(TupySyntaxError, Interpreter.interpret, "inteiro a[2][1] <- [[1], [2]]\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a, b, c <- 1, 2, 3, 4\n")
 
@@ -1600,6 +1601,8 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 3, 4, 5)\n") 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir(1, 2, 3)\n") 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], 2, \"hein\")\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([1, 2], [3, 4])\n") 
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "inserir([[1, 2]], 3)\n") 
         self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo A:\n"
                                                                  "\tinteiro v\n"
                                                                  "tipo B:\n"
@@ -1678,6 +1681,9 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
 
+    def test_array_dimension_anomaly(self):
+        ret = Interpreter.interpret("inteiro A[*,*]\ninteiro[][] func(ref inteiro[][] V):\n\tretornar inserir(V, [1, 2, 3])\nfunc(A)\n")
+        self.assertArrayEquals(ret, Type.INT, [[1, 2, 3]])
 
 
 if __name__ == '__main__':

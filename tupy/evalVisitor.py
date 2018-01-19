@@ -894,13 +894,16 @@ class evalVisitor(ParseTreeVisitor):
 
     def doDeclare(self, lhs, decltype, ctx, className=None):
         for lval in lhs:
-            if len(lval.trailers) > 0:
+            trailerCount = len(lval.trailers) 
+            if trailerCount == 1:
                 if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
                     subscriptList = lval.trailers[0][1]
                 else:
                     tupy.errorHelper.syntaxError("Declaração inválida!", ctx)
-            else:
+            elif trailerCount == 0:
                 subscriptList = []
+            else:
+                tupy.errorHelper.syntaxError("Declaração inválida!\n(Para declaração de matrizes, use M[x,y] ao invés de M[x][y])", ctx)
 
             if any((not x.isSingle and not x.isWildcard) for x in subscriptList):
                 tupy.errorHelper.syntaxError("As dimensões de uma declaração não devem conter intervalos!", ctx)

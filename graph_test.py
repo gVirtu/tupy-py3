@@ -59,6 +59,7 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
 
+    def test_graphviz_prints2(self):
         ret = Interpreter.interpret(("inteiro digrafo[4,*]\n"
                                      "digrafo[0] <- inserir(digrafo[0], 1)\n"
                                      "digrafo[1] <- inserir(digrafo[1], 2)\n"

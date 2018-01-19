@@ -39,6 +39,7 @@ class SymbolTable(object):
         else:
             data = tupy.Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
+        data.array_dimensions = len(subscriptList)
         data.class_name = className
         self.data[(name, depth)] = tupy.Interpreter.memAlloc(data)
 
@@ -387,10 +388,6 @@ class SymbolTable(object):
                 full_data.update_size(deep=True)
             else:
                 tupy.Interpreter.memWrite(self.data[(name, depth)], instance)
-            # Update pass-by-reference mappings
-            # self.updateRefs(name, depth, visited)
-                # self.data[(refName, refDepth)] = self.data[(name, depth)]
-            # self.data[(name, depth)].print_roottype()
             return True
         else:
             raise TypeError("Atribuição excede o espaço alocado!")
@@ -459,3 +456,15 @@ class SymbolTable(object):
                 ret += str(self.data[key])
                 ret += "\n"
         return ret
+
+    def print_all_locals(self):
+        ret = ""
+        for key in self.data:
+            (name, depth) = key
+            if depth>0:
+                ret += str(key)
+                ret += " -> "
+                ret += str(self.data[key])
+                ret += "\n"
+        return ret
+
