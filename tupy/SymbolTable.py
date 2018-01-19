@@ -216,7 +216,7 @@ class SymbolTable(object):
                             instance.__init__(tupy.Type.Type.STRING, new_value)
                             valid = True
                     else:
-                        new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value)) for i in range(targetSize)]
+                        new_value = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(instance.type, instance.value, className=instance.class_name)) for i in range(targetSize)]
                         instance.__init__(tupy.Type.Type.ARRAY, new_value)
                         valid = True
 
@@ -288,7 +288,7 @@ class SymbolTable(object):
             if (instance.roottype == tupy.Type.Type.ARRAY and inst.is_pure_array()):
                 return True
 
-            tupy.Interpreter.logger.info("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} ({3}) but decltype is {4}".format(inst, inst.roottype, instance, instance.roottype, self.datatype[name]))
+            tupy.Interpreter.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} ({3}) but decltype is {4}".format(inst, inst.roottype, instance, instance.roottype, self.datatype[name]))
 
             equivalent_types = (inst.roottype == instance.roottype) \
                                or (len(trailerList) > 0 and \
@@ -297,7 +297,7 @@ class SymbolTable(object):
                                    instance.roottype == tupy.Type.Type.CHAR) 
 
             if (inst.roottype == tupy.Type.Type.STRUCT and equivalent_types):
-                tupy.Interpreter.logger.info("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
+                tupy.Interpreter.logger.debug("CLASS NAMES are {0} and {1}".format(inst.class_name, instance.class_name))
                 return tupy.Interpreter.Interpreter.areClassNamesCompatible(inst.class_name, instance.class_name) #inst.class_name == instance.class_name
             else:
                 return equivalent_types
@@ -409,7 +409,7 @@ class SymbolTable(object):
                     target_data.value = orig_str[:pos_begin] + instance.value + orig_str[pos_end:]
             else:
                 if target_subscript.isSingle:
-                    target_data.value[target_subscript.begin] = tupy.Interpreter.memAlloc(instance)
+                    tupy.Interpreter.memWrite(target_data.value[target_subscript.begin], instance)
                 elif target_subscript.isWildcard:
                     target_data.value[:] = self.deepMerge(target_data.value[:], instance.value)
                 else:

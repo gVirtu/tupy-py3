@@ -97,6 +97,7 @@ class JSONPrinter(object):
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
     def add_to_heap(self, heap, cell, identifier):
+        identifier = str(id(cell)) #test
         heap[identifier] = self.parse_cell(cell, heap, identifier)
         return identifier
 

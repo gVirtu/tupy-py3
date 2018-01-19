@@ -463,7 +463,7 @@ class evalVisitor(ParseTreeVisitor):
                     retDimensions = ret.array_dimensions
                 else:
                     # Cannot return from a function without "retornar"
-                    tupy.Interpreter.logger.info("YOU SHOULD NOT BE RETURNING {0}".format(ret))
+                    tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))
                     ret = tupy.Instance.Instance(Type.NULL, 0)
             else:
                 # Retorna nulo
