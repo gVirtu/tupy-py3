@@ -59,5 +59,15 @@ class TestTupyProgram(unittest.TestCase):
         self.assertEqual(outputlines[-2], "Teste")
         p.terminate()
 
+    def test_hidden_variables(self):
+        output = subprocess.getoutput("python3 -m tupy code/invisible.uerj -t")
+        result = json.loads(output)
+        self.assertTrue("code" in result.keys())            
+        self.assertTrue("trace" in result.keys())            
+        self.assertTrue( all( 
+                            len(result["trace"][i]["ordered_globals"]) == 0 
+                            for i in range(len(result["trace"])-1)
+                         )) 
+
 if __name__ == '__main__':
     unittest.main()

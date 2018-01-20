@@ -1,0 +1,4 @@
+inteiro oculto a <- 5
+a <- a + 1
+cadeia oculta b <- "olá"
+b[0] <- 'a'

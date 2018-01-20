@@ -133,7 +133,9 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
     if classNames is None:
         classNames = [None] * len(argNames)
 
-    argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, classNames, defaults))
+    invisible = [None] * len(argNames)
+
+    argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, classNames, invisible, defaults))
     args = [tupy.Argument.Argument(*params) for params in argParamList]
     tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 

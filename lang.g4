@@ -142,7 +142,7 @@ typedArgsList
 
 /// typedFunctionParam: NAME [':' test]
 typedFunctionParam
- : (paramPassage)? dataType (OPEN_BRACK CLOSE_BRACK)* NAME
+ : (paramPassage)? dataType INVISIBLE? (OPEN_BRACK CLOSE_BRACK)* NAME
  ;
 
 /* PASSAGEM DE PARÂMETRO */

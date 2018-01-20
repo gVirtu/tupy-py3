@@ -60,6 +60,10 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.value, desired_graph)
 
     def test_graphviz_prints2(self):
+        extra = "0 [label = \"ABC\"]; "
+        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, extra, "0; 1; 2; 3; 2 ", _graph_highlight,
+                         "0 -> 1; 1 -> 2; 2 -> 3; 3 -> 0; ", extra, "}]]"])
+
         ret = Interpreter.interpret(("inteiro digrafo[4,*]\n"
                                      "digrafo[0] <- inserir(digrafo[0], 1)\n"
                                      "digrafo[1] <- inserir(digrafo[1], 2)\n"
