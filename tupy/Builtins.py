@@ -116,6 +116,9 @@ def initialize():
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
     function("árvore", Type.STRING, [Type.TUPLE])
     function("arvore", Type.STRING, [Type.TUPLE])
+    function("matriz", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,2,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None, classNames=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -651,4 +654,49 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
         resultString = "".join(result)
 
         return resultString
-        
+
+def matriz(matriz, highlights, extra):
+    matriz = matriz.get().value
+    highlights = highlights.get().value
+    highlightSet = set()
+    # Parse highlights into a set
+    for highlight in highlights:
+        highlight = cell_value(highlight)
+        if len(highlight) != 2:
+            raise ValueError("A lista de destaques da função matriz deve conter listas de exatamente dois elementos cada!")
+        pair = tuple([cell_value(coord) for coord in highlight])
+        highlightSet.add(pair)
+    extra = extra.get().value
+    header = "[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
+    trailer = "</TABLE>>]; {0}}}]]".format(extra)
+    rowHeader = "<TR>"
+    rowTrailer = "</TR>"
+    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
+    baseFontSize = 11
+    fontSizeDec = 0.87 # Magic number so that it goes 11 10 9 8 7 6 5 4 4 3... (4 is repeated)
+    getFontSize = lambda text : math.floor(baseFontSize - fontSizeDec*(len(str(text))-1))
+    getBgColor = lambda i,j : "YELLOW" if (i,j) in highlightSet else "WHITE"
+    result = [header]
+    rowResults = []
+    columns = 0
+    for i, row in enumerate(matriz):
+        row = cell_value(row)
+        columns = builtins.max(len(row), columns)
+        rowResults.append(rowHeader)
+        rowResults.append(element.format(i, getFontSize(i), 0, "WHITE"))
+        for j, column in enumerate(row):
+            columnInst = tupy.Interpreter.memRead(column)
+            columnText = stringProcess(printInstance(columnInst))
+            rowResults.append(element.format(columnText, getFontSize(columnText), 1, getBgColor(i,j)))
+        rowResults.append(rowTrailer)
+
+    result.append(rowHeader)
+    result.append(element.format(" ", baseFontSize, 0, "WHITE"))
+    for i in range(columns):
+        result.append(element.format(i, getFontSize(i), 0, "WHITE"))
+    result.append(rowTrailer)
+
+    result.extend(rowResults)
+    result.append(trailer)
+
+    return tupy.Instance.Instance(Type.STRING, "".join(result))

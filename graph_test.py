@@ -182,5 +182,45 @@ class TestGraphs(unittest.TestCase):
             "n4.prox[0] <- ref n2\n"
             "arvore(raiz, \"c\", \"prox\")").format(typedef, treebuild)) #tree has cycles
 
+    def test_graphviz_matrix(self):
+        self.maxDiff = 7000
+        desired_matrix = ("[[DOT digraph G {node [shape=plaintext]; "
+                          "1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\"> </FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">0</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">1</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">2</FONT></TD></TR><TR>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">0</FONT></TD>"
+                          "<TD BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">1</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"10\">20</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"9\">300</FONT></TD></TR><TR>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">1</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"8\">4000</FONT></TD>"
+                          "<TD BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"7\">50000</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">600000</FONT></TD></TR><TR>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"11\">2</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"5\">7000000</FONT></TD>"
+                          "<TD BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"4\">80000000</FONT></TD>"
+                          "<TD BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\">"
+                          "<FONT FACE=\"COURIER\" POINT-SIZE=\"2\">99999999999</FONT></TD></TR></TABLE>>]; }]]")
+        ret = Interpreter.interpret("matriz([ [1, 20, 300], [4000, 50000, 600000], [7000000, 80000000, 99999999999] ], [[0,0], [2,2], [1,1], [2,2]])\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, desired_matrix)               
+
 if __name__ == '__main__':
     unittest.main()

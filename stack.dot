@@ -1,0 +1,14 @@
+digraph G {
+    node [shape=plaintext]
+    edge [arrowsize = 0.5]
+    graph [splines=ortho]
+    2 [label = ""]
+    2 -> 1
+    1 -> 2
+    1 [label = <<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0">
+        <TR><TD BORDER="1" SIDES="LBR" FIXEDSIZE="TRUE" WIDTH="25" HEIGHT="25"><FONT FACE="COURIER" POINT-SIZE="11">0</FONT></TD></TR>
+        <TR><TD BORDER="1" FIXEDSIZE="TRUE" WIDTH="25" HEIGHT="25"><FONT FACE="COURIER" POINT-SIZE="11">1</FONT></TD></TR>
+        <TR><TD BORDER="1" FIXEDSIZE="TRUE" WIDTH="25" HEIGHT="25"><FONT FACE="COURIER" POINT-SIZE="11">2</FONT></TD></TR>
+        <TR><TD BORDER="1" FIXEDSIZE="TRUE" WIDTH="25" HEIGHT="25"><FONT FACE="COURIER" POINT-SIZE="11">3</FONT></TD></TR>
+    </TABLE>>]
+}

@@ -8,11 +8,11 @@ class Instance(object):
         'roottype', 'class_name'
     ]
 
-    def __init__(self, datatype, value, className=None):
+    def __init__(self, datatype, value, className=None, array_dimensions=0):
         self.type = datatype
         self.heldtype = None # For arrays
         self.roottype = self.type # For arrays, set at declare time
-        self.array_dimensions = 0 # For arrays
+        self.array_dimensions = array_dimensions # For arrays
         self.class_name = className # For structs
         if self.class_name:
             self.roottype = Type.STRUCT # Useful during type validation with uninitialized structs
