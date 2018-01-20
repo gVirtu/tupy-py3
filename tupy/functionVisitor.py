@@ -97,12 +97,13 @@ class functionVisitor(ParseTreeVisitor):
         param_name = str(ctx.NAME().getText())
         datatype = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
         className = ctx.dataType().getChild(0).getText() if datatype == Type.STRUCT else None
+        invisible = ctx.INVISIBLE() is not None
         array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
         if ctx.paramPassage() is not None: 
             passByRef = self.visitParamPassage(ctx.paramPassage())
         else:
             passByRef = False
-        return tupy.Argument.Argument(param_name, datatype, array_dimensions, passByRef, className)
+        return tupy.Argument.Argument(param_name, datatype, array_dimensions, passByRef, className, invisible)
 
 
     # Visit a parse tree produced by langParser#paramPassage.

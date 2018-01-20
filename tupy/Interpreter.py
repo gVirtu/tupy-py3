@@ -133,6 +133,7 @@ class Interpreter(object):
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
         argClassNames = [a.className for a in argumentList]
+        argIsInvisible = [a.invisible for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(callArgs)
         for a in argumentList[len(callArgs):]:
@@ -166,7 +167,7 @@ class Interpreter(object):
                 packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple()))
                 argValues[-1] = packed
         
-        finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argClassNames, argValues))
+        finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argIsInvisible, argClassNames, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             logger.debug("CodeIndex is {0}".format(codeIndex))
@@ -179,7 +180,7 @@ class Interpreter(object):
                 cls.callStack.push(classInstance.value)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
-                logger.info("Constructed {0}".format(classInstance))
+                logger.debug("Constructed {0}".format(classInstance))
                 return classInstance
             else:
                 return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
@@ -239,9 +240,9 @@ class Interpreter(object):
         return cls.callStack.top().locals.put(name, instance, trailerList)
 
     @classmethod
-    def declareSymbol(cls, name, datatype, subscriptList, className):
+    def declareSymbol(cls, name, datatype, subscriptList, className, isInvisible):
         logger.debug("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
-        return cls.callStack.top().locals.declare(name, datatype, subscriptList, className)
+        return cls.callStack.top().locals.declare(name, datatype, subscriptList, className, isInvisible)
 
     @classmethod
     def referenceSymbol(cls, name, memoryCell, trailerList = None):
@@ -398,8 +399,9 @@ class Interpreter(object):
 # Memory access functions
 
 class MemoryCell(object):
-    def __init__(self, inst):
+    def __init__(self, inst, invisible):
         self.data = inst
+        self.invisible = invisible
 
     def __repr__(self):
         return "■{0}".format(self.data)
@@ -407,8 +409,8 @@ class MemoryCell(object):
 class InvalidMemoryAccessException(Exception):
     pass
 
-def memAlloc(data):
-    return MemoryCell(data)
+def memAlloc(data, invisible=False):
+    return MemoryCell(data, invisible)
 
 def memRead(cell):
     return cell.data

@@ -28,7 +28,7 @@ class SymbolTable(object):
         setattr(result, 'context', self.context)
         return result
 
-    def declare(self, name, datatype, subscriptList, className):
+    def declare(self, name, datatype, subscriptList, className, invisible):
         self.datatype[name] = datatype
         self.classname[name] = className
         self.subscriptlist[name] = subscriptList
@@ -41,7 +41,7 @@ class SymbolTable(object):
         data.update_roottype(self.datatype[name])
         data.array_dimensions = len(subscriptList)
         data.class_name = className
-        self.data[(name, depth)] = tupy.Interpreter.memAlloc(data)
+        self.data[(name, depth)] = tupy.Interpreter.memAlloc(data, invisible)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
         tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))

@@ -82,6 +82,9 @@ class JSONPrinter(object):
             if context.locals.datatype[name] == tupy.Type.Type.FUNCTION:
                 continue
 
+            if context.locals.data[(name, depth)].invisible:
+                continue
+
             heap_ind = self.add_to_heap(heap, context.locals.data[(name, depth)], 
                                         "{0}-{1}".format(context.depth, name))
 
@@ -97,7 +100,7 @@ class JSONPrinter(object):
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
     def add_to_heap(self, heap, cell, identifier):
-        identifier = str(id(cell)) #test
+        identifier = str(id(cell))
         heap[identifier] = self.parse_cell(cell, heap, identifier)
         return identifier
 

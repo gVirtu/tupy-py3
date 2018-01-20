@@ -114,12 +114,14 @@ class evalVisitor(ParseTreeVisitor):
         isDeclaration = isinstance(ctx.parentCtx, langParser.DeclarationStatementContext)
         decltype = Type.NULL
         declaredClass = None
+        isInvisible = False
 
         if (isDeclaration):
             declaredDataType = ctx.parentCtx.dataType().getChild(0)
             if (ctx.parentCtx.dataType().NAME()):
                 declaredClass = declaredDataType.getText()
             decltype = self.mapLexType(declaredDataType.getSymbol().type)
+            isInvisible = (ctx.parentCtx.INVISIBLE() is not None)
 
         rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
         # Only for return purposes when no assignment is done
@@ -127,7 +129,7 @@ class evalVisitor(ParseTreeVisitor):
         current_child = 1
         is_reference_assign = False
         if (isDeclaration and childcount == current_child):
-            self.doDeclare(lhs, decltype, ctx.testOrExpressionList(childcount-1), declaredClass)
+            self.doDeclare(lhs, decltype, ctx.testOrExpressionList(childcount-1), declaredClass, isInvisible)
         
         i_children = iter(reversed(list(ctx.getChildren())))
         next(i_children) # all except last
@@ -140,7 +142,7 @@ class evalVisitor(ParseTreeVisitor):
                 lhs = self.visitTestOrExpressionList(c)
                 current_child += 1
                 if (isDeclaration and childcount == current_child):
-                    self.doDeclare(lhs, decltype, c, declaredClass)
+                    self.doDeclare(lhs, decltype, c, declaredClass, isInvisible)
 
                 tupy.Interpreter.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
                 # tupy.Interpreter.logger.debug("LHS = "+str(lhs))
@@ -387,7 +389,7 @@ class evalVisitor(ParseTreeVisitor):
                                      returnType=returnType, funcName=funcName)
         tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
-        for (name, datatype, arrayDimensions, referenceData, className, literal) in injectList:
+        for (name, datatype, arrayDimensions, referenceData, invisible, className, literal) in injectList:
             inst = literal.get()
 
             if inst.array_dimensions != arrayDimensions:
@@ -402,7 +404,7 @@ class evalVisitor(ParseTreeVisitor):
                     tupy.errorHelper.typeError("A {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(funcName, className, inst.value.structName), ctx)
 
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
-            tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className)
+            tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className, invisible)
             tupy.Interpreter.Interpreter.storeSymbol(name, inst, [])
 
             (referenceDepth, referenceTrailers) = referenceData
@@ -895,7 +897,7 @@ class evalVisitor(ParseTreeVisitor):
             self.parser.NAME: Type.STRUCT
         }.get(lextype, Type.NULL)
 
-    def doDeclare(self, lhs, decltype, ctx, className=None):
+    def doDeclare(self, lhs, decltype, ctx, className, isInvisible):
         for lval in lhs:
             trailerCount = len(lval.trailers) 
             if trailerCount == 1:
@@ -917,7 +919,7 @@ class evalVisitor(ParseTreeVisitor):
             if decltype==Type.STRUCT and not tupy.Interpreter.Interpreter.isValidClass(className):
                 tupy.errorHelper.typeError("A classe {0} não foi declarada!".format(className), ctx)
 
-            tupy.Interpreter.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className)
+            tupy.Interpreter.Interpreter.declareSymbol(lval.name, decltype, subscriptList, className, isInvisible)
 
     def executeStatements(self, statementList):
         s = statementList[0]
