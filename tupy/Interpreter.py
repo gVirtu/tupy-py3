@@ -385,6 +385,8 @@ class Interpreter(object):
         if not len(cls.bufferedLineTokens):
             cls.bufferLine()
         cls.bufferedLineIndices.pop()
+        if not len(cls.bufferedLineIndices):
+            cls.bufferedLine = ""
         return cls.bufferedLineTokens.pop()
 
     @classmethod

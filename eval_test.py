@@ -1774,5 +1774,26 @@ class TestEvalVisitor(unittest.TestCase):
 
         self.assertRaises(TupySyntaxError, Interpreter.interpret, "ler_linha(\"abc\")")
 
+    def test_input_mixed(self):
+        ret = Interpreter.interpret(("inteiro a\n"
+                                     "ler(a)\n"
+                                     "cadeia linha\n"
+                                     "ler_linha(linha)\n"
+                                     "a, linha"), stdin="1234 abc  defg")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 1234)
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, "abc  defg")
+
+        ret = Interpreter.interpret(("inteiro a\n"
+                                     "ler(a)\n"
+                                     "cadeia linha\n"
+                                     "ler_linha(linha)\n"
+                                     "a, linha"), stdin="1234")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 1234)
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, "")
+
 if __name__ == '__main__':
     unittest.main()
