@@ -11,6 +11,8 @@ from tupy.Type import Type
 
 def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
+    function("ler", Type.STRING, [Type.TUPLE], passByRef=[True])
+    function("ler_linha", Type.STRING, [Type.STRING], passByRef=[True])
     function("caracter", Type.CHAR, [Type.INT])
     function("real", Type.FLOAT, [Type.INT])
     function("real", Type.FLOAT, [Type.CHAR])
@@ -143,6 +145,27 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
     tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
 # HELPERS
+def cast(symbol, target_type):
+    if target_type == Type.INT:
+        string = symbol.get().value.upper()
+        base = 10
+        if string.startswith("0X"):
+            base = 16
+        elif string.startswith("0O"):
+            base = 8
+        elif string.startswith("0B"):
+            base = 2
+        return inteiro(symbol, tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, base)))
+    elif target_type == Type.FLOAT:
+        return real(symbol)
+    elif target_type == Type.CHAR:
+        return caracter(symbol)
+    elif target_type == Type.STRING:
+        return cadeia(symbol)
+    elif target_type == Type.BOOL:
+        return lógico(symbol)
+    else:
+        raise ValueError("Conversão de tipo não suportada!")
 
 def matrix_access(matrixVal, i, j):
     return cell_value(tupy.Interpreter.memRead(matrixVal[i]).value[j])
@@ -192,6 +215,8 @@ def printInstance(arg):
         out = inst.class_name
     elif typ == Type.FUNCTION:
         out = "função"
+    elif typ == Type.REFERENCE:
+        out = "referência a '{0}'".format(inst.value.name)
     else:
         out = inst.value #str(inst.value)
     return out
@@ -199,8 +224,45 @@ def printInstance(arg):
 def stringProcess(string):
     return str(string).replace("\\n", "\n")
 
+def ler(argsTuple):
+    symbols = [cell_value(arg) for arg in argsTuple.get().value]
+
+    # This is already checked by passByRef
+    # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+    # if not all([isinstance(symbol, tupy.Variable.Symbol) for symbol in symbols]):
+    #     raise SyntaxError("A função ler não pode receber literais!")
+
+    successCount = 0
+    try:
+        for symbol in symbols:
+            content = tupy.Interpreter.Interpreter.inputSingle()
+            inst = symbol.get()
+            targetType = inst.type
+            literal = tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, content))
+            new_inst = cast(literal, targetType)
+            tupy.Interpreter.Interpreter.storeSymbol(symbol.name, new_inst, symbol.trailers)
+            successCount = successCount + 1
+    except IndexError:
+        pass    
+    return tupy.Instance.Instance(Type.INT, successCount)
+
+def ler_linha(simbolo):
+    # if not isinstance(simbolo, tupy.Variable.Symbol):
+    #     raise SyntaxError("A função ler_linha não pode receber um literal!")
+    content = tupy.Interpreter.Interpreter.inputLine()
+    result = False
+    if len(content) > 0:
+        result = True
+        new_inst = tupy.Instance.Instance(Type.STRING, content)
+        tupy.Interpreter.Interpreter.storeSymbol(simbolo.name, new_inst, simbolo.trailers)
+    return tupy.Instance.Instance(Type.BOOL, result)
+
 def caracter(literal):
-    return tupy.Instance.Instance(Type.CHAR, int(literal.get().value))
+    try:
+        value = ord(chr(int(literal.get().value))) # Raises ValueErrors on negative
+        return tupy.Instance.Instance(Type.CHAR, value)
+    except ValueError:
+        raise ValueError("Erro na conversão para CARACTER!")
 
 def real(literal):
     try:
@@ -213,8 +275,10 @@ def inteiro(literal, base=None):
         try:
             return tupy.Instance.Instance(Type.INT, int(literal.get().value, base.get().value))
         except ValueError:
-            raise ValueError("Erro na conversão para INTEIRO!")
+            raise ValueError("Erro na conversão para INTEIRO (base {0})!".format(base))
     else:
+        # No try/except needed because base will only be None when calling
+        # inteiro with a FLOAT, BOOL or CHAR literal.
         return tupy.Instance.Instance(Type.INT, int(literal.get().value))
 
 def cadeia(literal):
@@ -328,7 +392,7 @@ def juntar(args):
         sep_inst = tupy.Interpreter.memRead(args[1])
         if (sep_inst.type != Type.STRING):
             raise TypeError("O segundo parâmetro da função juntar deve ser uma cadeia!")
-        sep = str(sep.get().value)
+        sep = str(sep_inst.value)
 
     ret = sep.join([stringProcess(printInstance(tupy.Interpreter.memRead(elem))) for elem in list_inst.value])
     return tupy.Instance.Instance(Type.STRING, ret)
@@ -383,7 +447,7 @@ def inserir(argsTuple):
             print(elem_inst.array_dimensions)
             print(inst.array_dimensions)
             if (elem_inst.array_dimensions != inst.array_dimensions - 1 and inst.roottype != Type.ARRAY):
-                dimensions = inst.array_dimensions
+                dimensions = elem_inst.array_dimensions
                 if dimensions == 0:
                     raise TypeError("A função inserir espera receber um segundo argumento primitivo!")
                 else:

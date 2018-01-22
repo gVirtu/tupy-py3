@@ -23,7 +23,7 @@ class TestTupyProgram(unittest.TestCase):
         result = json.loads(output)
         self.assertTrue("code" in result.keys())            
         self.assertTrue("trace" in result.keys())            
-        self.assertEqual(len(result["trace"]), 12)
+        self.assertEqual(len(result["trace"]), 13)
 
     def test_entrypoint_tracebars(self):
         output = subprocess.getoutput("python3 -m tupy code/tracebars.uerj -t")

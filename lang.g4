@@ -134,8 +134,8 @@ parameters
 ///              |  '*' [typedFunctionParam] (',' typedFunctionParam ['=' test])* [',' '**' typedFunctionParam] | '**' typedFunctionParam)
 typedArgsList
  : 
-  NAME VARIADIC |
-  typedFunctionParam ( COMMA typedFunctionParam )* COMMA NAME VARIADIC |
+  (paramPassage)? NAME VARIADIC |
+  typedFunctionParam ( COMMA typedFunctionParam )* COMMA (paramPassage)? NAME VARIADIC |
  	typedFunctionParam ( COMMA typedFunctionParam )* ( COMMA typedFunctionParam ASSIGN expression)* |
  	typedFunctionParam ASSIGN expression ( COMMA typedFunctionParam ASSIGN expression)* 			
  ;

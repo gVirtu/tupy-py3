@@ -159,6 +159,8 @@ class JSONPrinter(object):
                 value = "verdadeiro" if inst.value else "falso"
             elif (inst.type == tupy.Type.Type.CHAR):
                 value = chr(inst.value)
+            #elif (inst.type == tupy.Type.Type.REFERENCE):
+            #    value = inst.value.name
             else:
                 value = inst.value
             data = [header, address, type_str, value]
@@ -230,5 +232,6 @@ class JSONPrinter(object):
             tupy.Type.Type.STRING: "cadeia",
             tupy.Type.Type.BOOL: "lógico",
             tupy.Type.Type.NULL: "nulo",
-            tupy.Type.Type.STRUCT: "estrutura"
+            tupy.Type.Type.STRUCT: "estrutura",
+            tupy.Type.Type.REFERENCE: "referência"
         }.get(type, "???")

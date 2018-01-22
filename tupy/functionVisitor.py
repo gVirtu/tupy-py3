@@ -76,13 +76,16 @@ class functionVisitor(ParseTreeVisitor):
     def visitTypedArgsList(self, ctx:langParser.TypedArgsListContext):
         ret = []
         op = self.parser.COMMA
+        variadic_param_passage = False
         for c in iter(ctx.getChildren()):
             if isinstance(c, TerminalNode): 
                 op = c.getSymbol().type
                 # Variadic param
                 if op == self.parser.NAME:
                     param_name = str(c.getText())
-                    ret.append(tupy.Argument.Argument(param_name, Type.TUPLE))
+                    ret.append(tupy.Argument.Argument(param_name, Type.TUPLE, passByRef=variadic_param_passage))
+            elif isinstance(c, langParser.ParamPassageContext):
+                variadic_param_passage = self.visitParamPassage(c)
             else:
                 if op == self.parser.COMMA:
                     element = self.visitTypedFunctionParam(c)

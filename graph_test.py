@@ -220,7 +220,10 @@ class TestGraphs(unittest.TestCase):
                           "<FONT FACE=\"COURIER\" POINT-SIZE=\"2\">99999999999</FONT></TD></TR></TABLE>>]; }]]")
         ret = Interpreter.interpret("matriz([ [1, 20, 300], [4000, 50000, 600000], [7000000, 80000000, 99999999999] ], [[0,0], [2,2], [1,1], [2,2]])\n")
         self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_matrix)               
+        self.assertEqual(ret.value, desired_matrix)      
+
+        self.assertRaises(TupyValueError, Interpreter.interpret, 
+            "matriz([ [1, 2, 3], [4, 5, 6], [7, 8, 9] ], [[0,0], [2], [1,1,1]])\n")      
 
 if __name__ == '__main__':
     unittest.main()

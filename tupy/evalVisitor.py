@@ -253,14 +253,14 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#returnStatement.
     def visitReturnStatement(self, ctx:langParser.ReturnStatementContext):
-        try:
-            expr = [literal.get() for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList())]
-        except RecursionError:
-            tupy.errorHelper.runtimeError("Limite de recursão alcançado!", ctx)
-        except tupy.errorHelper.TupyRuntimeError as e:
-            raise e
-        except Exception:
-            expr = None
+        expr = None
+        if ctx.testOrExpressionList():
+            try:
+                expr = [literal.get() for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList())]
+            except RecursionError:
+                tupy.errorHelper.runtimeError("Limite de recursão alcançado!", ctx)
+            except Exception as e:
+                raise e
         
         # Trace - Flow Statement 3
         tupy.Interpreter.Interpreter.trace(ctx.start.line)
@@ -409,7 +409,7 @@ class evalVisitor(ParseTreeVisitor):
 
             (referenceDepth, referenceTrailers) = referenceData
             
-            if (referenceDepth > -1): #Pass-by-reference only
+            if (inst.type != Type.TUPLE and referenceDepth > -1): #Pass-by-reference only (except variadic)
                 cell = tupy.Interpreter.Interpreter.getMemoryCell(literal.name, referenceDepth)
 
                 # Grabbing the correct memory cell is trickier if there are trailers

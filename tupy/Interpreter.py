@@ -14,6 +14,7 @@ import tupy.errorHelper
 import logging
 import sys
 import bisect
+import io
 
 FORMAT = "=> %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -49,18 +50,25 @@ class Interpreter(object):
         cls.flow = FlowEvent.STEP
         cls.lastEvent = FlowEvent.STEP
         cls.returnData = None
+        cls.inStream = sys.stdin
+        cls.bufferedLine = ""
+        cls.bufferedLineTokens = []
+        cls.bufferedLineIndices = []
         cls.outStream = StringIO()
         cls.traceOut = None
         cls.traceBars = []
 
     @classmethod
-    def interpret(cls, input, rule="r", trace=False, printTokens=False):
+    def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None):
         logger.debug("Input is {0}".format(str(input)))
         if (input[-1] != '\n'):
             input = input + "\n"
             print("")
         cls.outStream.close()
         cls.initialize()
+
+        if (isinstance(stdin, str)):
+            cls.inStream = io.StringIO(stdin)
 
         if (trace):
             cls.traceOut = tupy.JSONPrinter.JSONPrinter(input)
@@ -154,8 +162,14 @@ class Interpreter(object):
             # The fixed arguments are all the ones before it (thus we subtract 1 from len)
             fixedCount = len(argTypes)-1
             if (len(callArgs) > fixedCount):
-                extraInsts = instArgs[fixedCount:]
                 argValues = argValues[:fixedCount]
+                # Pass by value (evaluated args in tuple)
+                if (argPassage[-1] == (-1, [])):
+                    extraInsts = instArgs[fixedCount:]
+                # Pass by reference
+                else:
+                    extraInsts = [tupy.Instance.Instance(Type.REFERENCE, symbol) 
+                                    for symbol in callArgs[fixedCount:]]
                 memExtraArgs = [memAlloc(inst) for inst in extraInsts]
                 packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
                 argValues.append(packed)
@@ -365,6 +379,39 @@ class Interpreter(object):
         cls.lastEvent = cls.flow
         cls.flow = FlowEvent.RETURN
         cls.returnData = data #testOrExpressionList (tuple of Instance)
+
+    @classmethod
+    def inputSingle(cls):
+        if not len(cls.bufferedLineTokens):
+            cls.bufferLine()
+        cls.bufferedLineIndices.pop()
+        return cls.bufferedLineTokens.pop()
+
+    @classmethod
+    def inputLine(cls):
+        if not len(cls.bufferedLine):
+            cls.bufferLine()
+        sliceStart = 0
+        if len(cls.bufferedLineIndices):
+            sliceStart = cls.bufferedLineIndices.pop()
+        ret = cls.bufferedLine[sliceStart:]
+        cls.bufferedLine = ""
+        cls.bufferedLineTokens = []
+        cls.bufferedLineIndices = []
+        return ret
+
+    @classmethod
+    def bufferLine(cls):
+        cls.bufferedLine = cls.inStream.readline()
+        lineTokens = cls.bufferedLine.split()
+        lineIndices = []
+        sliceStart = 0
+        for token in lineTokens:
+            sliceStart = cls.bufferedLine.find(token, sliceStart)
+            lineIndices.append(sliceStart)
+            sliceStart = sliceStart + 1
+        cls.bufferedLineIndices = list(reversed(lineIndices))
+        cls.bufferedLineTokens = list(reversed(lineTokens)) # make popping easier
 
     @classmethod
     def output(cls, string):

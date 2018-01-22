@@ -245,6 +245,8 @@ class Variable(object):
     def validateComparisonTypes(self, a, b):
         if (a == Type.FUNCTION or b == Type.FUNCTION):
             raise TypeError("Comparação proibida para funções!")
+        elif (a == Type.REFERENCE or b == Type.REFERENCE):
+            raise TypeError("Comparação proibida para referências!")
         elif (a == b):
             # Comparison is always ok for the same type
             return True
@@ -260,9 +262,8 @@ class Variable(object):
             raise TypeError("Uma cadeia somente pode ser comparada com outras cadeias!")
 
     def resultType(self, a, b):
-        # Deprecated type
-        # if (a == Type.REFERENCE or b == Type.REFERENCE):
-        #   raise TypeError("Cannot operate on instance of type REFERENCE!")
+        if (a == Type.REFERENCE or b == Type.REFERENCE):
+            raise TypeError("Operação proibida para referências!")
         if (a == Type.STRUCT or b == Type.STRUCT):
             raise TypeError("Operação proibida para tipos compostos!")
         elif (a == Type.FUNCTION or b == Type.FUNCTION):
@@ -319,7 +320,7 @@ class Literal(Variable):
 
 class Symbol(Variable):
     __slots__ = [
-        'name', 'scope', 'trailers'
+        'name', 'trailers'
     ]
 
     def __init__(self, name):

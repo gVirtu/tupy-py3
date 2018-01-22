@@ -767,10 +767,10 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 5)
-        ret = Interpreter.interpret(("inteiro[][] matriz(inteiro[][] a):\n"
+        ret = Interpreter.interpret(("inteiro[][] altera_matriz(inteiro[][] a):\n"
                                      "\t a[*,1] <- 0\n"
                                      "\t retornar a\n"
-                                     "matriz([[1,2,3],[4,5,6]])\n"
+                                     "altera_matriz([[1,2,3],[4,5,6]])\n"
                                     ))
         self.assertArrayEquals(ret, Type.INT, [[1, 0, 3], [4, 0, 6]])        
 
@@ -802,6 +802,27 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "ccccc")
+        ret = Interpreter.interpret(("cadeia teste(ref args...):\n"
+                                     "\t retornar escrever(args[0])\n"
+                                     "inteiro V[5]\n"
+                                     "teste(V[2])\n"
+                                    ))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "referência a 'V'")
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                         ("teste(ref args...):\n"
+                          "\t retornar args[0] > args[1]\n"
+                          "inteiro a, b\n"
+                          "teste(a, b)\n"
+                         ))
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+                         ("teste(ref args...):\n"
+                          "\t retornar args[0] + args[1]\n"
+                          "inteiro a, b\n"
+                          "teste(a, b)\n"
+                         ))
 
     def test_recursion(self):
         ret = Interpreter.interpret(("inteiro fat(inteiro n):\n"
@@ -1446,6 +1467,9 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("juntar([1, 2, 3, 4])\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "1234")
+        ret = Interpreter.interpret("juntar([1, 2, 3, 4], \"abc\")\n")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "1abc2abc3abc4")
         ret = Interpreter.interpret("juntar((1, verdadeiro, 'O', \"uFalso\"))\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "1verdadeiroOuFalso")
@@ -1549,6 +1573,7 @@ class TestEvalVisitor(unittest.TestCase):
     def test_type_cast_errors(self):
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro(\"a\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "real(\"ff\")\n")
+        self.assertRaises(TupyValueError, Interpreter.interpret, "caracter(-1)\n")
 
     def test_parse_error(self):
         self.assertRaises(TupyParseError, Interpreter.interpret, "a({=\n")
@@ -1687,6 +1712,67 @@ class TestEvalVisitor(unittest.TestCase):
                                      "A[*,1] <- [[], []]\nA\n"))
         self.assertArrayEquals(ret, Type.INT, [[[1,2], [], []], [[5], [], [6, 4]]])
 
+    def test_input_single(self):
+        ret = Interpreter.interpret(("inteiro a\n"
+                                     "real b\n"
+                                     "lógico c\n"
+                                     "caracter d\n"
+                                     "cadeia f\n"
+                                     "ler(a, b, c, d, f)\n"
+                                     "a, b, c, d, f\n"), stdin="1 2    3\t65\n70")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 1)
+        self.assertEqual(ret[1].type, Type.FLOAT)
+        self.assertEqual(ret[1].value, 2.0)
+        self.assertEqual(ret[2].type, Type.BOOL)
+        self.assertEqual(ret[2].value, True)
+        self.assertEqual(ret[3].type, Type.CHAR)
+        self.assertEqual(ret[3].value, ord('A'))
+        self.assertEqual(ret[4].type, Type.STRING)
+        self.assertEqual(ret[4].value, "70")
+
+        ret = Interpreter.interpret(("inteiro a\n"
+                                     "real b\n"
+                                     "ler(a, b)\n"), stdin="-55")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 1)
+
+        ret = Interpreter.interpret(("inteiro a[5] <- [1, 2, 3, 4, 5]\n"
+                                     "ler(a[3])\n"
+                                     "a\n"), stdin="10")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 10, 5])
+
+        ret = Interpreter.interpret(("inteiro a, b, c\n"
+                                     "ler(a, b, c)\n"
+                                     "a, b, c\n"), stdin="0xF 0o21 0b111")
+        self.assertEqual(ret[0].type, Type.INT)
+        self.assertEqual(ret[0].value, 15)
+        self.assertEqual(ret[1].type, Type.INT)
+        self.assertEqual(ret[1].value, 17)
+        self.assertEqual(ret[2].type, Type.INT)
+        self.assertEqual(ret[2].value, 7)
+
+    def test_input_single_errors(self):
+        self.assertRaises(TupySyntaxError, Interpreter.interpret, "ler([1, 2, 3])")
+        self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a[3]; ler(a)", stdin="1, 2, 3")
+
+    def test_input_line(self):
+        ret = Interpreter.interpret(("cadeia linha, linha2\n"
+                                     "ler_linha(linha)\n"
+                                     "ler_linha(linha2)\n"
+                                     "linha, linha2\n"), stdin="1 2    3\t65\n70")
+        self.assertEqual(ret[0].type, Type.STRING)
+        self.assertEqual(ret[0].value, "1 2    3\t65\n")
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, "70")
+
+        ret = Interpreter.interpret(("cadeia linha <- \"abcde\"\n"
+                                     "ler_linha(linha[1..3])\n"
+                                     "linha\n"), stdin="dcb")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "adcbe")
+
+        self.assertRaises(TupySyntaxError, Interpreter.interpret, "ler_linha(\"abc\")")
 
 if __name__ == '__main__':
     unittest.main()
