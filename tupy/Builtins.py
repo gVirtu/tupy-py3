@@ -88,22 +88,11 @@ def initialize():
     function("embaralhar", Type.ARRAY, [Type.TUPLE])
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
-    function("min", Type.INT, [Type.INT, Type.INT])
-    function("mín", Type.INT, [Type.INT, Type.INT])
-    function("min", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
-    function("mín", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
-    function("min", Type.CHAR, [Type.CHAR, Type.CHAR])
-    function("mín", Type.CHAR, [Type.CHAR, Type.CHAR])
-    function("min", Type.STRING, [Type.STRING, Type.STRING])
-    function("mín", Type.STRING, [Type.STRING, Type.STRING])
-    function("máx", Type.INT, [Type.INT, Type.INT])
-    function("max", Type.INT, [Type.INT, Type.INT])
-    function("máx", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
-    function("max", Type.FLOAT, [Type.FLOAT, Type.FLOAT])
-    function("máx", Type.CHAR, [Type.CHAR, Type.CHAR])
-    function("max", Type.CHAR, [Type.CHAR, Type.CHAR])
-    function("máx", Type.STRING, [Type.STRING, Type.STRING])
-    function("max", Type.STRING, [Type.STRING, Type.STRING])
+    for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING]:
+        function("min", t, [t, t])
+        function("mín", t, [t, t])
+        function("max", t, [t, t])
+        function("máx", t, [t, t])
     function("grafo_MA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
@@ -118,9 +107,19 @@ def initialize():
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
     function("árvore", Type.STRING, [Type.TUPLE])
     function("arvore", Type.STRING, [Type.TUPLE])
-    function("matriz", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,2,0],
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
-                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING, Type.BOOL]:
+        function("matriz", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[2,2,0],
+                defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+        function("vetor", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[1,1,0],
+                defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=1)),
+                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+        function("pilha", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[1,1,0],
+                defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=1)),
+                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+        function("fila", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[1,1,0],
+                defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=1)),
+                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
 
 def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults=None, classNames=None):
     argSpecs = inspect.getargspec(globals()[name])
@@ -190,6 +189,10 @@ def make_graph_LA_edge(i, j, edges:set):
 def digraph_adj_in_bounds(node, node_count):
     if (node < node_count): return True
     else: raise IndexError()
+
+def dot_table_font_size(text):
+    return {1: 27, 2: 23, 3: 20, 4: 15, 5: 12, 6: 10, 7: 9, 
+            8: 8, 9: 7, 10: 6, 11: 6, 12: 5, 13: 5}.get(len(str(text)), 4)
 
 # BUILT-IN FUNCTIONS
 
@@ -515,6 +518,7 @@ def máx(x, y):
 
 _graph_opts = "overlap=false; node [fontsize=16 width=0.2 margin=0.05 shape=circle]; edge [arrowsize=0.8]; "
 _graph_highlight = "[style = filled fillcolor = yellow]; "
+_empty_graphviz_return = "[[DOT digraph G {{ 1 [label = \"{0} vazio!\" fontsize=\"25\" shape = \"plaintext\"] }}]]".format(chr(0x1F4E5))
 
 def grafo_MA(matrix, highlights, extra):
     header = "[[DOT strict graph {"
@@ -721,6 +725,7 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
 
 def matriz(matriz, highlights, extra):
     matriz = matriz.get().value
+    if not len(matriz): return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
     highlights = highlights.get().value
     highlightSet = set()
     # Parse highlights into a set
@@ -735,10 +740,7 @@ def matriz(matriz, highlights, extra):
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     rowHeader = "<TR>"
     rowTrailer = "</TR>"
-    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"25\" HEIGHT=\"25\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
-    baseFontSize = 11
-    fontSizeDec = 0.87 # Magic number so that it goes 11 10 9 8 7 6 5 4 4 3... (4 is repeated)
-    getFontSize = lambda text : math.floor(baseFontSize - fontSizeDec*(len(str(text))-1))
+    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
     getBgColor = lambda i,j : "YELLOW" if (i,j) in highlightSet else "WHITE"
     result = [header]
     rowResults = []
@@ -747,20 +749,95 @@ def matriz(matriz, highlights, extra):
         row = cell_value(row)
         columns = builtins.max(len(row), columns)
         rowResults.append(rowHeader)
-        rowResults.append(element.format(i, getFontSize(i), 0, "WHITE"))
+        rowResults.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
         for j, column in enumerate(row):
             columnInst = tupy.Interpreter.memRead(column)
             columnText = stringProcess(printInstance(columnInst))
-            rowResults.append(element.format(columnText, getFontSize(columnText), 1, getBgColor(i,j)))
+            rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j)))
         rowResults.append(rowTrailer)
 
     result.append(rowHeader)
-    result.append(element.format(" ", baseFontSize, 0, "WHITE"))
+    result.append(element.format(" ", dot_table_font_size(" "), 0, "WHITE"))
     for i in range(columns):
-        result.append(element.format(i, getFontSize(i), 0, "WHITE"))
+        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
     result.append(rowTrailer)
 
     result.extend(rowResults)
     result.append(trailer)
 
+    return tupy.Instance.Instance(Type.STRING, "".join(result))
+
+def vetor(vetor, highlights, extra):
+    vetor = vetor.get().value
+    columns = len(vetor)
+    if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlightSet = set(highlights)
+    extra = extra.get().value
+    header = "[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
+    trailer = "</TABLE>>]; {0}}}]]".format(extra)
+    rowHeader = "<TR>"; rowTrailer = "</TR>"
+    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
+    getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
+    result = [header]
+    result.append(rowHeader)
+    for i in range(columns):
+        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
+    result.append(rowTrailer)
+    result.append(rowHeader)
+    for i, column in enumerate(vetor):
+        columnInst = tupy.Interpreter.memRead(column)
+        columnText = stringProcess(printInstance(columnInst))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i)))
+    result.append(rowTrailer)
+    result.append(trailer)
+    return tupy.Instance.Instance(Type.STRING, "".join(result))
+
+def pilha(vetor, highlights, extra):
+    vetor = vetor.get().value
+    rows = len(vetor)
+    if not rows: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlightSet = set(highlights)
+    extra = extra.get().value
+    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
+              "2 [label = \" \"]; 2 -> 1; 1 -> 2; 1 [label = <<TABLE BORDER=\"0\" "
+              "CELLPADDING=\"0\" CELLSPACING=\"0\">")
+    trailer = "</TABLE>>]; {0}}}]]".format(extra)
+    element = ("<TR><TD SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
+               "<FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD></TR>")
+    getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
+    getSides = lambda i: "LBR" if i == 0 else "LBRT"
+    result = [header]
+    for i, row in enumerate(reversed(vetor)):
+        rowInst = tupy.Interpreter.memRead(row)
+        rowText = stringProcess(printInstance(rowInst))
+        result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(i), getSides(i)))
+    result.append(trailer)
+    return tupy.Instance.Instance(Type.STRING, "".join(result))
+
+def fila(vetor, highlights, extra):
+    vetor = vetor.get().value
+    columns = len(vetor)
+    if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlightSet = set(highlights)
+    extra = extra.get().value
+    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
+              "rankdir = \"LR\"; 2 [label = \" \"]; 3 [label = \" \"]; 2 -> 1; 1 -> 3; 1 [label = "
+              "<<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">")
+    trailer = "</TABLE>>]; {0}}}]]".format(extra)
+    element = ("<TD SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
+               "<FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>")
+    rowHeader = "<TR>"; rowTrailer = "</TR>"
+    getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
+    getSides = lambda i: "BT" if columns == 1 else {0: "BRT", (columns-1): "LBT"}.get(i, "LBRT")
+    result = [header]
+    result.append(rowHeader)
+    for i, column in enumerate(reversed(vetor)):
+        columnInst = tupy.Interpreter.memRead(column)
+        columnText = stringProcess(printInstance(columnInst))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i)))
+    result.append(rowTrailer)
+    result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))

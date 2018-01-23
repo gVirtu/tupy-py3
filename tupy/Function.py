@@ -44,7 +44,16 @@ class Function(object):
                 current_level = current_level[inst.roottype]
             except Exception:
                 try:
-                    current_level = current_level[Type.TUPLE]
+                    done = False
+                    if (inst.roottype == Type.ARRAY):
+                        # Workaround for empty array literals, assume int
+                        try:
+                            current_level = current_level[Type.INT]
+                            done = True
+                        except Exception:
+                            pass
+                    if not done:
+                        current_level = current_level[Type.TUPLE]
                 except Exception:
                     raise TypeError("Argumento inesperado {0}!".format(inst.value))
         try:

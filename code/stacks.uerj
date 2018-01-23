@@ -1,0 +1,31 @@
+inteiro oculto Pilha[*]
+inteiro topo <- -1
+
+------------------------------
+empilha(inteiro num):
+  topo <- topo + 1
+  se |Pilha| <= topo:
+    Pilha <- inserir(Pilha, 0)
+  Pilha[topo] <- num
+  atualizar()
+  
+desempilha():
+  escrever("Saída de", Pilha[topo])
+  topo <- topo - 1
+  atualizar()
+  
+cadeia P <- pilha(Pilha)
+  
+atualizar():
+  se topo >= 0:
+    P <- pilha(Pilha[0..topo])
+  senão:
+    P <- pilha([])
+------------------------------
+    
+inteiro c
+enquanto(ler(c)):
+  empilha(c)
+  
+enquanto(topo >= 0):
+  desempilha()

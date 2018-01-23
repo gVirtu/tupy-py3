@@ -1,0 +1,30 @@
+inteiro oculto Fila[*]
+inteiro inicio <- 0
+inteiro fim <- 0
+
+------------------------------
+enfileira(inteiro num):
+  Fila <- inserir(Fila, num)
+  fim <- fim + 1
+  atualizar()
+  
+desenfileira():
+  escrever("Saída de", Fila[inicio])
+  inicio <- inicio + 1
+  atualizar()
+  
+cadeia S <- fila(Fila)
+  
+atualizar():
+  se fim > inicio:
+    S <- fila(Fila[inicio..fim-1])
+  senão:
+    S <- fila(Fila)
+------------------------------
+    
+inteiro c
+enquanto(ler(c)):
+  enfileira(c)
+  
+enquanto(inicio < fim):
+  desenfileira()

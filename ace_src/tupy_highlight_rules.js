@@ -16,7 +16,7 @@ var tupyHighlightRules = function() {
     );
 
     var storageModifiers = (
-        "val|ref"
+        "val|ref|oculto|oculta"
     );
 
     var keywordOperators = (
@@ -28,11 +28,11 @@ var tupyHighlightRules = function() {
     );
     
     var builtinFunctions = (
-        "escrever|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
-        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|"+
+        "escrever|ler|ler_linha|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
+        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
-        "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore"
+        "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({
