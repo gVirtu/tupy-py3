@@ -332,7 +332,7 @@ comparisonOperator
  
 /// range
 loopRange
- : expression (rangeDelimiter expression)?
+ : expression rangeDelimiter expression INCLUSIVE?
  ;
 
 rangeDelimiter
@@ -495,6 +495,7 @@ BREAK : 'parar';
 ENUM : 'enumeração' | 'enumeracao';
 STEP : 'passo';
 UNTIL : 'ate' | 'até';
+INCLUSIVE : 'inclusive' | 'incl.';
 
 DOT : '.';
 RANGE_OP : '..';

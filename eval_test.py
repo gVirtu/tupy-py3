@@ -1096,7 +1096,7 @@ class TestEvalVisitor(unittest.TestCase):
     def test_for_loop(self):
         ret = Interpreter.interpret(("inteiro i\n"
                                      "inteiro soma <- 0\n"
-                                     "para i <- 0..9:\n"
+                                     "para i <- 0..9 inclusive:\n"
                                      "\tsoma <- soma + i\n"
                                      "soma\n"
                                     ))
@@ -1104,7 +1104,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 45)
         ret = Interpreter.interpret(("inteiro i\n"
                                      "inteiro fat <- 362880\n"
-                                     "para i <- 9..1 passo -1:\n"
+                                     "para i <- 9..1 inclusive passo -1:\n"
                                      "\tfat <- fat / i\n"
                                      "fat\n"
                                     ))
@@ -1112,14 +1112,14 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 1)
         ret = Interpreter.interpret(("inteiro i\n"
                                      "inteiro A[*]\n"
-                                     "para i <- 9..1:\n"
+                                     "para i <- 9..1 inclusive:\n"
                                      "\tA <- inserir(A, i)\n"
                                      "A\n"
                                     ))
         self.assertArrayEquals(ret, Type.INT, [9, 8, 7, 6, 5, 4, 3, 2, 1])
         ret = Interpreter.interpret(("inteiro i, j\n"
                                      "inteiro tot <- 0\n"
-                                     "para i, j <- 1..3, 1..3:\n"
+                                     "para i, j <- 1..4, 1..3 inclusive:\n"
                                      "\ttot <- tot + i + j\n"
                                      "tot\n"
                                     ))
@@ -1127,8 +1127,8 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 36)
         ret = Interpreter.interpret(("inteiro i, j\n"
                                      "inteiro tot <- 0\n"
-                                     "para i <- 1..3:\n"
-                                     "\tpara j <- 1..i:\n"
+                                     "para i <- 1..3 inclusive:\n"
+                                     "\tpara j <- 1..i inclusive:\n"
                                      "\t\ttot <- tot + j\n"
                                      "tot\n"
                                     ))
@@ -1136,7 +1136,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 10)
         ret = Interpreter.interpret(("inteiro i\n"
                                      "inteiro tot <- 0\n"
-                                     "para i <- 1..10 passo i:\n"
+                                     "para i <- 1..10 incl. passo i:\n"
                                      "\ttot <- tot + i\n"
                                      "tot\n"
                                     ))
@@ -1144,7 +1144,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, 15)
         ret = Interpreter.interpret(("inteiro i, j, k\n"
                                      "inteiro tot <- 0\n"
-                                     "para i, j, k <- 1..3, 1..3, 1..3:\n"
+                                     "para i, j, k <- 1..4, 1..4, 1..4:\n"
                                      "\tse i = j e j = k:\n"
                                      "\t\ttot <- tot - (i+j+k)\n"
                                      "\tsenao:\n"
@@ -1178,7 +1178,7 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_break_nested_for(self):
         ret = Interpreter.interpret(("inteiro tot, i, j <- 0, 0, 0\n"
-                                     "para i, j <- 3..1, 1..3 passo -1, 1:\n"
+                                     "para i, j <- 3..1 incl., 1..3 incl. passo -1, 1:\n"
                                      "\tse j>i :\n"
                                      "\t\tparar\n"
                                      "\ttot <- tot + i*j\n"
@@ -1189,7 +1189,7 @@ class TestEvalVisitor(unittest.TestCase):
 
     def test_continue(self):
         ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"
-                                     "para i <- 1..10:\n"
+                                     "para i <- 1..10 inclusive:\n"
                                      "\ttot <- tot + 1\n"
                                      "\tse i mod 2 > 0:\n"
                                      "\t\tavançar\n"
@@ -1340,7 +1340,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "Lista cab <- Lista(10)\n"
                                      "inteiro i\n"
                                      "Lista atual <- ref cab\n"
-                                     "para i <- 1..4:\n"
+                                     "para i <- 1..5:\n"
                                      "\tLista p <- Lista(10-(i*2))\n"
                                      "\tatual.prox <- ref p\n"
                                      "\tatual <- ref p\n"
@@ -1503,7 +1503,7 @@ class TestEvalVisitor(unittest.TestCase):
     def test_string_modify(self):
         ret = Interpreter.interpret(("inteiro i\n"
                                      "cadeia S <- \"Uma string\"\n"
-                                     "para i <- 0..|S|-1:\n"
+                                     "para i <- 0..|S|:\n"
                                      "  S[i] <- 'A'\n"
                                      "S\n"))
         self.assertEqual(ret.type, Type.STRING)

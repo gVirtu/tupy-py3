@@ -329,15 +329,23 @@ class evalVisitor(ParseTreeVisitor):
         stopFuncs = []
         stopFuncGT = lambda iterator, limit : (iterator > limit)
         stopFuncLT = lambda iterator, limit : (iterator < limit)
+        stopFuncGTEQ = lambda iterator, limit : (iterator >= limit)
+        stopFuncLTEQ = lambda iterator, limit : (iterator <= limit)
         
         if (len(names) == len(ranges) and (len(ranges) == len(steps) or fillSteps)):
             for r in ranges:
                 if (r[1].value >= r[0].value):
-                    stopFuncs.append(stopFuncGT)
+                    if (r[2]): # Inclusive?
+                        stopFuncs.append(stopFuncGT)
+                    else:
+                        stopFuncs.append(stopFuncGTEQ)
                     if fillSteps:
                         steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1)))
                 else:
-                    stopFuncs.append(stopFuncLT)
+                    if (r[2]): # Inclusive?
+                        stopFuncs.append(stopFuncLT)
+                    else:
+                        stopFuncs.append(stopFuncLTEQ)
                     if fillSteps:
                         steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, -1)))
 
@@ -554,7 +562,7 @@ class evalVisitor(ParseTreeVisitor):
     def visitLoopRange(self, ctx:langParser.LoopRangeContext):
         begin_inst = self.visitExpression(ctx.expression(0)).get()
         end_inst = self.visitExpression(ctx.expression(1)).get()
-        return (begin_inst, end_inst)
+        return (begin_inst, end_inst, ctx.INCLUSIVE() is not None)
 
 
     # UNUSED - TOKEN ACCESSED DIRECTLY
