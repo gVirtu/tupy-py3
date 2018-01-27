@@ -28,16 +28,20 @@ class Variable(object):
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.begin, depth, True)
                         orig_root_type = ret.roottype
                         orig_class_name = ret.class_name
+                        orig_array_dimensions = ret.array_dimensions
                         ret = tupy.Instance.Instance(newtype, newvalue)
                         if (orig_root_type != Type.STRING): #Let STRING become CHAR
                             ret.roottype = orig_root_type
+                            ret.array_dimensions = orig_array_dimensions - 1
                         ret.class_name = orig_class_name
                     else:
                         (newvalue, newtype) = cls.get_array_range(ret, ss.begin, ss.end, depth)
                         orig_root_type = ret.roottype
                         orig_class_name = ret.class_name
+                        orig_array_dimensions = ret.array_dimensions
                         ret = tupy.Instance.Instance(newtype, newvalue)
                         ret.roottype = orig_root_type
+                        ret.array_dimensions = orig_array_dimensions
                         ret.class_name = orig_class_name
                         depth += 1
             elif ttype == TrailerType.CALL:

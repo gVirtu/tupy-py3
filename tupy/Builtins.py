@@ -6,10 +6,13 @@ import inspect
 import math
 import random
 import copy
+import html
 import builtins
 from tupy.Type import Type
 
 def initialize():
+    function("asserção", Type.NULL, [Type.BOOL])
+    function("assercao", Type.NULL, [Type.BOOL])
     function("escrever", Type.STRING, [Type.TUPLE])
     function("ler", Type.STRING, [Type.TUPLE], passByRef=[True])
     function("ler_linha", Type.STRING, [Type.STRING], passByRef=[True])
@@ -23,12 +26,12 @@ def initialize():
     function("inteiro", Type.INT, [Type.BOOL])
     function("inteiro", Type.INT, [Type.STRING, Type.INT],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 10))])
-    function("cadeia", Type.STRING, [Type.FLOAT])
-    function("cadeia", Type.STRING, [Type.CHAR])
-    function("cadeia", Type.STRING, [Type.BOOL])
-    function("cadeia", Type.STRING, [Type.INT])
-    function("cadeia", Type.STRING, [Type.ARRAY])
-    function("cadeia", Type.STRING, [Type.NULL])
+    function("cadeia", Type.STRING, [Type.TUPLE])
+    # function("cadeia", Type.STRING, [Type.CHAR])
+    # function("cadeia", Type.STRING, [Type.BOOL])
+    # function("cadeia", Type.STRING, [Type.INT])
+    # function("cadeia", Type.STRING, [Type.ARRAY])
+    # function("cadeia", Type.STRING, [Type.NULL])
     function("binário", Type.STRING, [Type.INT])
     function("binario", Type.STRING, [Type.INT])
     function("octal", Type.STRING, [Type.INT])
@@ -93,17 +96,37 @@ def initialize():
         function("mín", t, [t, t])
         function("max", t, [t, t])
         function("máx", t, [t, t])
-    function("grafo_MA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+    function("grafo_MA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
-    function("digrafo_MA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+    function("grafo_valorado_MA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
-    function("grafo_LA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+    function("digrafo_MA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
-    function("digrafo_LA", Type.STRING, [Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,0],
+    function("digrafo_valorado_MA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("grafo_LA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("grafo_valorado_LA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[3,1,2,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("digrafo_LA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,1,2,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+    function("digrafo_valorado_LA", Type.STRING, [Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[3,1,2,0],
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [])),
+                       tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
     function("árvore", Type.STRING, [Type.TUPLE])
     function("arvore", Type.STRING, [Type.TUPLE])
@@ -144,9 +167,9 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
     tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
 
 # HELPERS
-def cast(symbol, target_type):
+def cast(instance, target_type):
     if target_type == Type.INT:
-        string = symbol.get().value.upper()
+        string = instance.value.upper()
         base = 10
         if string.startswith("0X"):
             base = 16
@@ -154,15 +177,15 @@ def cast(symbol, target_type):
             base = 8
         elif string.startswith("0B"):
             base = 2
-        return inteiro(symbol, tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, base)))
+        return inteiro(instance, tupy.Instance.Instance(Type.INT, base))
     elif target_type == Type.FLOAT:
-        return real(symbol)
+        return real(instance)
     elif target_type == Type.CHAR:
-        return caracter(symbol)
+        return caracter(instance)
     elif target_type == Type.STRING:
-        return cadeia(symbol)
+        return tupy.Instance.Instance(Type.STRING, stringProcess(printInstance(instance)))
     elif target_type == Type.BOOL:
-        return lógico(symbol)
+        return lógico(instance)
     else:
         raise ValueError("Conversão de tipo não suportada!")
 
@@ -182,9 +205,24 @@ def graph_nodes_and_highlights(node_count, highlights):
 
     return "".join(node_list + parsed_highlights)
 
-def make_graph_LA_edge(i, j, edges:set):
+def make_graph_edge_params(u, v, edge_highlights:set, weight, isWeighted):
+    params = [" ["]
+    if (u, v) in edge_highlights:
+        params.append("color=\"red\"; ")
+    if isWeighted:
+        params.append("label=\"{0}\"; ".format(weight))
+    params.append("]")
+    return "".join(params)
+
+def make_graph_LA_edge(i, j, edges:set, edge_highlights:set, weight=None):
     edges.add( (i, j) ); edges.add( (j, i) )
-    return "{0} -- {1}; ".format(i, j)
+    params = [" ["]
+    if (i, j) in edge_highlights:
+        params.append("color=\"red\"; ")
+    if (weight is not None):
+        params.append("label=\"{0}\"; ".format(weight))
+    params.append("]")
+    return "{0} -- {1}{2}; ".format(i, j, "".join(params))
 
 def digraph_adj_in_bounds(node, node_count):
     if (node < node_count): return True
@@ -196,8 +234,16 @@ def dot_table_font_size(text):
 
 # BUILT-IN FUNCTIONS
 
+def asserção(cond):
+    if not cond.value:
+        raise AssertionError("Asserção violada!")
+    return tupy.Instance.Instance(Type.NULL, 0)
+
+def assercao(cond):
+    return asserção(cond)
+
 def escrever(argsTuple):
-    out = ' '.join([stringProcess(printInstance(tupy.Interpreter.memRead(arg))) for arg in argsTuple.get().value])
+    out = ' '.join([stringProcess(printInstance(tupy.Interpreter.memRead(arg))) for arg in argsTuple.value])
     tupy.Interpreter.Interpreter.output(out)
     return tupy.Instance.Instance(Type.STRING, out)
 
@@ -228,7 +274,7 @@ def stringProcess(string):
     return str(string).replace("\\n", "\n")
 
 def ler(argsTuple):
-    symbols = [cell_value(arg) for arg in argsTuple.get().value]
+    symbols = [cell_value(arg) for arg in argsTuple.value]
 
     # This is already checked by passByRef
     # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -241,7 +287,7 @@ def ler(argsTuple):
             content = tupy.Interpreter.Interpreter.inputSingle()
             inst = symbol.get()
             targetType = inst.type
-            literal = tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, content))
+            literal = tupy.Instance.Instance(Type.STRING, content)
             new_inst = cast(literal, targetType)
             tupy.Interpreter.Interpreter.storeSymbol(symbol.name, new_inst, symbol.trailers)
             successCount = successCount + 1
@@ -249,11 +295,12 @@ def ler(argsTuple):
         pass    
     return tupy.Instance.Instance(Type.INT, successCount)
 
-def ler_linha(simbolo):
+def ler_linha(instSimbolo):
     # if not isinstance(simbolo, tupy.Variable.Symbol):
     #     raise SyntaxError("A função ler_linha não pode receber um literal!")
     content = tupy.Interpreter.Interpreter.inputLine()
     result = False
+    simbolo = instSimbolo.value
     if len(content) > 0:
         result = True
         new_inst = tupy.Instance.Instance(Type.STRING, content)
@@ -262,129 +309,132 @@ def ler_linha(simbolo):
 
 def caracter(literal):
     try:
-        value = ord(chr(int(literal.get().value))) # Raises ValueErrors on negative
+        value = ord(chr(int(literal.value))) # Raises ValueErrors on negative
         return tupy.Instance.Instance(Type.CHAR, value)
     except ValueError:
         raise ValueError("Erro na conversão para CARACTER!")
 
 def real(literal):
     try:
-        return tupy.Instance.Instance(Type.FLOAT, float(literal.get().value))
+        return tupy.Instance.Instance(Type.FLOAT, float(literal.value))
     except ValueError:
         raise ValueError("Erro na conversão para REAL!")
 
 def inteiro(literal, base=None):
     if (base):
         try:
-            return tupy.Instance.Instance(Type.INT, int(literal.get().value, base.get().value))
+            return tupy.Instance.Instance(Type.INT, int(literal.value, base.value))
         except ValueError:
             raise ValueError("Erro na conversão para INTEIRO (base {0})!".format(base))
     else:
         # No try/except needed because base will only be None when calling
         # inteiro with a FLOAT, BOOL or CHAR literal.
-        return tupy.Instance.Instance(Type.INT, int(literal.get().value))
+        return tupy.Instance.Instance(Type.INT, int(literal.value))
 
-def cadeia(literal):
-    return tupy.Instance.Instance(Type.STRING, stringProcess(printInstance(literal.get())))
+def cadeia(argsTuple):
+    if len(argsTuple.value) != 1:
+        raise ValueError("A função cadeia espera exatamente um argumento!")
+    instance = tupy.Interpreter.memRead(argsTuple.value[0])
+    return tupy.Instance.Instance(Type.STRING, stringProcess(printInstance(instance)))
 
 def binário(literal):
-    return tupy.Instance.Instance(Type.STRING, bin(literal.get().value)[2:])
+    return tupy.Instance.Instance(Type.STRING, bin(literal.value)[2:])
 
 def binario(literal):
     return binário(literal)
 
 def octal(literal):
-    return tupy.Instance.Instance(Type.STRING, oct(literal.get().value)[2:])
+    return tupy.Instance.Instance(Type.STRING, oct(literal.value)[2:])
 
 def hexadecimal(literal):
-    return tupy.Instance.Instance(Type.STRING, hex(literal.get().value)[2:].upper())
+    return tupy.Instance.Instance(Type.STRING, hex(literal.value)[2:].upper())
 
 def lógico(literal):
-    return tupy.Instance.Instance(Type.BOOL, bool(literal.get().value))
+    return tupy.Instance.Instance(Type.BOOL, bool(literal.value))
 
 def logico(literal):
     return lógico(literal)
 
 def log(n, b):
-    return tupy.Instance.Instance(Type.FLOAT, math.log(n.get().value, b.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.log(n.value, b.value))
 
 def ln(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.log(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.log(n.value))
 
 def raiz(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.sqrt(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.sqrt(n.value))
 
 def exp(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.exp(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.exp(n.value))
 
 def abs(n):
-    return tupy.Instance.Instance(n.get().type, builtins.abs(n.get().value))
+    return tupy.Instance.Instance(n.type, builtins.abs(n.value))
 
 def sinal(n):
-    return tupy.Instance.Instance(Type.INT, math.copysign(1, n.get().value))
+    return tupy.Instance.Instance(Type.INT, math.copysign(1, n.value))
 
 def piso(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.floor(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.floor(n.value))
 
 def teto(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.ceil(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.ceil(n.value))
 
 def arredondar(n):
-    return tupy.Instance.Instance(Type.FLOAT, builtins.round(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, builtins.round(n.value))
 
 def graus(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.degrees(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.degrees(n.value))
 
 def radianos(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.radians(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.radians(n.value))
 
 def sen(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.sin(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.sin(n.value))
 
 def arcsen(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.asin(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.asin(n.value))
 
 def arsenh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.asinh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.asinh(n.value))
 
 def senh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.sinh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.sinh(n.value))
 
 def cos(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.cos(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.cos(n.value))
 
 def arccos(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.acos(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.acos(n.value))
 
 def arcosh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.acosh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.acosh(n.value))
 
 def cosh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.cosh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.cosh(n.value))
 
 def tg(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.tan(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.tan(n.value))
 
 def arctg(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.atan(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.atan(n.value))
 
 def arctg2(y, x):
-    return tupy.Instance.Instance(Type.FLOAT, math.atan2(y.get().value, x.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.atan2(y.value, x.value))
 
 def artgh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.atanh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.atanh(n.value))
 
 def tgh(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.tanh(n.get().value))
+    return tupy.Instance.Instance(Type.FLOAT, math.tanh(n.value))
 
 def lista(string, sep):
-    string_raw = string.get().value
-    splitted = string_raw.split(sep.get().value)
+    string_raw = string.value
+    splitted = string_raw.split(sep.value)
     array = [tupy.Interpreter.memAlloc(tupy.Instance.Instance(Type.STRING, s)) for s in splitted]
     return tupy.Instance.Instance(Type.ARRAY, array)
 
 def juntar(args):
-    args = args.get().value
+    args = args.value
     list_inst = tupy.Interpreter.memRead(args[0])
     if (list_inst.type != Type.ARRAY and list_inst.type != Type.TUPLE):
         raise TypeError("O primeiro parâmetro da função juntar deve ser uma lista ou tupla!")
@@ -407,23 +457,23 @@ def aleatório(x=None, y=None):
     if (x is None):
         return tupy.Instance.Instance(Type.FLOAT, random.random())
     elif (y is None):
-        return tupy.Instance.Instance(Type.FLOAT, random.uniform(0, x.get().value))
+        return tupy.Instance.Instance(Type.FLOAT, random.uniform(0, x.value))
     else:
-        return tupy.Instance.Instance(Type.FLOAT, random.uniform(x.get().value, y.get().value))
+        return tupy.Instance.Instance(Type.FLOAT, random.uniform(x.value, y.value))
 
 def inteiro_aleatorio(x, y=None):
     return inteiro_aleatório(x,y)
 
 def inteiro_aleatório(x, y=None):
     if (y is None):
-        a = 0; b = x.get().value
+        a = 0; b = x.value
     else:
-        a = y.get().value; b = x.get().value
+        a = y.value; b = x.value
 
     return tupy.Instance.Instance(Type.INT, random.randint(builtins.min(a,b), builtins.max(a,b)))
 
 def embaralhar(argsTuple):
-    argsTuple = argsTuple.get().value
+    argsTuple = argsTuple.value
     if (len(argsTuple) == 1):
         inst = tupy.Interpreter.memRead(argsTuple[0])
         if (inst.is_pure_array()):
@@ -435,7 +485,7 @@ def embaralhar(argsTuple):
         raise TypeError("A função embaralhar deve receber apenas uma lista!")
 
 def inserir(argsTuple):
-    argsTuple = argsTuple.get().value
+    argsTuple = argsTuple.value
     if (len(argsTuple) < 2):
         raise TypeError("Faltam argumentos para a função inserir(lista, elemento, [pos])!")
     elif (len(argsTuple) > 3):
@@ -447,10 +497,8 @@ def inserir(argsTuple):
             elem_inst = tupy.Interpreter.memRead(argsTuple[1])
 
             # Root type == Literal Array when is empty, so most things are okay
-            print(elem_inst.array_dimensions)
-            print(inst.array_dimensions)
             if (elem_inst.array_dimensions != inst.array_dimensions - 1 and inst.roottype != Type.ARRAY):
-                dimensions = elem_inst.array_dimensions
+                dimensions = inst.array_dimensions - 1
                 if dimensions == 0:
                     raise TypeError("A função inserir espera receber um segundo argumento primitivo!")
                 else:
@@ -482,7 +530,7 @@ def inserir(argsTuple):
             raise TypeError("A função inserir espera receber uma lista como primeiro argumento!")
 
 def remover(argsTuple):
-    argsTuple = argsTuple.get().value
+    argsTuple = argsTuple.value
     if (len(argsTuple) != 2):
         raise TypeError("A função remover(lista, pos) espera receber dois argumentos!")
     else:
@@ -505,10 +553,10 @@ def remover(argsTuple):
             raise TypeError("A função remover espera receber uma lista como primeiro argumento!")
 
 def min(x, y):
-    return tupy.Instance.Instance(x.get().type, builtins.min(x.get().value, y.get().value))
+    return tupy.Instance.Instance(x.type, builtins.min(x.value, y.value))
 
 def max(x, y):
-    return tupy.Instance.Instance(x.get().type, builtins.max(x.get().value, y.get().value))
+    return tupy.Instance.Instance(x.type, builtins.max(x.value, y.value))
 
 def mín(x, y):
     return min(x, y)
@@ -520,21 +568,33 @@ _graph_opts = "overlap=false; node [fontsize=16 width=0.2 margin=0.05 shape=circ
 _graph_highlight = "[style = filled fillcolor = yellow]; "
 _empty_graphviz_return = "[[DOT digraph G {{ 1 [label = \"{0} vazio!\" fontsize=\"25\" shape = \"plaintext\"] }}]]".format(chr(0x1F4E5))
 
-def grafo_MA(matrix, highlights, extra):
+def grafo_MA(matrix, highlights, edgeHighlights, extra, weighted=False):
     header = "[[DOT strict graph {"
     trailer = "}]]"
-    matrix = matrix.get().value
-    highlights = highlights.get().value
-    extra = extra.get().value
+    matrix = matrix.value
+    highlights = highlights.value
+    edgeHighlights = edgeHighlights.value
+
+    edgeHighlightSet = set()
+    # Parse edge highlights into a set
+    for highlight in edgeHighlights:
+        highlight = cell_value(highlight)
+        if len(highlight) != 2:
+            raise ValueError("A lista de arestas destacadas deve conter listas de exatamente dois elementos!")
+        pair = tuple(sorted([cell_value(coord) for coord in highlight]))
+        edgeHighlightSet.add(pair)
+
+    extra = extra.value
 
     n_lines = len(matrix)
     if all(len(cell_value(line)) == n_lines for line in matrix):
         if all(cell_value(elem) < n_lines for elem in highlights):
             # Parse connections
-            parsed_connections = ["{0} -- {1}; ".format(i, j) for i in range(n_lines) \
+            parsed_connections = ["{0} -- {1}{2}; ".format(i, j, make_graph_edge_params(i, j, edgeHighlightSet, val, weighted))
+                                                             for i in range(n_lines) \
                                                              for j in range(i, n_lines) \
-                                                             if matrix_access(matrix, i, j) \
-                                                             and matrix_access(matrix, j, i)]
+                                                             for val in [matrix_access(matrix, i, j)] \
+                                                             if val and matrix_access(matrix, j, i)]
             parsed_connections = "".join(parsed_connections)
 
             ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_lines, highlights), 
@@ -545,20 +605,35 @@ def grafo_MA(matrix, highlights, extra):
     else:
         raise ValueError("A matriz de adjacências deve ser quadrada!")
 
-def digrafo_MA(matrix, highlights, extra):
+def grafo_valorado_MA(matrix, highlights, edgeHighlights, extra):
+    return grafo_MA(matrix, highlights, edgeHighlights, extra, True)
+
+def digrafo_MA(matrix, highlights, edgeHighlights, extra, weighted=False):
     header = "[[DOT digraph {"
     trailer = "}]]"
-    matrix = matrix.get().value
-    highlights = highlights.get().value
-    extra = extra.get().value
+    matrix = matrix.value
+    highlights = highlights.value
+    edgeHighlights = edgeHighlights.value
+    extra = extra.value
+
+    edgeHighlightSet = set()
+    # Parse edge highlights into a set
+    for highlight in edgeHighlights:
+        highlight = cell_value(highlight)
+        if len(highlight) != 2:
+            raise ValueError("A lista de arestas destacadas deve conter listas de exatamente dois elementos!")
+        pair = tuple([cell_value(coord) for coord in highlight])
+        edgeHighlightSet.add(pair)
 
     n_lines = len(matrix)
     if all(len(cell_value(line)) == n_lines for line in matrix):
         if all(cell_value(elem) < n_lines for elem in highlights):            
             # Parse connections
-            parsed_connections = ["{0} -> {1}; ".format(i, j) for i in range(n_lines) \
+            parsed_connections = ["{0} -> {1}{2}; ".format(i, j, make_graph_edge_params(i, j, edgeHighlightSet, val, weighted)) 
+                                                             for i in range(n_lines) \
                                                              for j in range(n_lines) \
-                                                             if matrix_access(matrix, i, j)]
+                                                             for val in [matrix_access(matrix, i, j)] \
+                                                             if val]
             parsed_connections = "".join(parsed_connections)
 
             ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_lines, highlights), 
@@ -569,26 +644,52 @@ def digrafo_MA(matrix, highlights, extra):
     else:
         raise ValueError("A matriz de adjacências deve ser quadrada!")
 
-def grafo_LA(adjList, highlights, extra):
+def digrafo_valorado_MA(matrix, highlights, edgeHighlights, extra):
+    return digrafo_MA(matrix, highlights, edgeHighlights, extra, True)
+
+def grafo_LA(adjList, highlights, edgeHighlights, extra, weighted=False):
     header = "[[DOT strict graph {"
     trailer = "}]]"
-    adjList = adjList.get().value
-    highlights = highlights.get().value
-    extra = extra.get().value
+    adjList = adjList.value
+    highlights = highlights.value
+    edgeHighlights = edgeHighlights.value
+
+    edgeHighlightSet = set()
+    # Parse edge highlights into a set
+    for highlight in edgeHighlights:
+        highlight = cell_value(highlight)
+        if len(highlight) != 2:
+            raise ValueError("A lista de arestas destacadas deve conter listas de exatamente dois elementos!")
+        pair = tuple(sorted([cell_value(coord) for coord in highlight]))
+        edgeHighlightSet.add(pair)
+
+    extra = extra.value
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
             try:           
                 existing_connections = set()    
                 # Parse connections
-                parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections) \
-                                                            for i, elem in enumerate(adjList) \
-                                                            for elemJ in cell_value(elem) \
-                                                            for valJ in [cell_value(elemJ)] \
-                                                            if (i, valJ) not in existing_connections \
-                                                            and i in [cell_value(cell) \
-                                                                      for cell in cell_value(adjList[valJ])] 
-                                                            ]
+                if weighted:
+                    parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections, edgeHighlightSet, weight) \
+                                                                for i, elem in enumerate(adjList) \
+                                                                for elemJ   in cell_value(elem) \
+                                                                for pairJ   in [cell_value(elemJ)] \
+                                                                for valJ    in [cell_value(pairJ[0])] \
+                                                                for weight  in [cell_value(pairJ[1])] \
+                                                                if (i, valJ) not in existing_connections \
+                                                                and i in [cell_value(cell_value(cell)[0]) \
+                                                                        for cell in cell_value(adjList[valJ])] 
+                                                                ]
+                else:
+                    parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections, edgeHighlightSet) \
+                                                                for i, elem in enumerate(adjList) \
+                                                                for elemJ in cell_value(elem) \
+                                                                for valJ in [cell_value(elemJ)] \
+                                                                if (i, valJ) not in existing_connections \
+                                                                and i in [cell_value(cell) \
+                                                                        for cell in cell_value(adjList[valJ])] 
+                                                                ]
                 parsed_connections = "".join(parsed_connections)
 
                 ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_nodes, highlights), 
@@ -599,23 +700,46 @@ def grafo_LA(adjList, highlights, extra):
     else:
         raise ValueError("A lista de nós destacados contém nós que não existem!")
 
-def digrafo_LA(adjList, highlights, extra):
+def grafo_valorado_LA(adjList, highlights, edgeHighlights, extra):
+    return grafo_LA(adjList, highlights, edgeHighlights, extra, True)
+
+def digrafo_LA(adjList, highlights, edgeHighlights, extra, weighted=False):
     header = "[[DOT digraph {"
     trailer = "}]]"
-    adjList = adjList.get().value
-    highlights = highlights.get().value
-    extra = extra.get().value
+    adjList = adjList.value
+    highlights = highlights.value
+    edgeHighlights = edgeHighlights.value
+    extra = extra.value
+
+    edgeHighlightSet = set()
+    # Parse edge highlights into a set
+    for highlight in edgeHighlights:
+        highlight = cell_value(highlight)
+        if len(highlight) != 2:
+            raise ValueError("A lista de arestas destacadas deve conter listas de exatamente dois elementos!")
+        pair = tuple([cell_value(coord) for coord in highlight])
+        edgeHighlightSet.add(pair)
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
             try:               
                 # Parse connections
-                parsed_connections = ["{0} -> {1}; ".format(i, valJ) \
-                                                            for i, elem in enumerate(adjList) \
-                                                            for elemJ in cell_value(elem) \
-                                                            for valJ in [cell_value(elemJ)] \
-                                                            if digraph_adj_in_bounds(valJ, n_nodes)
-                                                            ]
+                if weighted:
+                    parsed_connections = ["{0} -> {1}{2}; ".format(i, valJ, make_graph_edge_params(i, valJ, edgeHighlightSet, weight, True)) \
+                                                                for i, elem in enumerate(adjList) \
+                                                                for elemJ in cell_value(elem) \
+                                                                for pairJ   in [cell_value(elemJ)] \
+                                                                for valJ    in [cell_value(pairJ[0])] \
+                                                                for weight  in [cell_value(pairJ[1])] \
+                                                                if digraph_adj_in_bounds(valJ, n_nodes)
+                                                                ]
+                else:
+                    parsed_connections = ["{0} -> {1}{2}; ".format(i, valJ, make_graph_edge_params(i, valJ, edgeHighlightSet, 0, False)) \
+                                                                for i, elem in enumerate(adjList) \
+                                                                for elemJ in cell_value(elem) \
+                                                                for valJ in [cell_value(elemJ)] \
+                                                                if digraph_adj_in_bounds(valJ, n_nodes)
+                                                                ]
                 parsed_connections = "".join(parsed_connections)
 
                 ret = "".join([header, _graph_opts, extra, graph_nodes_and_highlights(n_nodes, highlights), 
@@ -626,8 +750,11 @@ def digrafo_LA(adjList, highlights, extra):
     else:
         raise ValueError("A lista de nós destacados contém nós que não existem!")
 
+def digrafo_valorado_LA(adjList, highlights, edgeHighlights, extra):
+    return digrafo_LA(adjList, highlights, edgeHighlights, extra, True)
+
 def árvore(argsTuple):
-    argsTuple = argsTuple.get().value
+    argsTuple = argsTuple.value
     if (len(argsTuple) < 3):
         raise TypeError("Faltam argumentos para a função árvore(estrutura, nome_chave, nome_filhos, [destaques, opções])!")
     elif (len(argsTuple) > 5):
@@ -724,9 +851,9 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
         return resultString
 
 def matriz(matriz, highlights, extra):
-    matriz = matriz.get().value
+    matriz = matriz.value
     if not len(matriz): return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = highlights.get().value
+    highlights = highlights.value
     highlightSet = set()
     # Parse highlights into a set
     for highlight in highlights:
@@ -735,7 +862,7 @@ def matriz(matriz, highlights, extra):
             raise ValueError("A lista de destaques da função matriz deve conter listas de exatamente dois elementos cada!")
         pair = tuple([cell_value(coord) for coord in highlight])
         highlightSet.add(pair)
-    extra = extra.get().value
+    extra = extra.value
     header = "[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     rowHeader = "<TR>"
@@ -752,7 +879,7 @@ def matriz(matriz, highlights, extra):
         rowResults.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
         for j, column in enumerate(row):
             columnInst = tupy.Interpreter.memRead(column)
-            columnText = stringProcess(printInstance(columnInst))
+            columnText = html.escape(stringProcess(printInstance(columnInst)))
             rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j)))
         rowResults.append(rowTrailer)
 
@@ -768,12 +895,12 @@ def matriz(matriz, highlights, extra):
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
 def vetor(vetor, highlights, extra):
-    vetor = vetor.get().value
+    vetor = vetor.value
     columns = len(vetor)
     if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlights = [cell_value(cell) for cell in highlights.value]
     highlightSet = set(highlights)
-    extra = extra.get().value
+    extra = extra.value
     header = "[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     rowHeader = "<TR>"; rowTrailer = "</TR>"
@@ -787,19 +914,19 @@ def vetor(vetor, highlights, extra):
     result.append(rowHeader)
     for i, column in enumerate(vetor):
         columnInst = tupy.Interpreter.memRead(column)
-        columnText = stringProcess(printInstance(columnInst))
+        columnText = html.escape(stringProcess(printInstance(columnInst)))
         result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
 def pilha(vetor, highlights, extra):
-    vetor = vetor.get().value
+    vetor = vetor.value
     rows = len(vetor)
     if not rows: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlights = [cell_value(cell) for cell in highlights.value]
     highlightSet = set(highlights)
-    extra = extra.get().value
+    extra = extra.value
     header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
               "2 [label = \" \"]; 2 -> 1; 1 -> 2; 1 [label = <<TABLE BORDER=\"0\" "
               "CELLPADDING=\"0\" CELLSPACING=\"0\">")
@@ -811,18 +938,18 @@ def pilha(vetor, highlights, extra):
     result = [header]
     for i, row in enumerate(reversed(vetor)):
         rowInst = tupy.Interpreter.memRead(row)
-        rowText = stringProcess(printInstance(rowInst))
+        rowText = html.escape(stringProcess(printInstance(rowInst)))
         result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(i), getSides(i)))
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
 def fila(vetor, highlights, extra):
-    vetor = vetor.get().value
+    vetor = vetor.value
     columns = len(vetor)
     if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.get().value]
+    highlights = [cell_value(cell) for cell in highlights.value]
     highlightSet = set(highlights)
-    extra = extra.get().value
+    extra = extra.value
     header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
               "rankdir = \"LR\"; 2 [label = \" \"]; 3 [label = \" \"]; 2 -> 1; 1 -> 3; 1 [label = "
               "<<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">")
@@ -836,7 +963,7 @@ def fila(vetor, highlights, extra):
     result.append(rowHeader)
     for i, column in enumerate(reversed(vetor)):
         columnInst = tupy.Interpreter.memRead(column)
-        columnText = stringProcess(printInstance(columnInst))
+        columnText = html.escape(stringProcess(printInstance(columnInst)))
         result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i)))
     result.append(rowTrailer)
     result.append(trailer)

@@ -12,7 +12,7 @@ from tupy.Interpreter import Interpreter, memRead
 from tupy.Builtins import _graph_opts, _graph_highlight
 from tupy.errorHelper import TupyNameError, TupyRuntimeError, TupySyntaxError, \
                              TupyTypeError, TupyValueError, TupyParseError, \
-                             TupyIndexError
+                             TupyIndexError, TupyAssertionError
 
 class TestEvalVisitor(unittest.TestCase):
     eex = "testOrExpression"
@@ -1574,6 +1574,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro(\"a\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "real(\"ff\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "caracter(-1)\n")
+        self.assertRaises(TupyValueError, Interpreter.interpret, "cadeia(1, 2, 3, 4)\n")
 
     def test_parse_error(self):
         self.assertRaises(TupyParseError, Interpreter.interpret, "a({=\n")
@@ -1753,7 +1754,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[2].value, 7)
 
     def test_input_single_errors(self):
-        self.assertRaises(TupySyntaxError, Interpreter.interpret, "ler([1, 2, 3])")
+        self.assertRaises(TupySyntaxError, Interpreter.interpret, "ler([1, 2, 3])", stdin="1, 2, 3")
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro a[3]; ler(a)", stdin="1, 2, 3")
 
     def test_input_line(self):
@@ -1794,6 +1795,19 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret[0].value, 1234)
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, "")
+
+    def test_function_int_type_inference(self):
+        ret = Interpreter.interpret(("inteiro tam(inteiro[] V):\n"
+                                     "\tretornar |V|\n"
+                                     "tam([])\n"))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 0)
+
+    def test_assertion(self):
+        ret = Interpreter.interpret("asserção(2 > 1); verdadeiro")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        self.assertRaises(TupyAssertionError, Interpreter.interpret, "assercao(falso); verdadeiro")
 
 if __name__ == '__main__':
     unittest.main()

@@ -389,28 +389,15 @@ class evalVisitor(ParseTreeVisitor):
                                      returnType=returnType, funcName=funcName)
         tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
-        for (name, datatype, arrayDimensions, referenceData, invisible, className, literal) in injectList:
-            inst = literal.get()
-
-            if inst.array_dimensions != arrayDimensions:
-                if arrayDimensions == 0:
-                    tupy.errorHelper.typeError("A {0} não esperava uma lista como argumento!".format(funcName), ctx)
-                else:
-                    tupy.errorHelper.typeError("A {0} esperava uma lista de {1} dimensões!".format(funcName, arrayDimensions), ctx)
-
-
-            if inst.type == Type.STRUCT: # then inst.value contains a Context
-                if not tupy.Interpreter.Interpreter.areClassNamesCompatible(className, inst.value.structName):
-                    tupy.errorHelper.typeError("A {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(funcName, className, inst.value.structName), ctx)
-
+        for (name, datatype, arrayDimensions, referenceData, invisible, className, inst) in injectList:
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
             tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className, invisible)
             tupy.Interpreter.Interpreter.storeSymbol(name, inst, [])
 
-            (referenceDepth, referenceTrailers) = referenceData
+            (referenceDepth, referenceName, referenceTrailers) = referenceData
             
             if (inst.type != Type.TUPLE and referenceDepth > -1): #Pass-by-reference only (except variadic)
-                cell = tupy.Interpreter.Interpreter.getMemoryCell(literal.name, referenceDepth)
+                cell = tupy.Interpreter.Interpreter.getMemoryCell(referenceName, referenceDepth)
 
                 # Grabbing the correct memory cell is trickier if there are trailers
                 # We are mostly concerned with where the result of retrieveWithTrailers
@@ -424,7 +411,6 @@ class evalVisitor(ParseTreeVisitor):
                         tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), ctx.parentCtx)
 
                 tupy.Interpreter.Interpreter.referenceSymbol(name, cell)
-                # tupy.Interpreter.tupy.Interpreter.mapRefParam(name, literal.name, referenceDepth, referenceTrailers)   
 
         if isClassDef:
             if funcName.startswith("Definição da classe "):
@@ -952,6 +938,8 @@ class evalVisitor(ParseTreeVisitor):
                     return ret
             except TypeError:
                 return ret
+        except AssertionError as e:
+            tupy.errorHelper.assertionError(e.args[0], s)
         except NameError as e:
             tupy.errorHelper.nameError(e.args[0], s)
         except TypeError as e:

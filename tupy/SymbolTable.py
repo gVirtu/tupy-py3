@@ -39,9 +39,16 @@ class SymbolTable(object):
         else:
             data = tupy.Variable.Variable.makeDefaultValue(datatype, className=className)
         data.update_roottype(self.datatype[name])
-        data.array_dimensions = len(subscriptList)
+        self.adjustArrayDimensions(data, len(subscriptList))
         data.class_name = className
         self.data[(name, depth)] = tupy.Interpreter.memAlloc(data, invisible)
+
+    def adjustArrayDimensions(self, data, dimensions):
+        data.array_dimensions = dimensions
+        if (data.type == tupy.Type.Type.ARRAY):
+            for child in data.value:
+                childInst = tupy.Interpreter.memRead(child)
+                self.adjustArrayDimensions(childInst, dimensions-1)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
         tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))

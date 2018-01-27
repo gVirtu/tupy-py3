@@ -1,7 +1,7 @@
 import tupy.Interpreter
 from tupy.Type import Type
 
-_args_end = Type.NULL
+_args_end = Type.RESERVED
 
 class Function(object):
     def __init__(self, name):

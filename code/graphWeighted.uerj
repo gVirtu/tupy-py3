@@ -1,0 +1,26 @@
+inteiro G[5, 5] <- [ [0, 4, 0, 0, 9],
+                     [4, 0, 0, 1, 0],
+                     [0, 0, 0, 7, 0],
+                     [0, 1, 7, 0, 0],
+                     [9, 0, 0, 0, 0]]
+
+escrever(grafo_valorado_MA(G, [1], [[3, 2]]))
+
+inteiro LAW[5,*,2] <- []
+
+inteiro LA[5,*] <- []
+
+aresta_LA(inteiro u, inteiro v):
+    LA[u] <- inserir(LA[u], v)
+    LA[v] <- inserir(LA[v], u)
+
+aresta_LAW(inteiro u, inteiro v, inteiro w):
+    LAW[u] <- inserir(LAW[u], [v, w])
+    LAW[v] <- inserir(LAW[v], [u, w])
+
+aresta_LAW(0, 1, 4)
+aresta_LAW(0, 4, 9)
+aresta_LAW(1, 3, 1)
+aresta_LAW(2, 3, 7)
+
+escrever(grafo_valorado_LA(LAW, [1], [[3, 2]]))

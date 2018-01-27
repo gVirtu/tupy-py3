@@ -13,6 +13,7 @@ class Type(Enum):
     TUPLE = 9
     FUNCTION = 10
     STRUCT = 11
+    RESERVED = 12
 
 class TrailerType(Enum):
     SUBSCRIPT = 0

@@ -4,6 +4,9 @@ import re
 class TupyError(Exception):
     pass
 
+class TupyAssertionError(TupyError):
+    pass
+
 class TupyIndexError(TupyError):
     pass
 
@@ -46,6 +49,9 @@ def syntaxError(message, ctx:antlr4.ParserRuleContext):
 def runtimeError(message, ctx:antlr4.ParserRuleContext):
     raise TupyRuntimeError("ERRO: {0}".format(translate(message)), ctx.start.line)
 
+def assertionError(message, ctx:antlr4.ParserRuleContext):
+    raise TupyAssertionError("ERRO: {0}".format(translate(message)), ctx.start.line)
+
 def translate(msg):
     msg = str(msg)
     dicionario = {"mismatched input": "entrada incompatível", 
@@ -64,7 +70,8 @@ def translate(msg):
                     "Type.FLOAT": "REAL",
                     "Type.STRING": "CADEIA",
                     "Type.BOOL": "LÓGICO",
-                    "Type.STRUCT": "ESTRUTURA"
+                    "Type.STRUCT": "ESTRUTURA",
+                    "Type.NULL": "NULO"
                     } 
 
     rep = dict((re.escape(k), v) for k, v in dicionario.items())

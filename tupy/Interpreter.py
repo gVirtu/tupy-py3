@@ -140,53 +140,88 @@ class Interpreter(object):
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
+        if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
+            isVariadic = True
+            # The last argument is just a tuple packing all the extra args
+            # The fixed arguments are all the ones before it (thus we subtract 1 from len)
+            fixedCount = len(argTypes)-1
+        else:
+            isVariadic = False
+            fixedCount = len(argTypes)
+
         argClassNames = [a.className for a in argumentList]
         argIsInvisible = [a.invisible for a in argumentList]
         argDimensions = [a.arrayDimensions for a in argumentList]
-        argValues = copy.copy(callArgs)
-        for a in argumentList[len(callArgs):]:
-            argValues.append(a.defaultValue)
-
+        argValues = copy.copy(instArgs)
         try:
-            argPassage = [ ( (cls.getDepth(argValues[ind].name), argValues[ind].trailers)
-                              if (a.passByRef) else (-1, []) ) 
-                                for ind, a in enumerate(argumentList) ]
-        except Exception:
+            argPassage = [ ((cls.getDepth(a.name), a.name, a.trailers)
+                              if (argumentList[ind].passByRef) else (-1, "", []) ) 
+                              for ind, a in enumerate(callArgs[:fixedCount]) ]
+
+            for a in argumentList[len(callArgs):fixedCount]:
+                argValues.append(a.defaultValue.get())
+                argPassage.append((cls.getDepth(a.defaultValue.name), a.defaultValue.name, a.defaultValue.trailers)
+                                  if (a.passByRef) else (-1, "", []) )
+
+        except AttributeError as e:
             # We can only access "name" in argValues above if it's a Symbol.
             # Otherwise we are thrown an Exception.
             raise SyntaxError("Referência inválida!")
 
+        # Validations
+
+        for i, inst in enumerate(argValues[:fixedCount]):
+            if inst.array_dimensions != argDimensions[i]:
+                if argDimensions[i] == 0:
+                    raise TypeError("A função {0} não esperava uma lista como argumento!".format(function.name))
+                elif inst.roottype == Type.ARRAY:
+                    inst.array_dimensions = argDimensions[i]
+                else:
+                    raise TypeError("A função {0} esperava uma lista de {1} dimensões!".format(function.name, argDimensions[i]))
+
+            if inst.type == Type.STRUCT: # then inst.value contains a Context
+                if not tupy.Interpreter.Interpreter.areClassNamesCompatible(argClassNames[i], inst.value.structName):
+                    raise TypeError("A {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(function.name, argClassNames[i], inst.value.structName))
+
         # Variadic handling
-        if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
-            # The last argument is just a tuple packing all the extra args
-            # The fixed arguments are all the ones before it (thus we subtract 1 from len)
-            fixedCount = len(argTypes)-1
+        if isVariadic:
+            # Currently argPassage only goes up to fixedCount
+            # This append is to prevent it from limiting the finalArgs zip
+            argPassage.append( (-1, "", []) )
+
             if (len(callArgs) > fixedCount):
                 argValues = argValues[:fixedCount]
                 # Pass by value (evaluated args in tuple)
-                if (argPassage[-1] == (-1, [])):
+                if not argumentList[-1].passByRef:
                     extraInsts = instArgs[fixedCount:]
                 # Pass by reference
                 else:
+                    symbols = callArgs[fixedCount:]
+                    if not all([isinstance(symbol, tupy.Variable.Symbol) for symbol in symbols]):
+                        raise SyntaxError("Referência inválida!")
                     extraInsts = [tupy.Instance.Instance(Type.REFERENCE, symbol) 
-                                    for symbol in callArgs[fixedCount:]]
+                                    for symbol in symbols]
                 memExtraArgs = [memAlloc(inst) for inst in extraInsts]
-                packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs)))
-                argValues.append(packed)
+                packed = tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs))
             else:
                 # This is to prevent extraArgs from having Nones which cause
                 # errors when instantiating, and come from the appending of defaultValues
                 # from the argumentList. (variadic args won't have them so None ends up
                 # being added to argValues)
-                packed = tupy.Variable.Literal(tupy.Instance.Instance(Type.TUPLE, tuple()))
-                argValues[-1] = packed
+                packed = tupy.Instance.Instance(Type.TUPLE, tuple())
+            
+            argValues.append(packed)
         
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argIsInvisible, argClassNames, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
             logger.debug("CodeIndex is {0}".format(codeIndex))
             builtInFunc = getattr(tupy.Builtins, codeIndex)
-            return builtInFunc(*argValues)
+            passValues = [argValues[i] if argPassage[i][0] == -1 \
+                                       else tupy.Instance.Instance(Type.REFERENCE, callArgs[i]) \
+                                       for i in range(len(argValues))]
+            # VALIDATE ARRAYDIMENSIONS HERE
+            return builtInFunc(*passValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
             if (isConstructor):
