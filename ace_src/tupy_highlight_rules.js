@@ -8,7 +8,7 @@ var tupyHighlightRules = function() {
 
     var keywordControls = (
         "parar|avancar|senao|para|passo|se|" +
-        "retornar|enquanto"
+        "retornar|enquanto|inclusive"
     );
     
     var storageType = (
@@ -29,10 +29,12 @@ var tupyHighlightRules = function() {
     
     var builtinFunctions = (
         "escrever|ler|ler_linha|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
-        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar"+
+        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
-        "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila"
+        "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila|" +
+        "grafo_valorado_MA|digrafo_valorado_MA|grafo_valorado_LA|digrafo_valorado_LA|" +
+        "assercao"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({
@@ -71,7 +73,7 @@ var tupyHighlightRules = function() {
             }, {
             ///////////////////////////////////// BEGIN BROKEN UNICODE RULES
                 token : "keyword.control",
-                regex : "senão|avançar"
+                regex : "senão|avançar|até|incl\\."
             }, {
                 token : "keyword.operator",
                 regex : "não"
@@ -80,7 +82,7 @@ var tupyHighlightRules = function() {
                 regex : "lógico"
             }, {
                 token : "support.function",
-                regex : "binário|aleatório|inteiro_aleatório|mín|máx|árvore"
+                regex : "binário|aleatório|inteiro_aleatório|mín|máx|árvore|asserção"
             }, {
                 token : "constant.language",
                 regex : "π"

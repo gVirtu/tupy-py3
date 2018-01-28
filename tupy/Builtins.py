@@ -867,7 +867,7 @@ def matriz(matriz, highlights, extra):
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     rowHeader = "<TR>"
     rowTrailer = "</TR>"
-    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
+    element = "<TD PORT=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
     getBgColor = lambda i,j : "YELLOW" if (i,j) in highlightSet else "WHITE"
     result = [header]
     rowResults = []
@@ -876,17 +876,17 @@ def matriz(matriz, highlights, extra):
         row = cell_value(row)
         columns = builtins.max(len(row), columns)
         rowResults.append(rowHeader)
-        rowResults.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
+        rowResults.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "r{0}".format(i)))
         for j, column in enumerate(row):
             columnInst = tupy.Interpreter.memRead(column)
             columnText = html.escape(stringProcess(printInstance(columnInst)))
-            rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j)))
+            rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j), "v{0}_{1}".format(i, j)))
         rowResults.append(rowTrailer)
 
     result.append(rowHeader)
-    result.append(element.format(" ", dot_table_font_size(" "), 0, "WHITE"))
+    result.append(element.format(" ", dot_table_font_size(" "), 0, "WHITE", "rc"))
     for i in range(columns):
-        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
+        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i)))
     result.append(rowTrailer)
 
     result.extend(rowResults)
@@ -904,18 +904,18 @@ def vetor(vetor, highlights, extra):
     header = "[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     rowHeader = "<TR>"; rowTrailer = "</TR>"
-    element = "<TD BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
+    element = "<TD PORT=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>"
     getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
     result = [header]
     result.append(rowHeader)
     for i in range(columns):
-        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE"))
+        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i)))
     result.append(rowTrailer)
     result.append(rowHeader)
     for i, column in enumerate(vetor):
         columnInst = tupy.Interpreter.memRead(column)
         columnText = html.escape(stringProcess(printInstance(columnInst)))
-        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i)))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), "v{0}".format(i)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
@@ -927,11 +927,11 @@ def pilha(vetor, highlights, extra):
     highlights = [cell_value(cell) for cell in highlights.value]
     highlightSet = set(highlights)
     extra = extra.value
-    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
+    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; "
               "2 [label = \" \"]; 2 -> 1; 1 -> 2; 1 [label = <<TABLE BORDER=\"0\" "
               "CELLPADDING=\"0\" CELLSPACING=\"0\">")
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
-    element = ("<TR><TD SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
+    element = ("<TR><TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                "<FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD></TR>")
     getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
     getSides = lambda i: "LBR" if i == 0 else "LBRT"
@@ -939,7 +939,7 @@ def pilha(vetor, highlights, extra):
     for i, row in enumerate(reversed(vetor)):
         rowInst = tupy.Interpreter.memRead(row)
         rowText = html.escape(stringProcess(printInstance(rowInst)))
-        result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(i), getSides(i)))
+        result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(i), getSides(i), "v{0}".format(len(vetor)-i-1)))
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
@@ -950,11 +950,11 @@ def fila(vetor, highlights, extra):
     highlights = [cell_value(cell) for cell in highlights.value]
     highlightSet = set(highlights)
     extra = extra.value
-    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; graph [splines=ortho]; "
-              "rankdir = \"LR\"; 2 [label = \" \"]; 3 [label = \" \"]; 2 -> 1; 1 -> 3; 1 [label = "
+    header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; "
+              "2 [label = \" \"]; 3 [label = \" \"]; 2 -> 1; 1 -> 3; {rank = same; 2; 1; 3;} 1 [label = "
               "<<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">")
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
-    element = ("<TD SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
+    element = ("<TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                "<FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD>")
     rowHeader = "<TR>"; rowTrailer = "</TR>"
     getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
@@ -964,7 +964,7 @@ def fila(vetor, highlights, extra):
     for i, column in enumerate(reversed(vetor)):
         columnInst = tupy.Interpreter.memRead(column)
         columnText = html.escape(stringProcess(printInstance(columnInst)))
-        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i)))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i), "v{0}".format(len(vetor)-i-1)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
