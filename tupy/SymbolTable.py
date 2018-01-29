@@ -279,7 +279,14 @@ class SymbolTable(object):
                                           tupy.Interpreter.memRead(currentData.value[targetIndex]), 
                                           sizeList[1:])
         else:
-            return targetSubscript.end - targetSubscript.begin
+            if targetSubscript.end is None:
+                if sizeList[0].isWildcard:
+                    sz = currentData.array_length() if currentData.is_pure_array() else 1
+                else:
+                    sz = sizeList[0].begin
+                return sz - targetSubscript.begin
+            else:
+                return targetSubscript.end - targetSubscript.begin
 
     def hasValidType(self, name, instance, trailerList):
         if (instance.roottype == tupy.Type.Type.NULL):

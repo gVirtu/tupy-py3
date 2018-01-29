@@ -17,6 +17,7 @@ def initialize():
     function("ler", Type.STRING, [Type.TUPLE], passByRef=[True])
     function("ler_linha", Type.STRING, [Type.STRING], passByRef=[True])
     function("caracter", Type.CHAR, [Type.INT])
+    function("caracter", Type.CHAR, [Type.STRING])
     function("real", Type.FLOAT, [Type.INT])
     function("real", Type.FLOAT, [Type.CHAR])
     function("real", Type.FLOAT, [Type.BOOL])
@@ -308,11 +309,22 @@ def ler_linha(instSimbolo):
     return tupy.Instance.Instance(Type.BOOL, result)
 
 def caracter(literal):
-    try:
-        value = ord(chr(int(literal.value))) # Raises ValueErrors on negative
-        return tupy.Instance.Instance(Type.CHAR, value)
-    except ValueError:
-        raise ValueError("Erro na conversão para CARACTER!")
+    if literal.type == Type.INT:
+        try:
+            value = ord(chr(int(literal.value))) # Raises ValueErrors on negative
+            return tupy.Instance.Instance(Type.CHAR, value)
+        except ValueError:
+            raise ValueError("Erro na conversão para CARACTER!")
+    elif literal.type == Type.STRING:
+        try:
+            value = ord(literal.value) # Raises TypeErrors on strings of len != 1
+            return tupy.Instance.Instance(Type.CHAR, value)
+        except TypeError:
+            try: # Maybe it's a string with a character code
+                value = ord(chr(int(literal.value))) # Raises ValueErrors on negative
+                return tupy.Instance.Instance(Type.CHAR, value)
+            except ValueError:
+                raise ValueError("Erro na conversão para CARACTER!")
 
 def real(literal):
     try:

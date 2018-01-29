@@ -1541,8 +1541,9 @@ class TestEvalVisitor(unittest.TestCase):
                              "S\n"))
 
     def test_type_cast(self):
-        ret = Interpreter.interpret("caracter(71)\n")
-        self.assertEqual(ret.type, Type.CHAR); self.assertEqual(ret.value, 71)
+        ret = Interpreter.interpret("caracter(71), caracter(\"*\")\n")
+        self.assertEqual(ret[0].type, Type.CHAR); self.assertEqual(ret[0].value, 71)
+        self.assertEqual(ret[1].type, Type.CHAR); self.assertEqual(ret[1].value, ord('*'))
 
         ret = Interpreter.interpret("real(35), real(\"36\"), real('a'), real(verdadeiro)\n")
         self.assertEqual(ret[0].type, Type.FLOAT); self.assertEqual(ret[0].value, 35)
@@ -1574,6 +1575,7 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyValueError, Interpreter.interpret, "inteiro(\"a\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "real(\"ff\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "caracter(-1)\n")
+        self.assertRaises(TupyValueError, Interpreter.interpret, "caracter(\"abc\")\n")
         self.assertRaises(TupyValueError, Interpreter.interpret, "cadeia(1, 2, 3, 4)\n")
 
     def test_parse_error(self):
@@ -1802,6 +1804,12 @@ class TestEvalVisitor(unittest.TestCase):
                                      "tam([])\n"))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 0)
+
+    def test_negative_array_indices(self):
+        ret = Interpreter.interpret("inteiro V[5] <- [1, 2, 3, 4, 5]; V[-3..-1]")
+        self.assertArrayEquals(ret, Type.INT, [3, 4, 5])
+        ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[-3..-1]")
+        self.assertArrayEquals(ret, Type.INT, [2, 3, 4])
 
     def test_assertion(self):
         ret = Interpreter.interpret("asserção(2 > 1); verdadeiro")
