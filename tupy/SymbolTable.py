@@ -41,7 +41,10 @@ class SymbolTable(object):
         data.update_roottype(self.datatype[name])
         self.adjustArrayDimensions(data, len(subscriptList))
         data.class_name = className
-        self.data[(name, depth)] = tupy.Interpreter.memAlloc(data, invisible)
+        if (name, depth) in self.data:
+            tupy.Interpreter.memRealloc(self.data[(name, depth)], data, invisible)
+        else:
+            self.data[(name, depth)] = tupy.Interpreter.memAlloc(data, invisible)
 
     def adjustArrayDimensions(self, data, dimensions):
         data.array_dimensions = dimensions

@@ -496,6 +496,10 @@ class InvalidMemoryAccessException(Exception):
 def memAlloc(data, invisible=False):
     return MemoryCell(data, invisible)
 
+def memRealloc(cell, data, invisible=False):
+    cell.data = data
+    cell.invisible = invisible
+
 def memRead(cell):
     return cell.data
 
