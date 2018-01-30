@@ -119,7 +119,7 @@ class Variable(object):
             subs = declSubscripts[0]
             sz = subs.begin
             content = [tupy.Interpreter.memAlloc(cls.array_init(declSubscripts[1:], heldType, className)) for _ in range(sz)]
-            ret = tupy.Instance.Instance(Type.ARRAY, content)
+            ret = tupy.Instance.Instance(Type.ARRAY, content, className=className)
             return ret
 
     def power(self, rhs:'Variable'):

@@ -33,8 +33,11 @@ class Instance(object):
                     raise TypeError()
                 heldclasses = [element for element in self.value if tupy.Interpreter.memRead(element).type == Type.STRUCT]
                 if len(heldclasses) > 0:
-                    self.class_name = tupy.Interpreter.memRead(heldclasses[0]).class_name
-                    if not all(tupy.Interpreter.memRead(element).class_name == self.class_name for element in heldclasses):
+                    if not self.class_name:
+                        self.class_name = tupy.Interpreter.memRead(heldclasses[0]).class_name
+                    if not all(tupy.Interpreter.Interpreter.areClassNamesCompatible(self.class_name, 
+                                                                        tupy.Interpreter.memRead(element).class_name) \
+                                for element in heldclasses):
                         raise TypeError()
             else:
                 self.array_dimensions = 1
@@ -49,7 +52,7 @@ class Instance(object):
 
     def __repr__(self):
         if self.class_name:
-            return "I|C{0}|{1}".format(self.class_name,self.value)
+            return "I|C{0}".format(self.class_name)
         else:
             return "I{0}".format(self.value)
 

@@ -46,7 +46,7 @@ def initialize():
     function("lógico", Type.BOOL, [Type.INT])
     function("lógico", Type.BOOL, [Type.STRING])
     function("log", Type.FLOAT, [Type.FLOAT, Type.FLOAT], 
-             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, math.e))])
+             defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, 10.0))])
     function("ln", Type.FLOAT, [Type.FLOAT])
     function("raiz", Type.FLOAT, [Type.FLOAT])
     function("raiz", Type.FLOAT, [Type.INT])
@@ -940,7 +940,7 @@ def pilha(vetor, highlights, extra):
     highlightSet = set(highlights)
     extra = extra.value
     header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; "
-              "2 [label = \" \"]; 2 -> 1; 1 -> 2; 1 [label = <<TABLE BORDER=\"0\" "
+              "0 [label = \" \"]; 0 -> 1; 1 -> 0; 1 [label = <<TABLE BORDER=\"0\" "
               "CELLPADDING=\"0\" CELLSPACING=\"0\">")
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     element = ("<TR><TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -963,7 +963,7 @@ def fila(vetor, highlights, extra):
     highlightSet = set(highlights)
     extra = extra.value
     header = ("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; "
-              "2 [label = \" \"]; 3 [label = \" \"]; 2 -> 1; 1 -> 3; {rank = same; 2; 1; 3;} 1 [label = "
+              "C [label = \" \"]; F [label = \" \"]; F -> 1; 1 -> C; {rank = same; F; 1; C;} 1 [label = "
               "<<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">")
     trailer = "</TABLE>>]; {0}}}]]".format(extra)
     element = ("<TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"

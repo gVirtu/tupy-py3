@@ -14,6 +14,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("arquivo", nargs='?', help="o arquivo que contém o código-fonte")
     parser.add_argument("-t", "--trace", help="habilita a impressão JSON da execução", action="store_true")
+    parser.add_argument("-L", "--lines", help="habilita a impressão dos números de linha", action="store_true")
     parser.add_argument("--tokens", help="habilita a impressão dos tokens identificados pela gramática.", action="store_true")
     parser.add_argument("-d", "--debug", help="habilita a impressão de mensagens de debug, incluindo tracebacks.", action="store_true")
     args, _unknown = parser.parse_known_args(argv[1:])
@@ -29,17 +30,24 @@ def main(argv):
     else:
         print("Interpretador TuPy interativo v1.0 (TCC UERJ)\n")
         print("   Digite o seu programa abaixo, e então use CTRL+D para executá-lo.│")
-        print("   ┌────────────────────────────────────────────────────────────────┘")
+        if (args.lines):
+            print("   ┌────────────────────────────────────────────────────────────────┘")
+        else:
+            print("────────────────────────────────────────────────────────────────────┘")
         commandList = []
         myinput = ''
         line = 0
         while True:
             try:
                 line = line + 1
-                commandList.append(input("{0:<3}│ ".format(line)))
+                if (args.lines):
+                    commandList.append(input("{0:<3}│ ".format(line)))
+                else:
+                    commandList.append(input())
             except EOFError:
                 myinput = '\n'.join(commandList)
-                print("\n   └─────────────────────────────────────────────────────────────────")
+                print("\n   └─────────────────────────────────────────────────────────────────" \
+                      if args.lines else "\n─────────────────────────────────────────────────────────────────────")
                 break
             except KeyboardInterrupt: # pragma: no cover
                 print("\nExecução terminada a comando do usuário.\nDica: Para executar o programa digitado, utilize CTRL+D.")

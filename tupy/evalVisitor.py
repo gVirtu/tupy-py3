@@ -356,7 +356,7 @@ class evalVisitor(ParseTreeVisitor):
 
             return ret
         else:
-            tupy.errorHelper.syntaxError("Laço 'for' precisa ter o mesmo número de iteradores e intervalos!", ctx.nameList())
+            tupy.errorHelper.syntaxError("Laço 'para' precisa ter o mesmo número de iteradores e intervalos!", ctx.nameList())
 
     def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block):
         remaining = len(names)

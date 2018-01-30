@@ -1339,14 +1339,14 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\t\tprox <- nulo\n"
                                      "Lista cab <- Lista(10)\n"
                                      "inteiro i\n"
-                                     "Lista atual <- ref cab\n"
+                                     "Lista atual <- cab\n"
                                      "para i <- 1..5:\n"
                                      "\tLista p <- Lista(10-(i*2))\n"
-                                     "\tatual.prox <- ref p\n"
-                                     "\tatual <- ref p\n"
+                                     "\tatual.prox <- p\n"
+                                     "\tatual <- p\n"
                                      "enquanto cab != nulo:\n"
                                      "\tescrever(cab.chave)\n"
-                                     "\tcab <- ref cab.prox\n"
+                                     "\tcab <- cab.prox\n"
                                     ))
         self.assertEqual(Interpreter.outStream.getvalue(), "10\n8\n6\n4\n2\n")
 

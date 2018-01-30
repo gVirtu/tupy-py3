@@ -340,8 +340,9 @@ class SymbolTable(object):
         full_data = tupy.Interpreter.memRead(self.data[(name, depth)])
         target_subscript = None
 
-        old_instance = instance
-        instance = copy.deepcopy(old_instance)
+        if (instance.type != tupy.Type.Type.STRUCT):
+            old_instance = instance
+            instance = copy.deepcopy(old_instance)
 
         for ind, trailer in enumerate(trailers):
             if trailer[0] == tupy.Type.TrailerType.MEMBER:

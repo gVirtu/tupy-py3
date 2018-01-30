@@ -327,7 +327,7 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.value, desired_vector)
 
     def test_graphviz_stack(self):
-        desired_stack=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; 2 [label = \" \"]; 2 -> 1; 1 -> 2; "
+        desired_stack=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; 0 [label = \" \"]; 0 -> 1; 1 -> 0; "
                         "1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                         "<TR><TD PORT=\"v8\" SIDES=\"LBR\" BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">99999999999</FONT></TD></TR>"
@@ -352,8 +352,8 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.value, desired_stack)
 
     def test_graphviz_queue(self):
-        desired_queue=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; 2 [label = \" \"]; "
-                        "3 [label = \" \"]; 2 -> 1; 1 -> 3; {rank = same; 2; 1; 3;} "
+        desired_queue=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; C [label = \" \"]; "
+                        "F [label = \" \"]; F -> 1; 1 -> C; {rank = same; F; 1; C;} "
                         "1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                         "<TR><TD PORT=\"v8\" SIDES=\"BRT\" BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">99999999999</FONT></TD>"

@@ -45,6 +45,13 @@ class Function(object):
             except Exception:
                 try:
                     done = False
+                    if (inst.roottype == Type.INT):
+                        # Try to convert INT to FLOAT in case of failure
+                        try:
+                            current_level = current_level[Type.FLOAT]
+                            done = True
+                        except Exception:
+                            pass
                     if (inst.roottype == Type.ARRAY):
                         # Workaround for empty array literals, assume int
                         try:

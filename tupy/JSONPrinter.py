@@ -19,6 +19,9 @@ class JSONPrinter(object):
         tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
+        if tupy.Interpreter.Interpreter.callStack.top().funcName.startswith("Instância de"):
+            return; # Skip these
+
         if (returnData is not None):
             returnData = tupy.Interpreter.memAlloc(returnData)
 
@@ -100,8 +103,14 @@ class JSONPrinter(object):
     # Adds data from a memory cell to the global trace heap. The local heap
     # defines a subset of the global heap that is to be displayed at a certain step.
     def add_to_heap(self, heap, cell, identifier):
-        identifier = str(id(cell))
-        heap[identifier] = self.parse_cell(cell, heap, identifier)
+        if (cell.data.type == tupy.Type.Type.STRUCT):
+            identifier = str(id(cell.data.value))
+            #heap[identifier] = ["C_DATA", identifier, "pointer", context_identifier]
+        else:
+            identifier = str(id(cell))
+        if identifier not in heap:
+            heap[identifier] = [] # PREVENT INFINITE RECURSION
+            heap[identifier] = self.parse_cell(cell, heap, identifier)
         return identifier
 
     # Formats the output heap. To be rendered correctly, primitives need
@@ -123,17 +132,20 @@ class JSONPrinter(object):
             data = [header, address, inst.class_name]
             instLocals = inst.value.locals
             tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
+            usedNames = set()
             for (name, depth) in sorted(instLocals.data.keys()):
                 tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
-                if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
-                   instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
-                    attribute = []
-                    subMemoryCell = instLocals.data[(name, depth)]
-                    attribute.append(name)
-                    #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
-                    subIdentifier = "{0}-{1}".format(identifier, name)
-                    self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
-                    data.append(attribute)
+                if name not in usedNames:
+                    usedNames.add(name)
+                    if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
+                    instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
+                        attribute = []
+                        subMemoryCell = instLocals.data[(name, depth)]
+                        attribute.append(name)
+                        #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
+                        subIdentifier = "{0}-{1}".format(identifier, name)
+                        self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
+                        data.append(attribute)
                 #else:
                     #print("WELP, NAME = {0} DEPTH = {1} WAS NOT ADDED".format(name, depth))
 
