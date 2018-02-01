@@ -16,6 +16,7 @@ def initialize():
     function("escrever", Type.STRING, [Type.TUPLE])
     function("ler", Type.STRING, [Type.TUPLE], passByRef=[True])
     function("ler_linha", Type.STRING, [Type.STRING], passByRef=[True])
+    function("copiar", Type.STRUCT, [Type.TUPLE])
     function("caracter", Type.CHAR, [Type.INT])
     function("caracter", Type.CHAR, [Type.STRING])
     function("real", Type.FLOAT, [Type.INT])
@@ -307,6 +308,17 @@ def ler_linha(instSimbolo):
         new_inst = tupy.Instance.Instance(Type.STRING, content)
         tupy.Interpreter.Interpreter.storeSymbol(simbolo.name, new_inst, simbolo.trailers)
     return tupy.Instance.Instance(Type.BOOL, result)
+
+def copiar(argsTuple):
+    if len(argsTuple.value) != 1:
+        raise ValueError("A função copiar espera exatamente um argumento!")
+    instance = tupy.Interpreter.memRead(argsTuple.value[0])
+    if instance.type != Type.STRUCT:
+        raise TypeError("A função copiar não deve receber um tipo primitivo!")
+    
+    memo = {"structCopy": True}
+    new_instance = copy.deepcopy(instance, memo)
+    return new_instance
 
 def caracter(literal):
     if literal.type == Type.INT:
@@ -808,7 +820,7 @@ def árvore(argsTuple):
             raise TypeError("A lista de filhos da árvore deve possuir referências para estruturas compatíveis com o tipo da árvore!")
         
         levelMap = {}
-        highlights = set( [id(tupy.Interpreter.memRead(treeCell)) for treeCell in highlightsInst.value ] )
+        highlights = set( [id(cell_value(treeCell)) for treeCell in highlightsInst.value ] )
         treeDefinition = "".join(recurse_tree(treeInst, None, 0, treeKeyName, treeEdgesName, highlights, set(), levelMap))
         levelDefinitions = []
         for nodeLevel, nodeList in levelMap.items():
@@ -853,7 +865,8 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
 
         if (parentIdentifier is not None):
             result.append("{0} -> {1}; ".format(parentIdentifier, identifier))
-        if (id(treeInst) in highlights):
+
+        if (id(treeInst.value) in highlights):
             result.append("{0} {1}".format(identifier, _graph_highlight))
         
         keyInst = treeInst.value.locals.get(keyName)

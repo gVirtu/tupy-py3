@@ -1,6 +1,7 @@
 from tupy.Type import Type
 import tupy.Variable
 import tupy.Interpreter
+import copy
 
 class Instance(object):
     __slots__ = [
@@ -112,6 +113,30 @@ class Instance(object):
 
     def is_subscriptable_array(self):
         return self.type in [Type.ARRAY, Type.STRING, Type.TUPLE]
+
+    def __deepcopy__(self, memo:dict):
+        if memo is None:
+            memo = dict()
+        my_id = id(self)
+        if my_id not in memo:
+            cls = self.__class__
+            result = cls.__new__(cls)
+            memo[my_id] = result
+            if self.type != Type.STRUCT or "structCopy" in memo:
+                memo.pop("structCopy", None)
+                setattr(result, 'value', copy.deepcopy(self.value, memo))
+            else:
+                setattr(result, 'value', self.value)
+            setattr(result, 'type', self.type)
+            setattr(result, 'heldtype', self.heldtype)
+            setattr(result, 'size', self.size)
+            setattr(result, 'collection_size', self.collection_size)
+            setattr(result, 'array_dimensions', self.array_dimensions)
+            setattr(result, 'roottype', self.roottype)
+            setattr(result, 'class_name', self.class_name)
+        else:
+            result = memo[my_id]
+        return result
 
     # UNUSED
     # def is_mutable_array(self):

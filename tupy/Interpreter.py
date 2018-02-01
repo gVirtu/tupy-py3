@@ -181,7 +181,7 @@ class Interpreter(object):
 
             if inst.type == Type.STRUCT: # then inst.value contains a Context
                 if not tupy.Interpreter.Interpreter.areClassNamesCompatible(argClassNames[i], inst.value.structName):
-                    raise TypeError("A {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(function.name, argClassNames[i], inst.value.structName))
+                    raise TypeError("A função {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(function.name, argClassNames[i], inst.value.structName))
 
         # Variadic handling
         if isVariadic:

@@ -193,9 +193,9 @@ class TestGraphs(unittest.TestCase):
                                      "Nó n2 <- Nó(3)\n"
                                      "Nó n3 <- Nó(15)\n"
                                      "Nó n4 <- Nó(20)\n"
-                                     "raiz.prox[0], raiz.prox[1] <- ref n1, n2\n"
-                                     "n1.prox[1] <- ref n3\n"
-                                     "n2.prox[0] <- ref n4\n"
+                                     "raiz.prox[0], raiz.prox[1] <- n1, n2\n"
+                                     "n1.prox[1] <- n3\n"
+                                     "n2.prox[0] <- n4\n"
                                      "arvore(raiz, \"c\", \"prox\", [n2])\n"))
 
         self.assertEqual(ret.type, Type.STRING)

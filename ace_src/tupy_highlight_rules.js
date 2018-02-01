@@ -29,7 +29,7 @@ var tupyHighlightRules = function() {
     
     var builtinFunctions = (
         "escrever|ler|ler_linha|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
-        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar|"+
+        "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar|copiar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
         "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila|" +

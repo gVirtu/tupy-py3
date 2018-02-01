@@ -1817,5 +1817,26 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.value, True)
         self.assertRaises(TupyAssertionError, Interpreter.interpret, "assercao(falso); verdadeiro")
 
+    def test_struct_copy(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tTeste prox\n"
+                                     "\tinteiro a[5]\n"
+                                     "Teste t <- Teste()\n"
+                                     "t.a <- [5, 4, 3, 2, 1]\n"
+                                     "Teste u <- Teste()\n"
+                                     "u.a <- [1, 2, 3, 4, 5]\n"
+                                     "t.prox <- u\n"
+                                     "u.prox <- t\n"
+                                     "Teste v <- copiar(t)\n"
+                                     "Teste w <- v\n"
+                                     "v.a[2] <- 30\n"
+                                     "t.a, v.a, w.a, v.prox.a\n"))
+        self.assertArrayEquals(ret[0], Type.INT, [5, 4, 3, 2, 1])
+        self.assertArrayEquals(ret[1], Type.INT, [5, 4, 30, 2, 1])
+        self.assertArrayEquals(ret[2], Type.INT, [5, 4, 30, 2, 1])
+        self.assertArrayEquals(ret[3], Type.INT, [1, 2, 3, 4, 5])
+        self.assertRaises(TupyValueError, Interpreter.interpret, "copiar(2, 3)")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "copiar(2)")
+
 if __name__ == '__main__':
     unittest.main()
