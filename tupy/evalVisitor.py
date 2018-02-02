@@ -72,6 +72,7 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
+        tupy.Interpreter.Interpreter.singleTraceSkip = ctx.SQUIGGLY() is not None
         for child in ctx.getChildren():
             tupy.Interpreter.logger.debug("This statement has a {0}".format(type(child.getChild(0))))
         return self.visitChildren(ctx)
@@ -497,8 +498,11 @@ class evalVisitor(ParseTreeVisitor):
             if isinstance(c, TerminalNode): 
                 op = c.getSymbol().type
             else:
-                rhs = self.visitAndTest(c)
-                res = res.logic_or(rhs)
+                if res.get().value: 
+                    return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, True))
+                else:
+                    rhs = self.visitAndTest(c)
+                    res = res.logic_or(rhs)
         return res
 
 
@@ -512,8 +516,11 @@ class evalVisitor(ParseTreeVisitor):
             if isinstance(c, TerminalNode): 
                 op = c.getSymbol().type
             else:
-                rhs = self.visitNotTest(c)
-                res = res.logic_and(rhs)
+                if not res.get().value: 
+                    return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False))
+                else:
+                    rhs = self.visitNotTest(c)
+                    res = res.logic_and(rhs)
         return res
 
 

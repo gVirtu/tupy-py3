@@ -159,8 +159,7 @@ importStatement
 /* DECLARAÇÃO */
 /// statement: simpleStatement | compoundStatement
 statement
- : simpleStatement 
- | compoundStatement
+ : (SQUIGGLY? (simpleStatement | compoundStatement))
  | traceOffset
  ;
 
@@ -531,6 +530,7 @@ LT_EQ : '<=';
 NOT_EQ : '!=';
 AT : '@';
 ARROW : '->';
+SQUIGGLY : '~~';
 VAL: 'val';
 REF: 'ref';
 PI: 'pi' | 'π';
@@ -538,7 +538,7 @@ PI: 'pi' | 'π';
 INTEGER: 'inteiro';
 REAL: 'real';
 CHAR: 'caracter';
-STRING: 'cadeia';
+STRING: 'cadeia' | 'visual';
 BOOLEAN: 'lógico' | 'logico';
 VARIADIC: '...';
 

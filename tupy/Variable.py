@@ -234,14 +234,10 @@ class Variable(object):
         return Literal(tupy.Instance.Instance(Type.BOOL, not self.get().value))
 
     def logic_and(self, rhs:'Variable'):
-        if not self.get().value: return Literal(tupy.Instance.Instance(Type.BOOL, False))
-        else:
-            return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
 
     def logic_or(self, rhs:'Variable'):
-        if self.get().value: return Literal(tupy.Instance.Instance(Type.BOOL, True))
-        else:
-            return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
+        return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
 
     def cardinality(self):
         return Literal(tupy.Instance.Instance(Type.INT, self.get().size))

@@ -57,6 +57,7 @@ class Interpreter(object):
         cls.outStream = StringIO()
         cls.traceOut = None
         cls.traceBars = []
+        cls.singleTraceSkip = False
 
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None):
@@ -220,7 +221,6 @@ class Interpreter(object):
             passValues = [argValues[i] if argPassage[i][0] == -1 \
                                        else tupy.Instance.Instance(Type.REFERENCE, callArgs[i]) \
                                        for i in range(len(argValues))]
-            # VALIDATE ARRAYDIMENSIONS HERE
             return builtInFunc(*passValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
@@ -470,6 +470,7 @@ class Interpreter(object):
 
     @classmethod
     def should_print(cls, line):
+        if cls.singleTraceSkip: return False
         if len(cls.traceBars) == 0: return True
         else: return cls.find_next_tracebar(line)%2 == len(cls.traceBars)%2
 

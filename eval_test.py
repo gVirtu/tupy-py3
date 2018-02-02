@@ -1707,6 +1707,11 @@ class TestEvalVisitor(unittest.TestCase):
         ret = Interpreter.interpret("não verdadeiro e a ou verdadeiro\n")
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
+        ret = Interpreter.interpret(("inteiro j, fim <- 1, 0\n"
+                                     "se (j > fim) ou (i <= limite e B[i] <= B[j]):\n"
+                                     "\tverdadeiro\n"))
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
 
     def test_array_dimension_anomaly(self):
         ret = Interpreter.interpret("inteiro A[*,*]\ninteiro[][] func(ref inteiro[][] V):\n\tretornar inserir(V, [1, 2, 3])\nfunc(A)\n")

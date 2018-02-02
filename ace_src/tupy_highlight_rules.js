@@ -12,7 +12,7 @@ var tupyHighlightRules = function() {
     );
     
     var storageType = (
-        "logico|caracter|real|inteiro|cadeia|tipo"
+        "logico|caracter|real|inteiro|cadeia|tipo|visual"
     );
 
     var storageModifiers = (
@@ -65,7 +65,7 @@ var tupyHighlightRules = function() {
         "start" : [
             {
                 token : "comment",
-                regex : "#",
+                regex : "#|~~",
                 next : "singleLineComment"
             }, {
                 token : "comment", //Trace offsetter
