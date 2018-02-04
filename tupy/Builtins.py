@@ -132,13 +132,18 @@ def initialize():
                        tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
     function("árvore", Type.STRING, [Type.TUPLE])
     function("arvore", Type.STRING, [Type.TUPLE])
+    function("lista_encadeada", Type.STRING, [Type.TUPLE])
     for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING, Type.BOOL]:
         function("matriz", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[2,2,0],
                 defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+        function("matriz", Type.STRING, [t, Type.INT, Type.INT, Type.INT, Type.STRING], arrayDimensions=[2,2,0,0,0],
+                defaults=[None, None, None, None, tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("vetor", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[1,1,0],
                 defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=1)),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
+        function("vetor", Type.STRING, [t, Type.INT, Type.INT, Type.STRING], arrayDimensions=[1,1,0,0],
+                defaults=[None, None, None, tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("pilha", Type.STRING, [t, Type.INT, Type.STRING], arrayDimensions=[1,1,0],
                 defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=1)),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
@@ -875,7 +880,13 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
 
         return resultString
 
-def matriz(matriz, highlights, extra):
+def matriz(matriz, arg1, arg2, arg3=None, arg4=None):
+    if (arg3 is not None):
+        return _matriz(matriz, arg1, arg2.value, arg3.value, arg4)
+    else:
+        return _matriz(matriz, arg1, 0, 0, arg2)
+
+def _matriz(matriz, highlights, row_offset, column_offset, extra):
     matriz = matriz.value
     if not len(matriz): return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
     highlights = highlights.value
@@ -901,17 +912,17 @@ def matriz(matriz, highlights, extra):
         row = cell_value(row)
         columns = builtins.max(len(row), columns)
         rowResults.append(rowHeader)
-        rowResults.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "r{0}".format(i)))
+        rowResults.append(element.format(i + row_offset, dot_table_font_size(i), 0, "WHITE", "r{0}".format(i + row_offset)))
         for j, column in enumerate(row):
             columnInst = tupy.Interpreter.memRead(column)
             columnText = html.escape(stringProcess(printInstance(columnInst)))
-            rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j), "v{0}_{1}".format(i, j)))
+            rowResults.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i,j), "v{0}_{1}".format(i + row_offset, j + column_offset)))
         rowResults.append(rowTrailer)
 
     result.append(rowHeader)
     result.append(element.format(" ", dot_table_font_size(" "), 0, "WHITE", "rc"))
     for i in range(columns):
-        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i)))
+        result.append(element.format(i + column_offset, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i + column_offset)))
     result.append(rowTrailer)
 
     result.extend(rowResults)
@@ -919,7 +930,13 @@ def matriz(matriz, highlights, extra):
 
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
-def vetor(vetor, highlights, extra):
+def vetor(vetor, arg1, arg2, arg3=None):
+    if (arg3 is not None):
+        return _vetor(vetor, arg1, arg2.value, arg3)
+    else:
+        return _vetor(vetor, arg1, 0, arg2)
+
+def _vetor(vetor, highlights, column_offset, extra):
     vetor = vetor.value
     columns = len(vetor)
     if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
@@ -934,13 +951,13 @@ def vetor(vetor, highlights, extra):
     result = [header]
     result.append(rowHeader)
     for i in range(columns):
-        result.append(element.format(i, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i)))
+        result.append(element.format(i + column_offset, dot_table_font_size(i), 0, "WHITE", "c{0}".format(i + column_offset)))
     result.append(rowTrailer)
     result.append(rowHeader)
     for i, column in enumerate(vetor):
         columnInst = tupy.Interpreter.memRead(column)
         columnText = html.escape(stringProcess(printInstance(columnInst)))
-        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), "v{0}".format(i)))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), "v{0}".format(i + column_offset)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
@@ -993,3 +1010,93 @@ def fila(vetor, highlights, extra):
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
+
+def lista_encadeada(argsTuple):
+    argsTuple = argsTuple.value
+    if (len(argsTuple) < 3):
+        raise TypeError("Faltam argumentos para a função lista_encadeada(estrutura, nome_chave, nome_prox, [destaques, opções])!")
+    elif (len(argsTuple) > 5):
+        raise TypeError("A função lista_encadeada(estrutura, nome_chave, nome_prox, [destaques, opções]) recebeu argumentos demais!")
+    else:
+        header = "[[DOT digraph {node [shape=none]; null [shape=point]; "
+        trailer = "}]]"
+
+        # Gather and validate parameters
+
+        listInst = tupy.Interpreter.memRead(argsTuple[0])
+        listKeyNameInst = tupy.Interpreter.memRead(argsTuple[1])
+        listNextNameInst = tupy.Interpreter.memRead(argsTuple[2])
+        highlightsInst = tupy.Interpreter.memRead(argsTuple[3]) if len(argsTuple) > 3 \
+                                                        else tupy.Instance.Instance(Type.ARRAY, [])
+        optsInst = tupy.Interpreter.memRead(argsTuple[4]) if len(argsTuple) > 4 \
+                                                    else tupy.Instance.Instance(Type.STRING, "")
+
+        if (listInst.type != Type.STRUCT):
+            raise TypeError("O primeiro parâmetro para a função lista_encadeada deve ser uma estrutura representando o primeiro nó!")
+        if (listKeyNameInst.type != Type.STRING):
+            raise TypeError("O segundo parâmetro para a função lista_encadeada deve ser uma cadeia com o nome do atributo que contém a chave do nó!")
+        if (listNextNameInst.type != Type.STRING):
+            raise TypeError("O terceiro parâmetro para a função lista_encadeada deve ser uma cadeia com o nome do atributo que aponta para o próximo nó!")
+        if (not highlightsInst.is_pure_array() or 
+            (highlightsInst.array_length() > 0 and
+             not tupy.Interpreter.Interpreter.areClassNamesCompatible(listInst.class_name, highlightsInst.class_name))):
+            raise TypeError("O quarto parâmetro para a função lista_encadeada (opcional) deve ser uma lista de referências para nós que serão destacados!")
+        if (optsInst.type != Type.STRING):
+            raise TypeError("O quinto parâmetro para a função lista_encadeada (opcional) deve ser uma cadeia com instruções DOT que serão acrescentadas à definição!")
+
+        listKeyName = listKeyNameInst.value
+        listNextName = listNextNameInst.value
+        if (not listInst.value.locals.hasKey(listKeyName)):
+            raise NameError("A estrutura fornecida não possui o atributo '{0}' para a chave!".format(listKeyName))
+        if (not listInst.value.locals.hasKey(listNextName)):
+            raise NameError("A estrutura fornecida não possui o atributo '{0}' para a referência de próximo nó!".format(listNextName))
+        if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(listInst.class_name, listInst.value.locals.classname[listNextName])):
+            raise TypeError("A referência de próximo nó da estrutura deve ser para outra estrutura de classe compatível!")
+        
+        highlights = set( [id(cell_value(listCell)) for listCell in highlightsInst.value ] )
+        nameMapping = set()
+        definitionList = recurse_list(listInst, None, listKeyName, listNextName, highlights, nameMapping)
+        listDefinition = "".join(definitionList)
+        rankDefinitions = ["{rank = same; null; "]
+        nodeCount = len(nameMapping)
+        rankDefinitions.extend(["s{0}; ".format(i) for i in range(nodeCount)])
+        rankDefinitions.append("}; ")
+        rankDefinitions = "".join(rankDefinitions)
+
+        extra = optsInst.value
+
+        ret = "".join([header, extra, listDefinition, rankDefinitions, extra, trailer])
+        return tupy.Instance.Instance(Type.STRING, ret)
+
+_linkedlist_element = ("s{0} [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\">"
+                       "<TR><TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"{4}\" PORT=\"{1}\">{2}</TD>"
+                       "<TD BORDER=\"0\" PORT=\"{3}\"> </TD></TR></TABLE>>]; ")
+
+def recurse_list(listInst, parentIdentifier, keyName, nextName, highlights:set, nameMapping:set):
+    identifier = len(nameMapping)
+
+    if (listInst.type == Type.NULL):
+        return "s{0}:{1}:e -> null:w; ".format(parentIdentifier, nextName)
+    else :
+        neighbor = listInst.value.locals.get(nextName)
+        isNewNode = (id(listInst) in nameMapping)
+        nameMapping.add(id(listInst))
+
+        if isNewNode:
+            result = []
+        else:
+            result = [recurse_list(neighbor, identifier, keyName, nextName, highlights, nameMapping)]
+
+            keyInst = listInst.value.locals.get(keyName)
+            result.append(_linkedlist_element.format(identifier, html.escape(keyName), 
+                                                     html.escape(stringProcess(printInstance(keyInst))),
+                                                     html.escape(nextName),
+                                                     "yellow" if (id(listInst.value) in highlights) \
+                                                                       else "white"))
+
+        if (parentIdentifier is not None):
+            result.append("s{0}:{1}:e -> s{2}:{3}:w; ".format(parentIdentifier, nextName, 
+                                                              identifier, keyName))
+        resultString = "".join(result)
+
+        return resultString

@@ -1,0 +1,13 @@
+# http://www.graphviz.org/content/cluster
+
+digraph G {
+    node [shape=none];
+    s1 [label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" PORT="l1">1</TD><TD BORDER="0" PORT="r1"> </TD></TR></TABLE>>];
+    s2 [label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" PORT="l2">2 </TD><TD BORDER="0" PORT="r2"> </TD></TR></TABLE>>];
+    s3 [label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" PORT="l3">3 </TD><TD BORDER="0" PORT="r3"> </TD></TR></TABLE>>];
+    null [shape=point];
+	s1:r1:e -> s2:l2:w;
+	s2:r2:e -> s3:l3:w;
+	s3:r3:e -> null:w
+	{rank = same; s1; s2; s3; null}
+}
