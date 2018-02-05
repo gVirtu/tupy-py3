@@ -970,6 +970,12 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, "Paulo")
+        self.assertRaises(TupyRuntimeError, Interpreter.interpret, 
+                         ("tipo Aluno:\n"
+                          "\tcadeia nome\n"
+                          "Aluno a\n"
+                          "a.nome\n"
+                         ))
 
     def test_class_method(self):
         ret = Interpreter.interpret(("tipo Teste:\n"
@@ -1207,6 +1213,17 @@ class TestEvalVisitor(unittest.TestCase):
                                      "x\n"
                                     ))
         self.assertArrayEquals(ret, Type.INT, [1, 2, 10, 4, 5])  
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro chave\n"
+                                     "func(ref inteiro a, inteiro b):\n"
+                                     "\t a <- a + b\n"
+                                     "Teste T <- Teste()\n"
+                                     "T.chave <- 5\n"
+                                     "func(T.chave, 15)\n"
+                                     "T.chave\n"
+                                    ))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 20)
 
     def test_function_refparam_errors(self):
         self.assertRaises(TupySyntaxError, Interpreter.interpret, 
@@ -1809,12 +1826,21 @@ class TestEvalVisitor(unittest.TestCase):
                                      "tam([])\n"))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 0)
+        ret = Interpreter.interpret(("real cubo(real n):\n"
+                                     "\tretornar n^3\n"
+                                     "cubo(3)\n"))
+        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.value, 27)
 
     def test_negative_array_indices(self):
         ret = Interpreter.interpret("inteiro V[5] <- [1, 2, 3, 4, 5]; V[-3..-1]")
         self.assertArrayEquals(ret, Type.INT, [3, 4, 5])
         ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[-3..-1]")
         self.assertArrayEquals(ret, Type.INT, [2, 3, 4])
+        ret = Interpreter.interpret("inteiro V[5] <- [1, 2, 3, 4]; V[-3..-1] <- 3; V")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 3, 3])
+        ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[-3..-1] <- 3; V")
+        self.assertArrayEquals(ret, Type.INT, [1, 3, 3, 3])
 
     def test_assertion(self):
         ret = Interpreter.interpret("asserção(2 > 1); verdadeiro")
@@ -1842,6 +1868,20 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertArrayEquals(ret[3], Type.INT, [1, 2, 3, 4, 5])
         self.assertRaises(TupyValueError, Interpreter.interpret, "copiar(2, 3)")
         self.assertRaises(TupyTypeError, Interpreter.interpret, "copiar(2)")
+
+    def test_array_with_nulls(self):
+        ret = Interpreter.interpret("[nulo, 123]\n")
+        self.assertEqual(ret.heldtype, Type.INT)
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("inteiro L[*] <- [nulo, 123]\n"
+                                                                 "L[0] <- \"abc\"\n"))
+
+    def test_builtin_length(self):
+        ret = Interpreter.interpret("comprimento([ [1, 2, 3], [4, 5, 6], [7, 8, 9], [10] ])\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 4)
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "comprimento(2, 3)")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "comprimento(2)")
+
 
 if __name__ == '__main__':
     unittest.main()

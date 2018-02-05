@@ -1,0 +1,13 @@
+tipo Nó:
+  inteiro chave
+  Nó próx
+  
+  Nó(inteiro c):
+    chave <- c
+    
+----------------
+
+cadeia V
+Nó novo <- Nó(5)
+novo.chave, novo.próx <- 3, novo
+~~ V <- "stuffos"

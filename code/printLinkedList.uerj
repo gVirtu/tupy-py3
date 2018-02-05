@@ -39,4 +39,11 @@ InsereOrdenado(Lista L, inteiro chave):
 Insere(X, 5); Insere(X, 6); Insere(X, 7);
 InsereEm(X, 1, 2);
 
+Nó p <- X.início
+
+enquanto(p.próx != nulo):
+  p <- p.próx
+  
+p.próx <- X.início
+
 escrever(lista_encadeada(X.início, "chave", "próx"))

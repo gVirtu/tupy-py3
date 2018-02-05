@@ -18,3 +18,5 @@ tipo Teste:
 
 Teste t <- Teste(5)
 t.x <- 100
+Teste t2 <- Teste()
+t2.x <- 250

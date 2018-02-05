@@ -32,6 +32,7 @@ class evalVisitor(ParseTreeVisitor):
         tupy.Interpreter.logger.debug("ALL DONE!")
         tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
         tupy.Interpreter.logger.debug("Returnin {0}".format(res))
+        tupy.Interpreter.Interpreter.singleTraceSkip = False
         tupy.Interpreter.Interpreter.trace(ctx.stop.line, res)
         return res
 

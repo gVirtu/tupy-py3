@@ -307,6 +307,10 @@ class SymbolTable(object):
 
             tupy.Interpreter.logger.debug("HASVALIDTYPE - RETRIEVED {0} with roottype {1}, comparing against {2} ({3}) but decltype is {4}".format(inst, inst.roottype, instance, instance.roottype, self.datatype[name]))
 
+            if (instance.type == tupy.Type.Type.INT and inst.type == tupy.Type.Type.FLOAT):
+                # Very special case
+                instance.__init__(tupy.Type.Type.FLOAT, instance.value)
+
             equivalent_types = (inst.roottype == instance.roottype) \
                                or (len(trailerList) > 0 and \
                                    trailerList[-1][0] == tupy.Type.TrailerType.SUBSCRIPT and \

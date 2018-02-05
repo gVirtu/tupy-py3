@@ -23,7 +23,7 @@ class TestTupyProgram(unittest.TestCase):
         result = json.loads(output)
         self.assertTrue("code" in result.keys())            
         self.assertTrue("trace" in result.keys())            
-        self.assertEqual(len(result["trace"]), 13)
+        self.assertEqual(len(result["trace"]), 15)
 
     def test_entrypoint_tracebars(self):
         output = subprocess.getoutput("python3 -m tupy code/tracebars.uerj -t")
@@ -56,6 +56,14 @@ class TestTupyProgram(unittest.TestCase):
                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         output = p.communicate(input=b'escrever("Teste")\n')[0]
         outputlines = output.decode().split("\n")
+        self.assertEqual(outputlines[-2], "Teste")
+        p.terminate()
+
+        p = subprocess.Popen(['python3', '-m', 'tupy', '--lines'], stdout=subprocess.PIPE, 
+                                stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = p.communicate(input=b'escrever("Teste")\n')[0]
+        outputlines = output.decode().split("\n")
+        self.assertEqual(outputlines[-4], "   └─────────────────────────────────────────────────────────────────")
         self.assertEqual(outputlines[-2], "Teste")
         p.terminate()
 

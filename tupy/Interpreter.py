@@ -271,6 +271,7 @@ class Interpreter(object):
             logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
             objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
+            objContext.classLineage = copy.deepcopy(classContext.classLineage)
         except KeyError as exc:
             raise NameError("Classe {0} não existe!".format(name)) from exc
         return tupy.tupy.Instance.Instance(Type.STRUCT, objContext, className=name)

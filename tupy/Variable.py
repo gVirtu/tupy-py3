@@ -55,7 +55,7 @@ class Variable(object):
                 tupy.Interpreter.Interpreter.callStack.push(ret.value)
                 parent = (ret, tid, -2)
                 if ret.type == Type.NULL:
-                    raise TypeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
+                    raise RuntimeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
                 ret = ret.value.locals.get(tid)
                 classContextsPushed = classContextsPushed+1
 

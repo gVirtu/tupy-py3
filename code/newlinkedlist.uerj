@@ -7,6 +7,8 @@ tipo Nó:
 
 tipo Lista:
   Nó início
+
+visual V <- ""
 ----------------
 
 Lista X <- Lista()
@@ -14,6 +16,7 @@ Lista X <- Lista()
 Insere(Lista L, inteiro chave):
   Nó novo <- Nó(chave)
   L.início, novo.próx <- novo, L.início
+  ~~ V <- lista_encadeada(L.início, "chave", "próx")
   
 InsereEm(Lista L, inteiro chave, inteiro pos):
   se pos > 0:
@@ -25,6 +28,7 @@ InsereEm(Lista L, inteiro chave, inteiro pos):
     p.próx, novo.próx <- novo, p.próx
   senão:
     Insere(L, chave)
+  ~~ V <- lista_encadeada(L.início, "chave", "próx")
     
 InsereOrdenado(Lista L, inteiro chave):
   Nó p <- L.início
@@ -35,6 +39,7 @@ InsereOrdenado(Lista L, inteiro chave):
       p <- p.próx
     Nó novo <- Nó(chave)
     p.próx, novo.próx <- novo, p.próx
+  ~~ V <- lista_encadeada(L.início, "chave", "próx")
   
 Insere(X, 5); Insere(X, 6); Insere(X, 7);
 InsereEm(X, 1, 2);

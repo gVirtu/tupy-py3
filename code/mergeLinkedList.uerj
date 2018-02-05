@@ -1,0 +1,76 @@
+tipo Nó:
+  inteiro chave
+  Nó próx
+  
+  Nó(inteiro c):
+    chave <- c
+
+tipo Lista:
+  Nó início
+
+visual V <- ""
+
+Insere(Lista L, inteiro chave):
+  Nó novo <- Nó(chave)
+  L.início, novo.próx <- novo, L.início
+  V <- lista_encadeada(L.início, "chave", "próx")
+
+InsereOrdenado(Lista L, inteiro chave):
+  Nó p <- L.início
+  se p = nulo ou chave < p.chave:
+    Insere(L, chave)
+  senão:
+    enquanto(p.próx != nulo e p.próx.chave < chave):
+      p <- p.próx
+    Nó novo <- Nó(chave)
+    p.próx, novo.próx <- novo, p.próx
+  V <- lista_encadeada(L.início, "chave", "próx")
+----------------
+  
+Lista Merge(Lista A, Lista B):
+  Lista R <- Lista()
+  Nó cab <- Nó(); R.início <- cab
+  Nó p, q <- A.início, B.início
+  Nó atual <- cab
+  enquanto(p != nulo e q != nulo):
+    se p.chave < q.chave:
+      atual.próx, p <- Nó(p.chave), p.próx
+    senão:
+      atual.próx, q <- Nó(q.chave), q.próx
+    atual <- atual.próx
+    ~~ V <- lista_encadeada(cab.próx, "chave", "próx")
+    
+  enquanto(p != nulo):
+    atual.próx, p <- Nó(p.chave), p.próx
+    atual <- atual.próx
+    ~~ V <- lista_encadeada(cab.próx, "chave", "próx")
+    
+  enquanto(q != nulo):
+    atual.próx, q <- Nó(q.chave), q.próx
+    atual <- atual.próx
+    ~~ V <- lista_encadeada(cab.próx, "chave", "próx")
+    
+  R.início <- cab.próx
+  retornar R
+
+Lista oculta X <- Lista()
+  
+InsereOrdenado(X, 5)
+InsereOrdenado(X, 7)
+InsereOrdenado(X, 1)
+InsereOrdenado(X, 6)
+
+Lista oculta Y <- Lista()
+
+InsereOrdenado(Y, 4)
+InsereOrdenado(Y, 8)
+InsereOrdenado(Y, 3)
+InsereOrdenado(Y, 2)
+InsereOrdenado(Y, 9)
+
+~~ V <- ""
+~~ visual V2 <- lista_encadeada(X.início, "chave", "próx")
+~~ visual V3 <- lista_encadeada(Y.início, "chave", "próx")
+
+Lista Z <- Merge(X, Y)
+~~ V <- lista_encadeada(Z.início, "chave", "próx")

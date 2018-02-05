@@ -25,8 +25,8 @@ def serializedATN():
         buf.write("\5\u00ac\n\5\f\5\16\5\u00af\13\5\3\5\3\5\3\5\3\5\3\5\7")
         buf.write("\5\u00b6\n\5\f\5\16\5\u00b9\13\5\3\5\3\5\3\5\3\5\3\5\3")
         buf.write("\5\3\5\3\5\7\5\u00c3\n\5\f\5\16\5\u00c6\13\5\5\5\u00c8")
-        buf.write("\n\5\3\6\5\6\u00cb\n\6\3\6\3\6\5\6\u00cf\n\6\3\6\3\6\7")
-        buf.write("\6\u00d3\n\6\f\6\16\6\u00d6\13\6\3\6\3\6\3\7\3\7\3\b\3")
+        buf.write("\n\5\3\6\5\6\u00cb\n\6\3\6\3\6\3\6\7\6\u00d0\n\6\f\6\16")
+        buf.write("\6\u00d3\13\6\3\6\5\6\u00d6\n\6\3\6\3\6\3\7\3\7\3\b\3")
         buf.write("\b\3\b\5\b\u00df\n\b\3\b\3\b\3\t\5\t\u00e4\n\t\3\t\3\t")
         buf.write("\5\t\u00e8\n\t\3\t\5\t\u00eb\n\t\3\n\3\n\3\n\6\n\u00f0")
         buf.write("\n\n\r\n\16\n\u00f1\3\n\3\n\3\13\3\13\3\13\7\13\u00f9")
@@ -123,11 +123,11 @@ def serializedATN():
         buf.write("\u00c7\u0099\3\2\2\2\u00c7\u00a8\3\2\2\2\u00c7\u00ba\3")
         buf.write("\2\2\2\u00c8\t\3\2\2\2\u00c9\u00cb\5\f\7\2\u00ca\u00c9")
         buf.write("\3\2\2\2\u00ca\u00cb\3\2\2\2\u00cb\u00cc\3\2\2\2\u00cc")
-        buf.write("\u00ce\5\32\16\2\u00cd\u00cf\7C\2\2\u00ce\u00cd\3\2\2")
-        buf.write("\2\u00ce\u00cf\3\2\2\2\u00cf\u00d4\3\2\2\2\u00d0\u00d1")
-        buf.write("\7 \2\2\u00d1\u00d3\7!\2\2\u00d2\u00d0\3\2\2\2\u00d3\u00d6")
-        buf.write("\3\2\2\2\u00d4\u00d2\3\2\2\2\u00d4\u00d5\3\2\2\2\u00d5")
-        buf.write("\u00d7\3\2\2\2\u00d6\u00d4\3\2\2\2\u00d7\u00d8\7E\2\2")
+        buf.write("\u00d1\5\32\16\2\u00cd\u00ce\7 \2\2\u00ce\u00d0\7!\2\2")
+        buf.write("\u00cf\u00cd\3\2\2\2\u00d0\u00d3\3\2\2\2\u00d1\u00cf\3")
+        buf.write("\2\2\2\u00d1\u00d2\3\2\2\2\u00d2\u00d5\3\2\2\2\u00d3\u00d1")
+        buf.write("\3\2\2\2\u00d4\u00d6\7C\2\2\u00d5\u00d4\3\2\2\2\u00d5")
+        buf.write("\u00d6\3\2\2\2\u00d6\u00d7\3\2\2\2\u00d7\u00d8\7E\2\2")
         buf.write("\u00d8\13\3\2\2\2\u00d9\u00da\t\2\2\2\u00da\r\3\2\2\2")
         buf.write("\u00db\u00dc\7\4\2\2\u00dc\u00de\5\60\31\2\u00dd\u00df")
         buf.write("\7\35\2\2\u00de\u00dd\3\2\2\2\u00de\u00df\3\2\2\2\u00df")
@@ -303,7 +303,7 @@ def serializedATN():
         buf.write("\3\2\2\2\u026f\u026d\3\2\2\2\u026f\u026e\3\2\2\2\u0270")
         buf.write("s\3\2\2\2\u0271\u0272\t\6\2\2\u0272u\3\2\2\2Jxz\u0084")
         buf.write("\u0087\u0090\u0095\u009e\u00a3\u00ad\u00b7\u00c4\u00c7")
-        buf.write("\u00ca\u00ce\u00d4\u00de\u00e3\u00e7\u00ea\u00f1\u00fa")
+        buf.write("\u00ca\u00d1\u00d5\u00de\u00e3\u00e7\u00ea\u00f1\u00fa")
         buf.write("\u00fe\u0106\u010a\u010d\u0116\u011b\u0123\u0128\u012c")
         buf.write("\u013a\u0140\u0145\u014d\u0154\u015c\u0169\u016f\u017f")
         buf.write("\u018a\u018e\u0197\u019f\u01a5\u01ad\u01b6\u01bf\u01c7")
@@ -966,9 +966,6 @@ class langParser ( Parser ):
             return self.getTypedRuleContext(langParser.ParamPassageContext,0)
 
 
-        def INVISIBLE(self):
-            return self.getToken(langParser.INVISIBLE, 0)
-
         def OPEN_BRACK(self, i:int=None):
             if i is None:
                 return self.getTokens(langParser.OPEN_BRACK)
@@ -980,6 +977,9 @@ class langParser ( Parser ):
                 return self.getTokens(langParser.CLOSE_BRACK)
             else:
                 return self.getToken(langParser.CLOSE_BRACK, i)
+
+        def INVISIBLE(self):
+            return self.getToken(langParser.INVISIBLE, 0)
 
         def getRuleIndex(self):
             return langParser.RULE_typedFunctionParam
@@ -1018,25 +1018,25 @@ class langParser ( Parser ):
 
             self.state = 202
             self.dataType()
-            self.state = 204
-            self._errHandler.sync(self)
-            _la = self._input.LA(1)
-            if _la==langParser.INVISIBLE:
-                self.state = 203
-                self.match(langParser.INVISIBLE)
-
-
-            self.state = 210
+            self.state = 207
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==langParser.OPEN_BRACK:
-                self.state = 206
+                self.state = 203
                 self.match(langParser.OPEN_BRACK)
-                self.state = 207
+                self.state = 204
                 self.match(langParser.CLOSE_BRACK)
-                self.state = 212
+                self.state = 209
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
+
+            self.state = 211
+            self._errHandler.sync(self)
+            _la = self._input.LA(1)
+            if _la==langParser.INVISIBLE:
+                self.state = 210
+                self.match(langParser.INVISIBLE)
+
 
             self.state = 213
             self.match(langParser.NAME)

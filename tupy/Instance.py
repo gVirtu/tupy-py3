@@ -27,10 +27,14 @@ class Instance(object):
 
         if self.type == Type.ARRAY:
             if len(self.value)>0:
-                self.heldtype = tupy.Interpreter.memRead(self.value[0]).type
+                for element in self.value:
+                    self.heldtype = tupy.Interpreter.memRead(element).type
+                    if (self.heldtype != Type.NULL):
+                        break
                 self.roottype = tupy.Interpreter.memRead(self.value[0]).roottype
                 self.array_dimensions = tupy.Interpreter.memRead(self.value[0]).array_dimensions + 1
-                if not all(tupy.Interpreter.memRead(element).type == self.heldtype for element in self.value):
+                if not all(tupy.Interpreter.memRead(element).type == self.heldtype or
+                           tupy.Interpreter.memRead(element).type == Type.NULL for element in self.value):
                     raise TypeError()
                 heldclasses = [element for element in self.value if tupy.Interpreter.memRead(element).type == Type.STRUCT]
                 if len(heldclasses) > 0:
@@ -115,8 +119,6 @@ class Instance(object):
         return self.type in [Type.ARRAY, Type.STRING, Type.TUPLE]
 
     def __deepcopy__(self, memo:dict):
-        if memo is None:
-            memo = dict()
         my_id = id(self)
         if my_id not in memo:
             cls = self.__class__
@@ -135,7 +137,7 @@ class Instance(object):
             setattr(result, 'roottype', self.roottype)
             setattr(result, 'class_name', self.class_name)
         else:
-            result = memo[my_id]
+            result = memo[my_id] # necessary? not currently covered
         return result
 
     # UNUSED

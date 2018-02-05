@@ -93,6 +93,7 @@ def initialize():
     function("embaralhar", Type.ARRAY, [Type.TUPLE])
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
+    function("comprimento", Type.INT, [Type.TUPLE])
     for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING]:
         function("min", t, [t, t])
         function("mín", t, [t, t])
@@ -581,6 +582,17 @@ def remover(argsTuple):
         else:
             raise TypeError("A função remover espera receber uma lista como primeiro argumento!")
 
+def comprimento(argsTuple):
+    argsTuple = argsTuple.value
+    if (len(argsTuple) != 1):
+        raise TypeError("A função comprimento(lista) espera receber um único argumento!")
+    else:
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (inst.is_pure_array()):
+            return tupy.Instance.Instance(Type.INT, len(inst.value))
+        else:
+            raise TypeError("A função comprimento espera receber uma lista como argumento!")
+
 def min(x, y):
     return tupy.Instance.Instance(x.type, builtins.min(x.value, y.value))
 
@@ -802,7 +814,7 @@ def árvore(argsTuple):
         optsInst = tupy.Interpreter.memRead(argsTuple[4]) if len(argsTuple) > 4 \
                                                     else tupy.Instance.Instance(Type.STRING, "")
 
-        if (treeInst.type != Type.STRUCT):
+        if (treeInst.type != Type.STRUCT and treeInst.type != Type.NULL):
             raise TypeError("O primeiro parâmetro para a função árvore deve ser uma estrutura representando a raiz da árvore!")
         if (treeKeyNameInst.type != Type.STRING):
             raise TypeError("O segundo parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém a chave do nó!")
@@ -810,6 +822,8 @@ def árvore(argsTuple):
             raise TypeError("O terceiro parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém uma lista de filhos!")
         if (not highlightsInst.is_pure_array() or 
             (highlightsInst.array_length() > 0 and
+             treeInst.type != Type.NULL and
+             highlightsInst.heldtype != Type.NULL and
              not tupy.Interpreter.Interpreter.areClassNamesCompatible(treeInst.class_name, highlightsInst.class_name))):
             raise TypeError("O quarto parâmetro para a função árvore (opcional) deve ser uma lista de referências para nós que serão destacados!")
         if (optsInst.type != Type.STRING):
@@ -817,15 +831,19 @@ def árvore(argsTuple):
 
         treeKeyName = treeKeyNameInst.value
         treeEdgesName = treeEdgesNameInst.value
-        if (not treeInst.value.locals.hasKey(treeKeyName)):
-            raise NameError("A árvore fornecida não possui o atributo '{0}' para a chave!".format(treeKeyName))
-        if (not treeInst.value.locals.hasKey(treeEdgesName)):
-            raise NameError("A árvore fornecida não possui o atributo '{0}' para a lista de filhos!".format(treeEdgesName))
-        if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(treeInst.class_name, treeInst.value.locals.classname[treeEdgesName])):
-            raise TypeError("A lista de filhos da árvore deve possuir referências para estruturas compatíveis com o tipo da árvore!")
-        
+        if (treeInst.type != Type.NULL):
+            if (not treeInst.value.locals.hasKey(treeKeyName)):
+                raise NameError("A árvore fornecida não possui o atributo '{0}' para a chave!".format(treeKeyName))
+            if (not treeInst.value.locals.hasKey(treeEdgesName)):
+                raise NameError("A árvore fornecida não possui o atributo '{0}' para a lista de filhos!".format(treeEdgesName))
+            if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(treeInst.class_name, treeInst.value.locals.classname[treeEdgesName])):
+                raise TypeError("A lista de filhos da árvore deve possuir referências para estruturas compatíveis com o tipo da árvore!")
+        else:
+            return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+
         levelMap = {}
-        highlights = set( [id(cell_value(treeCell)) for treeCell in highlightsInst.value ] )
+        highlights = set( [id(cell_value(treeCell)) for treeCell in highlightsInst.value \
+                                                     if treeCell.data.type != Type.NULL] )
         treeDefinition = "".join(recurse_tree(treeInst, None, 0, treeKeyName, treeEdgesName, highlights, set(), levelMap))
         levelDefinitions = []
         for nodeLevel, nodeList in levelMap.items():
@@ -1014,11 +1032,11 @@ def fila(vetor, highlights, extra):
 def lista_encadeada(argsTuple):
     argsTuple = argsTuple.value
     if (len(argsTuple) < 3):
-        raise TypeError("Faltam argumentos para a função lista_encadeada(estrutura, nome_chave, nome_prox, [destaques, opções])!")
-    elif (len(argsTuple) > 5):
-        raise TypeError("A função lista_encadeada(estrutura, nome_chave, nome_prox, [destaques, opções]) recebeu argumentos demais!")
+        raise TypeError("Faltam argumentos para a função lista_encadeada(estrutura, nome_chave, nome_prox, [duplamente?, destaques, opções])!")
+    elif (len(argsTuple) > 6):
+        raise TypeError("A função lista_encadeada(estrutura, nome_chave, nome_prox, [duplamente?, destaques, opções]) recebeu argumentos demais!")
     else:
-        header = "[[DOT digraph {node [shape=none]; null [shape=point]; "
+        header = "[[DOT digraph {node [shape=none]; splines=true; null [shape=point]; "
         trailer = "}]]"
 
         # Gather and validate parameters
@@ -1026,36 +1044,47 @@ def lista_encadeada(argsTuple):
         listInst = tupy.Interpreter.memRead(argsTuple[0])
         listKeyNameInst = tupy.Interpreter.memRead(argsTuple[1])
         listNextNameInst = tupy.Interpreter.memRead(argsTuple[2])
-        highlightsInst = tupy.Interpreter.memRead(argsTuple[3]) if len(argsTuple) > 3 \
+        listIsDoubleLinkInst = tupy.Interpreter.memRead(argsTuple[3]) if len(argsTuple) > 3 \
+                                                            else tupy.Instance.Instance(Type.BOOL, False)
+        highlightsInst = tupy.Interpreter.memRead(argsTuple[4]) if len(argsTuple) > 4 \
                                                         else tupy.Instance.Instance(Type.ARRAY, [])
-        optsInst = tupy.Interpreter.memRead(argsTuple[4]) if len(argsTuple) > 4 \
+        optsInst = tupy.Interpreter.memRead(argsTuple[5]) if len(argsTuple) > 5 \
                                                     else tupy.Instance.Instance(Type.STRING, "")
 
-        if (listInst.type != Type.STRUCT):
+        if (listInst.type != Type.STRUCT and listInst.type != Type.NULL):
             raise TypeError("O primeiro parâmetro para a função lista_encadeada deve ser uma estrutura representando o primeiro nó!")
         if (listKeyNameInst.type != Type.STRING):
             raise TypeError("O segundo parâmetro para a função lista_encadeada deve ser uma cadeia com o nome do atributo que contém a chave do nó!")
         if (listNextNameInst.type != Type.STRING):
             raise TypeError("O terceiro parâmetro para a função lista_encadeada deve ser uma cadeia com o nome do atributo que aponta para o próximo nó!")
+        if (listIsDoubleLinkInst.type != Type.BOOL):
+            raise TypeError("O quarto parâmetro para a função lista_encadeada (opcional) deve ser do tipo lógico e indicar se a lista é duplamente encadeada!")
         if (not highlightsInst.is_pure_array() or 
             (highlightsInst.array_length() > 0 and
+             listInst.type != Type.NULL and
+             highlightsInst.heldtype != Type.NULL and
              not tupy.Interpreter.Interpreter.areClassNamesCompatible(listInst.class_name, highlightsInst.class_name))):
-            raise TypeError("O quarto parâmetro para a função lista_encadeada (opcional) deve ser uma lista de referências para nós que serão destacados!")
+            raise TypeError("O quinto parâmetro para a função lista_encadeada (opcional) deve ser uma lista de referências para nós que serão destacados!")
         if (optsInst.type != Type.STRING):
-            raise TypeError("O quinto parâmetro para a função lista_encadeada (opcional) deve ser uma cadeia com instruções DOT que serão acrescentadas à definição!")
+            raise TypeError("O sexto parâmetro para a função lista_encadeada (opcional) deve ser uma cadeia com instruções DOT que serão acrescentadas à definição!")
 
         listKeyName = listKeyNameInst.value
         listNextName = listNextNameInst.value
-        if (not listInst.value.locals.hasKey(listKeyName)):
-            raise NameError("A estrutura fornecida não possui o atributo '{0}' para a chave!".format(listKeyName))
-        if (not listInst.value.locals.hasKey(listNextName)):
-            raise NameError("A estrutura fornecida não possui o atributo '{0}' para a referência de próximo nó!".format(listNextName))
-        if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(listInst.class_name, listInst.value.locals.classname[listNextName])):
-            raise TypeError("A referência de próximo nó da estrutura deve ser para outra estrutura de classe compatível!")
-        
-        highlights = set( [id(cell_value(listCell)) for listCell in highlightsInst.value ] )
-        nameMapping = set()
-        definitionList = recurse_list(listInst, None, listKeyName, listNextName, highlights, nameMapping)
+        if (listInst.type != Type.NULL):
+            if (not listInst.value.locals.hasKey(listKeyName)):
+                raise NameError("A estrutura fornecida não possui o atributo '{0}' para a chave!".format(listKeyName))
+            if (not listInst.value.locals.hasKey(listNextName)):
+                raise NameError("A estrutura fornecida não possui o atributo '{0}' para a referência de próximo nó!".format(listNextName))
+            if (not tupy.Interpreter.Interpreter.areClassNamesCompatible(listInst.class_name, listInst.value.locals.classname[listNextName])):
+                raise TypeError("A referência de próximo nó da estrutura deve ser para outra estrutura de classe compatível!")
+        else:
+            return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+
+        highlights = set( [id(cell_value(listCell)) for listCell in highlightsInst.value \
+                                                     if listCell.data.type != Type.NULL] )
+        nameMapping = dict()
+        isDoubleLink = listIsDoubleLinkInst.value
+        definitionList = recurse_list(listInst, None, listKeyName, listNextName, highlights, nameMapping, isDoubleLink)
         listDefinition = "".join(definitionList)
         rankDefinitions = ["{rank = same; null; "]
         nodeCount = len(nameMapping)
@@ -1069,34 +1098,47 @@ def lista_encadeada(argsTuple):
         return tupy.Instance.Instance(Type.STRING, ret)
 
 _linkedlist_element = ("s{0} [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\">"
-                       "<TR><TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"{4}\" PORT=\"{1}\">{2}</TD>"
-                       "<TD BORDER=\"0\" PORT=\"{3}\"> </TD></TR></TABLE>>]; ")
+                       "<TR>{4}<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"{5}R\" BGCOLOR=\"{3}\" PORT=\"{1}\">{2}</TD>"
+                       "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>]; ")
 
-def recurse_list(listInst, parentIdentifier, keyName, nextName, highlights:set, nameMapping:set):
-    identifier = len(nameMapping)
-
+def recurse_list(listInst, parentIdentifier, keyName, nextName, highlights:set, nameMapping:dict, isDoubleLink:bool):
     if (listInst.type == Type.NULL):
-        return "s{0}:{1}:e -> null:w; ".format(parentIdentifier, nextName)
+        return "s{0}:r -> null; ".format(parentIdentifier)
     else :
+        isNewNode = (id(listInst.value) not in nameMapping)
+        if isNewNode:
+            identifier = len(nameMapping)
+            nameMapping[id(listInst.value)] = identifier
+        else:
+            identifier = nameMapping[id(listInst.value)]
+
         neighbor = listInst.value.locals.get(nextName)
-        isNewNode = (id(listInst) in nameMapping)
-        nameMapping.add(id(listInst))
 
         if isNewNode:
-            result = []
-        else:
-            result = [recurse_list(neighbor, identifier, keyName, nextName, highlights, nameMapping)]
-
             keyInst = listInst.value.locals.get(keyName)
-            result.append(_linkedlist_element.format(identifier, html.escape(keyName), 
+            doubleLinkAddon = "<TD BORDER=\"0\" PORT=\"l\"> </TD>" if isDoubleLink else ""
+            doubleLinkSide = "L" if isDoubleLink else ""
+            result = [_linkedlist_element.format(identifier, html.escape(keyName), 
                                                      html.escape(stringProcess(printInstance(keyInst))),
-                                                     html.escape(nextName),
                                                      "yellow" if (id(listInst.value) in highlights) \
-                                                                       else "white"))
-
-        if (parentIdentifier is not None):
-            result.append("s{0}:{1}:e -> s{2}:{3}:w; ".format(parentIdentifier, nextName, 
-                                                              identifier, keyName))
+                                                                       else "white",
+                                                     doubleLinkAddon, doubleLinkSide)]
+            result.append(recurse_list(neighbor, identifier, keyName, nextName, highlights, 
+                                       nameMapping, isDoubleLink))
+            if (parentIdentifier is not None):
+                edge = "s{0}:{1} -> s{2}:{3}".format(parentIdentifier, "r", identifier, 
+                                                     "l" if isDoubleLink else keyName)
+                result.append("{0}; ".format(edge))
+                if (isDoubleLink):
+                    result.append("{0} [dir=back]; ".format(edge))   
+        else:
+            result = ["null [style=invis]; "]
+            if (parentIdentifier is not None):
+                linkDir = "both" if isDoubleLink else "back"
+                edge = "s{0}:{3}:s -> s{1}:r:s [dir={2}];".format(identifier, parentIdentifier, linkDir,
+                                                                    "l" if isDoubleLink else keyName)
+                result.append(edge)
+            
         resultString = "".join(result)
 
         return resultString
