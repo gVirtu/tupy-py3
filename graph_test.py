@@ -9,7 +9,7 @@ from antlr4 import InputStream
 from tupy.Instance import Instance
 from tupy.Type import Type
 from tupy.Interpreter import Interpreter, memRead
-from tupy.Builtins import _graph_opts, _graph_highlight
+from tupy.Builtins import _graph_opts, _graph_highlight, _empty_graphviz_return
 from tupy.errorHelper import TupyNameError, TupyRuntimeError, TupySyntaxError, \
                              TupyTypeError, TupyValueError, TupyParseError, \
                              TupyIndexError
@@ -17,20 +17,23 @@ from tupy.errorHelper import TupyNameError, TupyRuntimeError, TupySyntaxError, \
 class TestGraphs(unittest.TestCase):
     def setUp(self):
         Interpreter.isDebug = False
+        self.maxDiff = 49249323
 
     def test_graphviz_prints(self):
-        extra = "0 [label = \"ABC\"]; "
-        desired_graph = "".join(["[[DOT strict graph {", _graph_opts, extra, "0; 1; 2; 3; 1 ", _graph_highlight,
-                         "0 -- 1 []; 0 -- 3 [color=\"red\"; ]; 1 -- 2 []; 2 -- 3 []; 0 [label = \"ABC\"]; }]]"])
-        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, extra, "0; 1; 2; 3; 2 ", _graph_highlight,
-                         "0 -> 1 []; 1 -> 2 []; 2 -> 3 []; 3 -> 0 [color=\"red\"; ]; ", extra, "}]]"])
+        extraHeader = "0 [label = \"ABC\"]; "
+        extraFooter = "1 [label = \"DEF\"]; "
+        desired_graph = "".join(["[[DOT strict graph {", _graph_opts, extraHeader, " 0; 1; 2; 3; 1 ", _graph_highlight,
+                         "0 -- 1 []; 0 -- 3 [color=\"red\"; ]; 1 -- 2 []; 2 -- 3 []; ", extraFooter, " }]]"])
+        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, extraHeader, " 0; 1; 2; 3; 2 ", _graph_highlight,
+                         "0 -> 1 []; 1 -> 2 []; 2 -> 3 []; 3 -> 0 [color=\"red\"; ]; ", extraFooter, " }]]"])
 
         ret = Interpreter.interpret(("inteiro grafo[4,4]\n"
                                      "grafo[0,1] <- grafo[1,0] <- 1\n"
                                      "grafo[2,1] <- grafo[1,2] <- 2\n"
                                      "grafo[2,3] <- grafo[3,2] <- 100\n"
                                      "grafo[0,3] <- grafo[3,0] <- 4\n"
-                                     "grafo_MA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "grafo_MA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                              \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -40,7 +43,8 @@ class TestGraphs(unittest.TestCase):
                                      "digrafo[1,2] <- 7\n"
                                      "digrafo[2,3] <- 3\n"
                                      "digrafo[3,0] <- 44\n"
-                                     "digrafo_MA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "digrafo_MA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                              \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
@@ -54,7 +58,8 @@ class TestGraphs(unittest.TestCase):
                                      "grafo[2] <- inserir(grafo[2], 3)\n"
                                      "grafo[3] <- inserir(grafo[3], 2)\n"
                                      "grafo[3] <- inserir(grafo[3], 0)\n"
-                                     "grafo_LA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "grafo_LA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                              \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -64,26 +69,29 @@ class TestGraphs(unittest.TestCase):
                                      "digrafo[1] <- inserir(digrafo[1], 2)\n"
                                      "digrafo[2] <- inserir(digrafo[2], 3)\n"
                                      "digrafo[3] <- inserir(digrafo[3], 0)\n"
-                                     "digrafo_LA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "digrafo_LA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                              \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
 
     def test_graphviz_weighted_prints(self):
-        extra = "0 [label = \"ABC\"]; "
-        desired_graph = "".join(["[[DOT strict graph {", _graph_opts, extra, "0; 1; 2; 3; 1 ", _graph_highlight,
+        extraHeader = "0 [label = \"ABC\"]; "
+        extraFooter = "1 [label = \"DEF\"]; "
+        desired_graph = "".join(["[[DOT strict graph {", _graph_opts, extraHeader, " 0; 1; 2; 3; 1 ", _graph_highlight,
                          "0 -- 1 [label=\"1\"; ]; 0 -- 3 [color=\"red\"; label=\"4\"; ]; ",
-                         "1 -- 2 [label=\"2\"; ]; 2 -- 3 [label=\"100\"; ]; 0 [label = \"ABC\"]; }]]"])
-        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, extra, "0; 1; 2; 3; 2 ", _graph_highlight,
+                         "1 -- 2 [label=\"2\"; ]; 2 -- 3 [label=\"100\"; ]; ", extraFooter, " }]]"])
+        desired_digraph = "".join(["[[DOT digraph {", _graph_opts, extraHeader, " 0; 1; 2; 3; 2 ", _graph_highlight,
                          "0 -> 1 [label=\"1\"; ]; 1 -> 2 [label=\"7\"; ]; 2 -> 3 [label=\"3\"; ]; ",
-                         "3 -> 0 [color=\"red\"; label=\"44\"; ]; ", extra, "}]]"])
+                         "3 -> 0 [color=\"red\"; label=\"44\"; ]; ", extraFooter, " }]]"])
 
         ret = Interpreter.interpret(("inteiro grafo[4,4]\n"
                                      "grafo[0,1] <- grafo[1,0] <- 1\n"
                                      "grafo[2,1] <- grafo[1,2] <- 2\n"
                                      "grafo[2,3] <- grafo[3,2] <- 100\n"
                                      "grafo[0,3] <- grafo[3,0] <- 4\n"
-                                     "grafo_valorado_MA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "grafo_valorado_MA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                                       \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -93,7 +101,8 @@ class TestGraphs(unittest.TestCase):
                                      "digrafo[1,2] <- 7\n"
                                      "digrafo[2,3] <- 3\n"
                                      "digrafo[3,0] <- 44\n"
-                                     "digrafo_valorado_MA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "digrafo_valorado_MA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                                           \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
@@ -107,7 +116,8 @@ class TestGraphs(unittest.TestCase):
                                      "grafo[2] <- inserir(grafo[2], [3, 100])\n"
                                      "grafo[3] <- inserir(grafo[3], [2, 100])\n"
                                      "grafo[3] <- inserir(grafo[3], [0, 4])\n"
-                                     "grafo_valorado_LA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "grafo_valorado_LA(grafo, [1], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                                       \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_graph)
@@ -117,7 +127,8 @@ class TestGraphs(unittest.TestCase):
                                      "digrafo[1] <- inserir(digrafo[1], [2, 7])\n"
                                      "digrafo[2] <- inserir(digrafo[2], [3, 3])\n"
                                      "digrafo[3] <- inserir(digrafo[3], [0, 44])\n"
-                                     "digrafo_valorado_LA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \")\n"))
+                                     "digrafo_valorado_LA(digrafo, [2], [[3,0]], \"0 [label = \\\"ABC\\\"]; \",\n"
+                                     "                                           \"1 [label = \\\"DEF\\\"]; \")\n"))
 
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_digraph)
@@ -181,9 +192,9 @@ class TestGraphs(unittest.TestCase):
                      "{{rank = same; 0; }}; "
                      "{{rank = same; 1; 4; }}; "
                      "{{rank = same; 2; 3; 5; 6; }}; ").format(_graph_highlight)
-        desired_tree = "".join(["[[DOT digraph {", _graph_opts, tree_data, "}]]"])
+        desired_tree = "".join(["[[DOT digraph {", _graph_opts, "99 -> 100; ", tree_data, "100 -> 99; }]]"])
 
-        desired_empty_tree = ("[[DOT digraph G { 1 [label = \"📥 vazio!\" fontsize=\"25\" shape = \"plaintext\"] }]]")
+        desired_empty_tree = _empty_graphviz_return
 
         ret = Interpreter.interpret(("tipo Nó:\n"
                                      "\tinteiro c\n"
@@ -198,8 +209,8 @@ class TestGraphs(unittest.TestCase):
                                      "raiz.prox[0], raiz.prox[1] <- n1, n2\n"
                                      "n1.prox[1] <- n3\n"
                                      "n2.prox[0] <- n4\n"
-                                     "arvore(raiz, \"c\", \"prox\", [n2]), \\\n"
-                                     "arvore(nulo, \"c\", \"prox\", [n2])\n"))
+                                     "arvore(raiz, \"c\", \"prox\", [n2], \"99 -> 100;\", \"100 -> 99;\"), \\\n"
+                                     "arvore(nulo, \"c\", \"prox\", [n2], \"99 -> 100;\", \"100 -> 99;\")\n"))
 
         self.assertEqual(ret[0].type, Type.STRING)
         self.assertEqual(ret[0].value, desired_tree)
@@ -218,7 +229,7 @@ class TestGraphs(unittest.TestCase):
                       "n2.prox[0] <- ref n4\n"))
 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1)") # too few args
-        self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1, 2, 3, 4, 5, 6)") # too many args
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1, 2, 3, 4, 5, 6, 7)") # too many args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1, 2, 3)") # not struct
         self.assertRaises(TupyTypeError, Interpreter.interpret, 
             "{0}Nó raiz <- Nó(0); arvore(raiz, 2, 3)".format(typedef)) #not string
@@ -233,6 +244,8 @@ class TestGraphs(unittest.TestCase):
              "arvore(raiz, \"c\", \"prox\", [outro])").format(typedef)) #not right class
         self.assertRaises(TupyTypeError, Interpreter.interpret, 
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prox\", [raiz], 0)".format(typedef)) #not string
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+            "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prox\", [raiz], \"\", 4)".format(typedef)) #not string
         self.assertRaises(TupyNameError, Interpreter.interpret, 
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"d\", \"prox\")".format(typedef)) #wrong attr
         self.assertRaises(TupyNameError, Interpreter.interpret, 
@@ -249,7 +262,7 @@ class TestGraphs(unittest.TestCase):
             "arvore(raiz, \"c\", \"prox\")").format(typedef, treebuild)) #tree has cycles
 
     def test_graphviz_matrix(self):
-        desired_matrix = ("[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
+        desired_matrix = ("[[DOT digraph G {node [shape=plaintext];  1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                         "<TR><TD PORT=\"rc\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\"> </FONT></TD>"
                         "<TD PORT=\"c0\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -286,9 +299,8 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_matrix)      
 
-        self.maxDiff = 93593
         desired_offset_matrix = ("[[DOT digraph G {node [shape=plaintext];"
-                                " 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
+                                "  1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
                                 "<TD PORT=\"rc\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                                 "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\"> </FONT></TD>"
                                 "<TD PORT=\"c7\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -317,7 +329,7 @@ class TestGraphs(unittest.TestCase):
             "matriz([ [1, 2, 3], [4, 5, 6], [7, 8, 9] ], [[0,0], [2], [1,1,1]])\n")      
 
     def test_graphviz_vector(self):        
-        desired_vector = ("[[DOT digraph G {node [shape=plaintext]; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
+        desired_vector = ("[[DOT digraph G { node [shape=plaintext]; 1 -> 3; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                             "<TR><TD PORT=\"c0\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                             "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">0</FONT></TD>"
                             "<TD PORT=\"c1\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -354,13 +366,12 @@ class TestGraphs(unittest.TestCase):
                             "<FONT FACE=\"COURIER\" POINT-SIZE=\"8\">80000000</FONT></TD>"
                             "<TD PORT=\"v8\" BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                             "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">99999999999</FONT></TD></TR></TABLE>>]; 3 -> 1}]]")
-        ret = Interpreter.interpret("vetor([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"3 -> 1\")\n")
+        ret = Interpreter.interpret("vetor([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"1 -> 3;\", \"3 -> 1\")\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_vector)
 
-        self.maxDiff = 93593
-        desired_offset_vector = ("[[DOT digraph G {node [shape=plaintext];"
-                                " 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
+        desired_offset_vector = ("[[DOT digraph G { node [shape=plaintext];"
+                                "  1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
                                 "<TD PORT=\"c8\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                                 "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">8</FONT></TD>"
                                 "<TD PORT=\"c9\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -384,7 +395,7 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.value, desired_offset_vector)   
 
     def test_graphviz_stack(self):
-        desired_stack=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; 0 [label = \" \"]; 0 -> 1; 1 -> 0; "
+        desired_stack=("[[DOT digraph G { node [shape=plaintext]; edge [arrowsize = 0.5]; 1 -> 3; 0 [label = \" \"]; 0 -> 1; 1 -> 0; "
                         "1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                         "<TR><TD PORT=\"v8\" SIDES=\"LBR\" BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">99999999999</FONT></TD></TR>"
@@ -404,12 +415,12 @@ class TestGraphs(unittest.TestCase):
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"23\">20</FONT></TD></TR>"
                         "<TR><TD PORT=\"v0\" SIDES=\"LBRT\" BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">1</FONT></TD></TR></TABLE>>]; 3 -> 1}]]")
-        ret = Interpreter.interpret("pilha([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"3 -> 1\")\n")
+        ret = Interpreter.interpret("pilha([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"1 -> 3;\", \"3 -> 1\")\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_stack)
 
     def test_graphviz_queue(self):
-        desired_queue=("[[DOT digraph G {node [shape=plaintext]; edge [arrowsize = 0.5]; C [label = \" \"]; "
+        desired_queue=("[[DOT digraph G { node [shape=plaintext]; edge [arrowsize = 0.5]; 1 -> 3; C [label = \" \"]; "
                         "F [label = \" \"]; F -> 1; 1 -> C; {rank = same; F; 1; C;} "
                         "1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                         "<TR><TD PORT=\"v8\" SIDES=\"BRT\" BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -430,59 +441,72 @@ class TestGraphs(unittest.TestCase):
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"23\">20</FONT></TD>"
                         "<TD PORT=\"v0\" SIDES=\"LBT\" BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">1</FONT></TD></TR></TABLE>>]; 3 -> 1}]]")
-        ret = Interpreter.interpret("fila([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"3 -> 1\")\n")
+        ret = Interpreter.interpret("fila([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"1 -> 3;\", \"3 -> 1\")\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_queue)
 
     def test_graphviz_linked_list(self):
-        desired_linked_list=("[[DOT digraph {node [shape=none];"
-                            " splines=true; null [shape=point];"
-                            " s0 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                            "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"white\" PORT=\"c\">5</TD>"
-                            "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                            " s1 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                            "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"white\" PORT=\"c\">10</TD>"
-                            "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                            " s2 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                            "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"white\" PORT=\"c\">3</TD>"
-                            "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                            " s3 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                            "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"yellow\" PORT=\"c\">15</TD>"
-                            "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                            " s4 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                            "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"R\" BGCOLOR=\"white\" PORT=\"c\">20</TD>"
-                            "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                            " s4:r -> null; s3:r -> s4:c; s2:r -> s3:c; s1:r -> s2:c; s0:r -> s1:c;"
-                            " {rank = same; null; s0; s1; s2; s3; s4; }; }]]")
+        desired_linked_list=('[[DOT digraph {node [shape=none];  s0 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="white" '
+                            'PORT="c">5</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s1 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="white" '
+                            'PORT="c">10</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s2 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="white" '
+                            'PORT="c">3</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s3 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="yellow" '
+                            'PORT="c">15</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s4 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="white" '
+                            'PORT="c">20</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s4:r -> null:w; s3:r -> s4:c; s2:r '
+                            '-> s3:c; s1:r -> s2:c; s0:r -> s1:c; {rank = same; null; s0; s1; s2; s3; s4; '
+                            '};  null [shape=point]; }]]')
 
-        desired_double_linked_list=("[[DOT digraph {node [shape=none];"
-                                    " splines=true; null [shape=point];"
-                                    " s0 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                                    "<TD BORDER=\"0\" PORT=\"l\"> </TD>"
-                                    "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"LR\" BGCOLOR=\"white\" PORT=\"c\">5</TD>"
-                                    "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                                    " s1 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                                    "<TD BORDER=\"0\" PORT=\"l\"> </TD>"
-                                    "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"LR\" BGCOLOR=\"white\" PORT=\"c\">10</TD>"
-                                    "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                                    " s2 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                                    "<TD BORDER=\"0\" PORT=\"l\"> </TD>"
-                                    "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"LR\" BGCOLOR=\"white\" PORT=\"c\">3</TD>"
-                                    "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                                    " s3 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                                    "<TD BORDER=\"0\" PORT=\"l\"> </TD>"
-                                    "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"LR\" BGCOLOR=\"yellow\" PORT=\"c\">15</TD>"
-                                    "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                                    " s4 [label=<<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
-                                    "<TD BORDER=\"0\" PORT=\"l\"> </TD>"
-                                    "<TD WIDTH=\"42\" HEIGHT=\"36\" SIDES=\"LR\" BGCOLOR=\"white\" PORT=\"c\">20</TD>"
-                                    "<TD BORDER=\"0\" PORT=\"r\"> </TD></TR></TABLE>>];"
-                                    " s4:r -> null; s3:r -> s4:l; s3:r -> s4:l [dir=back];"
-                                    " s2:r -> s3:l; s2:r -> s3:l [dir=back]; s1:r -> s2:l;"
-                                    " s1:r -> s2:l [dir=back]; s0:r -> s1:l; s0:r -> s1:l [dir=back];"
-                                    " {rank = same; null; s0; s1; s2; s3; s4; }; }]]")
+        desired_double_linked_list=('[[DOT digraph {node [shape=none];  s0 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" '
+                                    'PORT="c">5</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                                    '</TD></TR></TABLE></TD></TR></TABLE>>]; s1 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" '
+                                    'PORT="c">10</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                                    '</TD></TR></TABLE></TD></TR></TABLE>>]; s2 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" '
+                                    'PORT="c">3</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                                    '</TD></TR></TABLE></TD></TR></TABLE>>]; s3 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" '
+                                    'BGCOLOR="yellow" PORT="c">15</TD><TD BORDER="0" PORT="r"><TABLE '
+                                    'CELLPADDING="0" CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> '
+                                    '</TD></TR><TR><TD PORT="rd"> </TD></TR></TABLE></TD></TR></TABLE>>]; s4 '
+                                    '[label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD BORDER="0" '
+                                    'PORT="l"><TABLE CELLPADDING="0" CELLSPACING="0" BORDER="0" ><TR><TD '
+                                    'PORT="lu"> </TD></TR><TR><TD PORT="ld"> </TD></TR></TABLE></TD><TD '
+                                    'WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" PORT="c">20</TD><TD '
+                                    'BORDER="0" PORT="r"><TABLE CELLPADDING="0" CELLSPACING="0" BORDER="0" '
+                                    '><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                                    '</TD></TR></TABLE></TD></TR></TABLE>>]; s4:r -> null:w; s3:ru -> s4:lu; '
+                                    's4:ld -> s3:rd; s2:ru -> s3:lu; s3:ld -> s2:rd; s1:ru -> s2:lu; s2:ld -> '
+                                    's1:rd; s0:ru -> s1:lu; s1:ld -> s0:rd; {rank = same; null; s0; s1; s2; s3; '
+                                    's4; };  null [shape=point]; }]]')
 
-        desired_empty_linked_list=("[[DOT digraph G { 1 [label = \"📥 vazio!\" fontsize=\"25\" shape = \"plaintext\"] }]]")
+        desired_empty_linked_list=_empty_graphviz_return
 
         ret = Interpreter.interpret(("tipo Nó:\n"
                                      "\tinteiro c\n"
@@ -503,33 +527,41 @@ class TestGraphs(unittest.TestCase):
                                      "lista_encadeada(nulo, \"c\", \"prox\", falso, [n3])\n"))
 
         self.assertEqual(ret[0].type, Type.STRING)
-        self.assertEqual(ret[0].value, desired_linked_list)
+        self.assertEqual(ret[0].value, desired_linked_list,)
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, desired_double_linked_list)
         self.assertEqual(ret[2].type, Type.STRING)
         self.assertEqual(ret[2].value, desired_empty_linked_list)
 
     def test_graphviz_circular_linked_list(self):
-        desired_linked_list=('[[DOT digraph {node [shape=none]; splines=true; null [shape=point]; s0 '
-                            '[label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD WIDTH="42" '
-                            'HEIGHT="36" SIDES="R" BGCOLOR="white" PORT="c">5</TD><TD BORDER="0" '
-                            'PORT="r"> </TD></TR></TABLE>>]; s1 [label=<<TABLE CELLPADDING="0" '
+        desired_linked_list=('[[DOT digraph {node [shape=none];  s0 [label=<<TABLE CELLPADDING="0" '
+                            'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="white" '
+                            'PORT="c">5</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; s1 [label=<<TABLE CELLPADDING="0" '
                             'CELLSPACING="0"><TR><TD WIDTH="42" HEIGHT="36" SIDES="R" BGCOLOR="yellow" '
-                            'PORT="c">10</TD><TD BORDER="0" PORT="r"> </TD></TR></TABLE>>]; null '
-                            '[style=invis]; s0:c:s -> s1:r:s [dir=back];s0:r -> s1:c; {rank = same; null; '
-                            's0; s1; }; }]]')
+                            'PORT="c">10</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                            'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                            '</TD></TR></TABLE></TD></TR></TABLE>>]; null [style=invis]; s1:r:s -> '
+                            's0:c:s; s0:r -> s1:c; {rank = same; null; s0; s1; };  null [shape=point]; '
+                            '}]]')
 
-        desired_double_linked_list=('[[DOT digraph {node [shape=none]; splines=true; null [shape=point]; s0 '
-                                    '[label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD BORDER="0" PORT="l"> '
-                                    '</TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" '
-                                    'PORT="c">5</TD><TD BORDER="0" PORT="r"> </TD></TR></TABLE>>]; s1 '
-                                    '[label=<<TABLE CELLPADDING="0" CELLSPACING="0"><TR><TD BORDER="0" PORT="l"> '
-                                    '</TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="yellow" '
-                                    'PORT="c">10</TD><TD BORDER="0" PORT="r"> </TD></TR></TABLE>>]; null '
-                                    '[style=invis]; s0:l:s -> s1:r:s [dir=both];s0:r -> s1:l; s0:r -> s1:l '
-                                    '[dir=back]; {rank = same; null; s0; s1; }; }]]')
+        desired_double_linked_list=('[[DOT digraph {node [shape=none];  s0 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" BGCOLOR="white" '
+                                    'PORT="c">5</TD><TD BORDER="0" PORT="r"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> </TD></TR><TR><TD PORT="rd"> '
+                                    '</TD></TR></TABLE></TD></TR></TABLE>>]; s1 [label=<<TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0"><TR><TD BORDER="0" PORT="l"><TABLE CELLPADDING="0" '
+                                    'CELLSPACING="0" BORDER="0" ><TR><TD PORT="lu"> </TD></TR><TR><TD PORT="ld"> '
+                                    '</TD></TR></TABLE></TD><TD WIDTH="42" HEIGHT="36" SIDES="LR" '
+                                    'BGCOLOR="yellow" PORT="c">10</TD><TD BORDER="0" PORT="r"><TABLE '
+                                    'CELLPADDING="0" CELLSPACING="0" BORDER="0" ><TR><TD PORT="ru"> '
+                                    '</TD></TR><TR><TD PORT="rd"> </TD></TR></TABLE></TD></TR></TABLE>>]; null '
+                                    '[style=invis]; s1:ru:e -> s0:lu:n; s0:ld:w -> s1:rd:s; s0:ru -> s1:lu; s1:ld '
+                                    '-> s0:rd; {rank = same; null; s0; s1; };  null [shape=point]; }]]')
 
-        self.maxDiff = 99999
         ret = Interpreter.interpret(("tipo Nó:\n"
                                      "\tinteiro c\n"
                                      "\tNó prox\n"
@@ -542,7 +574,7 @@ class TestGraphs(unittest.TestCase):
                                      "lista_encadeada(cab, \"c\", \"prox\", falso, [n1]), \\\n"
                                      "lista_encadeada(cab, \"c\", \"prox\", verdadeiro, [n1])\n"))
         self.assertEqual(ret[0].type, Type.STRING)
-        self.assertEqual((ret[0].value, ret[1].value), (desired_linked_list, desired_double_linked_list))
+        self.assertEqual(ret[0].value, desired_linked_list)
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, desired_double_linked_list)
         
@@ -550,7 +582,7 @@ class TestGraphs(unittest.TestCase):
         typedef = "tipo Nó:\n\tinteiro c\n\tNó prox\n\tNó(inteiro chave):\n\t\tc <- chave\n"
 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1)") # too few args
-        self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1, 2, 3, 4, 5, 6, 7)") # too many args
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1, 2, 3, 4, 5, 6, 7, 8)") # too many args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1, 2, 3)") # not struct
         self.assertRaises(TupyTypeError, Interpreter.interpret, 
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, 2, 3)".format(typedef)) #not string
@@ -567,6 +599,8 @@ class TestGraphs(unittest.TestCase):
              "lista_encadeada(cab, \"c\", \"prox\", [outro])").format(typedef)) #not right class
         self.assertRaises(TupyTypeError, Interpreter.interpret, 
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", falso, [cab], 0)".format(typedef)) #not string
+        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+            "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", falso, [cab], \"\", 2)".format(typedef)) #not string
         self.assertRaises(TupyNameError, Interpreter.interpret, 
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"d\", \"prox\")".format(typedef)) #wrong attr
         self.assertRaises(TupyNameError, Interpreter.interpret, 
@@ -577,6 +611,26 @@ class TestGraphs(unittest.TestCase):
             "\tinteiro prox\n"
             "Nó cab <- Nó();\n"
             "lista_encadeada(cab, \"c\", \"prox\")").format(typedef)) #wrong edge type
+
+    def test_graphviz_heap(self):
+        desired_heap = ('[[DOT strict graph {overlap=false; node [fontsize=16 width=0.2 '
+                        'margin=0.05 shape=circle]; edge [arrowsize=0.8]; node [shape=square]; '
+                        '0 [label = "10"]; 1 [label = "5"]; 0 -- 1 ; 2 [label = "20"]; 0 -- 2 '
+                        '[color = red]; 3 [label = "2"]; 1 -- 3 ; 4 [label = "7"]; 1 -- 4 ; 5 '
+                        '[label = "15"]; 2 -- 5 [color = red]; 6 [label = "25"]; 2 -- 6 '
+                        '[color = red]; 7 [label = "1"]; 3 -- 7 ; 8 [label = "3"]; 3 -- 8 ; 9 '
+                        '[label = "6"]; 4 -- 9 ; 10 [label = "8"]; 4 -- 10 ; 3 [style = filled '
+                        'fillcolor = yellow]; 5 [style = filled fillcolor = yellow]; 1 [style = '
+                        'filled fillcolor = yellow]; 99 -- 0 }]]')
+
+        desired_empty_heap = _empty_graphviz_return
+        ret = Interpreter.interpret(("inteiro H[*] <- [10, 5, 20, 2, 7, 15, 25, 1, 3, 6, 8]\n"
+                                     "heap(H, [3, 5, 1], [2, 5, 6], \"node [shape=square];\", \"99 -- 0\"), \\\n"
+                                     "heap([], [3, 5, 1], [2, 5, 6], \"node [shape=square];\", \"99 -- 0\")\n"))
+        self.assertEqual(ret[0].type, Type.STRING)
+        self.assertEqual(ret[0].value, desired_heap)
+        self.assertEqual(ret[1].type, Type.STRING)
+        self.assertEqual(ret[1].value, desired_empty_heap)
 
 if __name__ == '__main__':
     unittest.main()
