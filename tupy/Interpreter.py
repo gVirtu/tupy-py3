@@ -5,6 +5,7 @@ from tupy.langParser import langParser
 import tupy.evalVisitor
 import tupy.functionVisitor
 import tupy.CallStack
+import tupy.Stack
 import tupy.Context
 import tupy.JSONPrinter
 import tupy.Variable
@@ -131,10 +132,29 @@ class Interpreter(object):
             return ret
 
     @classmethod
-    def executeBlock(cls, function, callArgs):
+    def executeBlock(cls, function, callArgs, classContextsPushed):
+        # Make sure we will perform the evaluations within the correct context
+        # Example scenario that would break without this:
+        #   tipo Teste:
+        #       Func(inteiro x):
+        #           <...>
+        #
+        #   Teste T <- Teste()
+        #
+        #   Helper(inteiro a):
+        #       T.Func(a)       <<- this line would push T's context to the top,
+        #                           in which we don't know what is 'a'
+
+        stackBuffer = tupy.Stack.Stack()
+        for _ in range(classContextsPushed):
+            stackBuffer.push(cls.callStack.pop())
+
         # We evaluate all literals once beforehand, otherwise we can end up
         # making function calls twice unnecessarily if the literal has CALL trailers.
         instArgs = [literal.get() for literal in callArgs]
+
+        for _ in range(classContextsPushed):
+            cls.callStack.push(stackBuffer.pop())
 
         (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor) = function.get(instArgs)
         logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
@@ -266,8 +286,14 @@ class Interpreter(object):
                                           funcName="Instância de {0}".format(name))
         try:
             classContext = cls.getClassContext(name)
-            objContext.locals = copy.deepcopy(classContext.locals)
-            objContext.locals.context = objContext
+            #objContext.locals = copy.deepcopy(classContext.locals)
+            objContext.inheritSymbolTable(classContext)
+            # Class attributes need to be copied otherwise all instances will share the same data
+            for (local_name, depth) in objContext.locals.data.keys():
+                if (depth == cls.classContextDepth and objContext.locals.datatype[local_name] != Type.FUNCTION):
+                    classAttribute = copy.deepcopy(objContext.locals.data[(local_name, depth)])
+                    objContext.locals.data[(local_name, depth)] = classAttribute
+            #objContext.locals.context = objContext
             logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
             objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)

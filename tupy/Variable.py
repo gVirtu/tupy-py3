@@ -48,7 +48,7 @@ class Variable(object):
                 # try:
                 # tupy.Interpreter.logger.debug("tid {0}".format(tid))
                 parent = (ret, None, -1)
-                ret = tupy.Interpreter.Interpreter.executeBlock(ret.value, tid)
+                ret = tupy.Interpreter.Interpreter.executeBlock(ret.value, tid, classContextsPushed)
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
             elif ttype == TrailerType.MEMBER:

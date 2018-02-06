@@ -63,6 +63,11 @@ class JSONPrinter(object):
         self.format_heap(heap)
         element["heap"] = heap #self.format_heap(heap)
         element["line"] = line
+
+        # Shorten output when consecutive traceouts are in the same line
+        if (len(self.data["trace"]) and element["line"] == self.data["trace"][-1]["line"]):
+            del self.data["trace"][-1]
+
         if (exception):
             element["event"] = "exception"
             element["exception_msg"] = exception
@@ -79,7 +84,7 @@ class JSONPrinter(object):
         ret = {}
         for name in sorted(context.locals.declaredDepth.keys()):
             depth = context.locals.declaredDepth[name]
-            if context.structName is None and depth < context.depth:
+            if depth != context.depth:
                 continue
 
             if context.locals.datatype[name] == tupy.Type.Type.FUNCTION:
