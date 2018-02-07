@@ -54,8 +54,9 @@ class functionVisitor(ParseTreeVisitor):
             argumentList = self.visitParameters(ctx.parameters())
             isConstructor = ("Definição da classe {0}".format(function_name) == self.className)
 
-            myContext = self.constructorContext if (isConstructor) else self.functionContext
-            myContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
+            self.functionContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
+            if (isConstructor):
+                self.constructorContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
             return True
         except NameError as e:
             tupy.errorHelper.nameError(e.args[0], ctx)

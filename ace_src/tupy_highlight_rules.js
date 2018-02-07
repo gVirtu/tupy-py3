@@ -34,7 +34,7 @@ var tupyHighlightRules = function() {
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
         "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila|lista_encadeada|" +
         "grafo_valorado_MA|digrafo_valorado_MA|grafo_valorado_LA|digrafo_valorado_LA|heap|" +
-        "comprimento|assercao"
+        "comprimento|assercao|escrita"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({

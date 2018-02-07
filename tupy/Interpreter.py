@@ -153,9 +153,6 @@ class Interpreter(object):
         # making function calls twice unnecessarily if the literal has CALL trailers.
         instArgs = [literal.get() for literal in callArgs]
 
-        for _ in range(classContextsPushed):
-            cls.callStack.push(stackBuffer.pop())
-
         (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
         logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
@@ -175,14 +172,26 @@ class Interpreter(object):
         argDimensions = [a.arrayDimensions for a in argumentList]
         argValues = copy.copy(instArgs)
         try:
-            argPassage = [ ((cls.getDepth(a.name), a.name, a.trailers)
-                              if (argumentList[ind].passByRef) else (-1, "", []) ) 
-                              for ind, a in enumerate(callArgs[:fixedCount]) ]
+            argPassage = []
+
+            for ind, a in enumerate(callArgs[:fixedCount]):
+                if (argumentList[ind].passByRef):
+                    refDepth = cls.getDepth(a.name)
+                    argPassage.append((refDepth,
+                                       cls.getMemoryCell(a.name, refDepth),
+                                       a.trailers))
+                else:
+                    argPassage.append((-1, None, []))
 
             for a in argumentList[len(callArgs):fixedCount]:
                 argValues.append(a.defaultValue.get())
-                argPassage.append((cls.getDepth(a.defaultValue.name), a.defaultValue.name, a.defaultValue.trailers)
-                                  if (a.passByRef) else (-1, "", []) )
+                if (a.passByRef):
+                    refDepth = cls.getDepth(a.defaultValue.name)
+                    argPassage.append((refDepth, 
+                                       cls.getMemoryCell(a.defaultValue.name, refDepth), 
+                                       a.defaultValue.trailers))
+                else:
+                    argPassage.append((-1, None, []))
 
         except AttributeError as e:
             # We can only access "name" in argValues above if it's a Symbol.
@@ -200,7 +209,7 @@ class Interpreter(object):
                 else:
                     raise TypeError("A função {0} esperava uma lista de {1} dimensões!".format(function.name, argDimensions[i]))
 
-            if inst.type == Type.STRUCT: # then inst.value contains a Context
+            if inst.type == Type.STRUCT and argClassNames[i]: # then inst.value contains a Context
                 if not tupy.Interpreter.Interpreter.areClassNamesCompatible(argClassNames[i], inst.value.structName):
                     raise TypeError("A função {0} esperava um objeto do tipo {1} como argumento! (Foi passado {2})".format(function.name, argClassNames[i], inst.value.structName))
 
@@ -208,7 +217,7 @@ class Interpreter(object):
         if isVariadic:
             # Currently argPassage only goes up to fixedCount
             # This append is to prevent it from limiting the finalArgs zip
-            argPassage.append( (-1, "", []) )
+            argPassage.append( (-1, None, []) )
 
             if (len(callArgs) > fixedCount):
                 argValues = argValues[:fixedCount]
@@ -232,6 +241,10 @@ class Interpreter(object):
                 packed = tupy.Instance.Instance(Type.TUPLE, tuple())
             
             argValues.append(packed)
+
+        # Undo that thing we did right when we started this function
+        for _ in range(classContextsPushed):
+            cls.callStack.push(stackBuffer.pop())            
         
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argIsInvisible, argClassNames, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
@@ -241,7 +254,7 @@ class Interpreter(object):
             passValues = [argValues[i] if argPassage[i][0] == -1 \
                                        else tupy.Instance.Instance(Type.REFERENCE, callArgs[i]) \
                                        for i in range(len(argValues))]
-            return builtInFunc(*passValues)
+            ret = builtInFunc(*passValues)
         else:
             codeBlock = cls.retrieveCodeTree(codeIndex)
             if (isConstructor):
@@ -250,9 +263,11 @@ class Interpreter(object):
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
                 logger.debug("Constructed {0}".format(classInstance))
-                return classInstance
+                ret = classInstance
             else:
-                return cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
+                ret = cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
+            
+        return ret
 
     @classmethod
     def getDepth(cls, name):
@@ -288,6 +303,7 @@ class Interpreter(object):
             classContext = cls.getClassContext(name)
             #objContext.locals = copy.deepcopy(classContext.locals)
             objContext.inheritSymbolTable(classContext)
+            # objContext.locals.merge(cls.callStack.top().locals)
             # Class attributes need to be copied otherwise all instances will share the same data
             for (local_name, depth) in objContext.locals.data.keys():
                 if (depth == cls.classContextDepth and objContext.locals.datatype[local_name] != Type.FUNCTION):

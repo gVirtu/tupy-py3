@@ -147,7 +147,7 @@ def initialize():
     function("árvore", Type.STRING, [Type.TUPLE])
     function("arvore", Type.STRING, [Type.TUPLE])
     function("lista_encadeada", Type.STRING, [Type.TUPLE])
-    for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING, Type.BOOL]:
+    for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING, Type.BOOL, Type.STRUCT]:
         function("matriz", Type.STRING, [t, Type.INT, Type.STRING, Type.STRING], arrayDimensions=[2,2,0,0],
                 defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, [], array_dimensions=2)),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, "")),
@@ -290,7 +290,7 @@ def printInstance(arg):
     elif typ == Type.NULL:
         out = "nulo"
     elif typ == Type.STRUCT:
-        out = inst.class_name
+        out = printStruct(inst)
     elif typ == Type.FUNCTION:
         out = "função"
     elif typ == Type.REFERENCE:
@@ -298,6 +298,23 @@ def printInstance(arg):
     else:
         out = inst.value #str(inst.value)
     return out
+
+def printStruct(inst):
+    try:
+        tupy.Interpreter.Interpreter.callStack.push(inst.value)
+        function_data = tupy.Interpreter.Interpreter.loadSymbol("escrita").value
+        function = function_data.get([])
+        returnTypeIndex = 3 #ugly
+        if function[returnTypeIndex] == (Type.STRING, 0): # 0-d array of string
+            retInst = tupy.Interpreter.Interpreter.executeBlock(function_data, [], 0)
+            ret = retInst.value
+        else:
+            ret = inst.class_name
+    except (TypeError, NameError) as e:
+        ret = inst.class_name
+    finally:
+        tupy.Interpreter.Interpreter.popFrame()
+    return ret
 
 def stringProcess(string):
     return str(string).replace("\\n", "\n")

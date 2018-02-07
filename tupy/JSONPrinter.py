@@ -141,9 +141,9 @@ class JSONPrinter(object):
             for (name, depth) in sorted(instLocals.data.keys()):
                 tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
                 if name not in usedNames:
-                    usedNames.add(name)
                     if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
                     instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
+                        usedNames.add(name)
                         attribute = []
                         subMemoryCell = instLocals.data[(name, depth)]
                         attribute.append(name)

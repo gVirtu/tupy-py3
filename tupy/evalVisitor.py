@@ -307,7 +307,7 @@ class evalVisitor(ParseTreeVisitor):
         testTree = ctx.test()
         iterations = 0
         # Trace - While Statement
-        tupy.Interpreter.Interpreter.trace(ctx.start.line)
+        # tupy.Interpreter.Interpreter.trace(ctx.start.line)
         while( bool(self.visitTest(testTree).get().value) ):
             ret = self.visitBlock(ctx.block(), funcName="Laço (enquanto)")
             if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
@@ -352,7 +352,7 @@ class evalVisitor(ParseTreeVisitor):
                         steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, -1)))
 
             # Trace - For Statement
-            tupy.Interpreter.Interpreter.trace(ctx.start.line)
+            # tupy.Interpreter.Interpreter.trace(ctx.start.line)
 
             ret = self.handleInnerFor(None, names, ranges, steps, stopFuncs, ctx.block())
 
@@ -404,11 +404,9 @@ class evalVisitor(ParseTreeVisitor):
             tupy.Interpreter.Interpreter.declareSymbol(name, datatype, subscriptList, className, invisible)
             tupy.Interpreter.Interpreter.storeSymbol(name, inst, [])
 
-            (referenceDepth, referenceName, referenceTrailers) = referenceData
+            (referenceDepth, referenceCell, referenceTrailers) = referenceData
             
             if (inst.type != Type.TUPLE and referenceDepth > -1): #Pass-by-reference only (except variadic)
-                cell = tupy.Interpreter.Interpreter.getMemoryCell(referenceName, referenceDepth)
-
                 # Grabbing the correct memory cell is trickier if there are trailers
                 # We are mostly concerned with where the result of retrieveWithTrailers
                 # is contained (i.e. the parent_triple). The negative depths are a tiny hack
@@ -416,11 +414,12 @@ class evalVisitor(ParseTreeVisitor):
                 # a SUBSCRIPT (depth >= 0), CALL (depth = -1) or MEMBER (depth = -2)
                 if (referenceTrailers):
                     try:
-                        cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), referenceTrailers)
+                        refInst = tupy.Interpreter.memRead(referenceCell)
+                        referenceCell = tupy.Interpreter.Interpreter.getDeepMemoryCell(refInst, referenceTrailers)
                     except tupy.Interpreter.InvalidMemoryAccessException as e:
                         tupy.errorHelper.syntaxError("Não é possível referenciar {0}!".format(e.args[0]), ctx.parentCtx)
 
-                tupy.Interpreter.Interpreter.referenceSymbol(name, cell)
+                tupy.Interpreter.Interpreter.referenceSymbol(name, referenceCell)
 
         if isClassDef:
             if funcName.startswith("Definição da classe "):
@@ -440,16 +439,6 @@ class evalVisitor(ParseTreeVisitor):
 
         returned_explicitly = tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN
 
-        # Trace return (end block)
-        if (breakable and not returnable): # loops shouldn't trace returns per iteration
-            pass
-        elif returned_explicitly:
-            if (ret and isinstance(ret, list)):
-                ret_res = [tupy.Interpreter.memAlloc(element) for element in ret]
-                ret = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
-
-            tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
-
         # Check if return is valid
         if tupy.Interpreter.Interpreter.canReturn():
             retType = Type.NULL
@@ -457,8 +446,18 @@ class evalVisitor(ParseTreeVisitor):
 
             if (ret is not None):
                 if (returned_explicitly):
+                    if (isinstance(ret, list)):
+                        ret_res = [tupy.Interpreter.memAlloc(element) for element in ret]
+                        ret = tupy.Instance.Instance(Type.TUPLE, tuple(ret_res))
+
                     retType = ret.roottype
                     retDimensions = ret.array_dimensions
+
+                    # Trace return (end block)
+                    if (breakable and not returnable): # loops shouldn't trace returns per iteration
+                        pass
+                    else:
+                        tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
                 else:
                     # Cannot return from a function without "retornar"
                     tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))

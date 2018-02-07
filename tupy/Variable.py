@@ -107,7 +107,7 @@ class Variable(object):
         elif datatype == Type.TUPLE:
             return tupy.Instance.Instance(datatype, ())
         elif datatype == Type.STRUCT:
-            return tupy.Instance.Instance(Type.NULL, 0, className=className) #tupy.Interpreter.Interpreter.newClassInstance(className)
+            return tupy.Instance.Instance(Type.NULL, 0, className=className)
         else:
             return tupy.Instance.Instance(datatype, 0)
 
