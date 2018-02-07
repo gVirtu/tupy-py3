@@ -16,13 +16,9 @@ class Function(object):
         depth = context.depth
 
         if builtIn:
-            codeIndex = code
+            codeAST = code
         else:
-            # Register code tree
-            tupy.Interpreter.logger.debug("Current functions = {0}".format(context.functions))
-            codeIndex = len(context.functions)
-            context.functions.append(code)
-            tupy.Interpreter.logger.debug("Updated functions = {0}".format(context.functions))
+            codeAST = FunctionAST(code)
 
         for arg in argumentList:
             # If next argument is optional, we add the possibility to call the function without it.
@@ -31,12 +27,12 @@ class Function(object):
                     # Variadic
                     current_level[arg.type] = current_level
             else:
-                current_level[_args_end] = (codeIndex, depth, argumentList, returnType, 
+                current_level[_args_end] = (codeAST, depth, argumentList, returnType, 
                                             builtIn, isConstructor, overrideable)
             current_level = current_level.setdefault(arg.type, {})
             
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, depth, argumentList, returnType, 
+        current_level[_args_end] = (codeAST, depth, argumentList, returnType, 
                                     builtIn, isConstructor, overrideable)
 
     def get(self, instArgs):
@@ -91,6 +87,13 @@ class Function(object):
         else:
             return False
 
+class FunctionAST(object):
+    def __init__(self, block):
+        self.block = block
 
+    def get(self):
+        return self.block
 
-    
+    def __deepcopy__(self, memo):
+        # Never ever deepcopy ASTs otherwise things get really out of control
+        return self

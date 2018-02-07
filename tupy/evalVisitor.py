@@ -823,10 +823,10 @@ class evalVisitor(ParseTreeVisitor):
             lineage.extend(inheritLineage)
             tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.inheritSymbolTable(inherited)
-            classContext.functions = copy.copy(inherited.functions)
+            #classContext.functions = copy.copy(inherited.functions)
             classContext.depth = inherited.depth + 1
         else:
-            classContext.functions = copy.copy(callStackTop.functions)
+            #classContext.functions = copy.copy(callStackTop.functions)
             classContext.inheritSymbolTable(callStackTop)
             classContext.classes = copy.copy(callStackTop.classes)
             classContext.classLineage = copy.deepcopy(callStackTop.classLineage)

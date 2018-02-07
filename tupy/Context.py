@@ -28,9 +28,10 @@ class Context(object):
         # is stored so that type checks can be made before returning.
         self.returnType = returnType
 
+        # DEPRECATED
         # Functions is a list of ASTs. The array indices are referenced when
         # an actual Function object is stored in a SymbolTable.
-        self.functions = []
+        # self.functions = []
 
         # RefMappings is used within function contexts. Whenever a parameter X
         # is declared as pass-by-reference, its name is mapped to the name and 
@@ -67,7 +68,7 @@ class Context(object):
         setattr(result, 'locals', copy.deepcopy(self.locals, memo))
         setattr(result, 'returnable', copy.copy(self.returnable))
         setattr(result, 'breakable', copy.copy(self.breakable))
-        setattr(result, 'functions', copy.copy(self.functions))
+        #setattr(result, 'functions', copy.copy(self.functions))
         setattr(result, 'returnType', copy.copy(self.returnType))
         # setattr(result, 'refMappings', copy.copy(self.refMappings))
         setattr(result, 'classes', copy.copy(self.classes))

@@ -144,13 +144,14 @@ class JSONPrinter(object):
                     if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
                     instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
                         usedNames.add(name)
-                        attribute = []
                         subMemoryCell = instLocals.data[(name, depth)]
-                        attribute.append(name)
-                        #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
-                        subIdentifier = "{0}-{1}".format(identifier, name)
-                        self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
-                        data.append(attribute)
+                        if not subMemoryCell.invisible:
+                            attribute = []
+                            attribute.append(name)
+                            #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
+                            subIdentifier = "{0}-{1}".format(identifier, name)
+                            self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
+                            data.append(attribute)
                 #else:
                     #print("WELP, NAME = {0} DEPTH = {1} WAS NOT ADDED".format(name, depth))
 

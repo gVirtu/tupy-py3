@@ -153,9 +153,9 @@ class Interpreter(object):
         # making function calls twice unnecessarily if the literal has CALL trailers.
         instArgs = [literal.get() for literal in callArgs]
 
-        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
-        logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
-                codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
+        (codeAST, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
+        logger.debug("codeAST = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
+                codeAST, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
         if len(argTypes)>0 and argTypes[-1] == Type.TUPLE:
@@ -242,6 +242,7 @@ class Interpreter(object):
             
             argValues.append(packed)
 
+        topLocals = cls.callStack.top().locals
         # Undo that thing we did right when we started this function
         for _ in range(classContextsPushed):
             cls.callStack.push(stackBuffer.pop())            
@@ -249,16 +250,16 @@ class Interpreter(object):
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argIsInvisible, argClassNames, argValues))
         logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
-            logger.debug("CodeIndex is {0}".format(codeIndex))
-            builtInFunc = getattr(tupy.Builtins, codeIndex)
+            logger.debug("Builtin name is {0}".format(codeAST))
+            builtInFunc = getattr(tupy.Builtins, codeAST)
             passValues = [argValues[i] if argPassage[i][0] == -1 \
                                        else tupy.Instance.Instance(Type.REFERENCE, callArgs[i]) \
                                        for i in range(len(argValues))]
             ret = builtInFunc(*passValues)
         else:
-            codeBlock = cls.retrieveCodeTree(codeIndex)
+            codeBlock = codeAST.get()
             if (isConstructor):
-                classInstance = cls.newClassInstance(function.name)
+                classInstance = cls.newClassInstance(function.name) #, topLocals)
                 cls.callStack.push(classInstance.value)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
@@ -303,7 +304,7 @@ class Interpreter(object):
             classContext = cls.getClassContext(name)
             #objContext.locals = copy.deepcopy(classContext.locals)
             objContext.inheritSymbolTable(classContext)
-            # objContext.locals.merge(cls.callStack.top().locals)
+            #objContext.locals.merge(outerSymbolTable)
             # Class attributes need to be copied otherwise all instances will share the same data
             for (local_name, depth) in objContext.locals.data.keys():
                 if (depth == cls.classContextDepth and objContext.locals.datatype[local_name] != Type.FUNCTION):
@@ -311,7 +312,7 @@ class Interpreter(object):
                     objContext.locals.data[(local_name, depth)] = classAttribute
             #objContext.locals.context = objContext
             logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
-            objContext.functions = copy.copy(classContext.functions)
+            #objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
             objContext.classLineage = copy.deepcopy(classContext.classLineage)
         except KeyError as exc:
@@ -396,10 +397,10 @@ class Interpreter(object):
     def getMemoryCell(cls, name, depth):
         return cls.callStack.top().locals.data[(name, depth)]
 
-    @classmethod
-    def retrieveCodeTree(cls, functionIndex):
-        logger.debug("RETRIEVIN CODE TREE {0} FROM CONTEXT {1}".format(functionIndex, cls.callStack.top().functions))
-        return cls.callStack.top().functions[functionIndex]
+    # @classmethod
+    # def retrieveCodeTree(cls, functionIndex):
+    #     logger.debug("RETRIEVIN CODE TREE {0} FROM CONTEXT {1}".format(functionIndex, cls.callStack.top().functions))
+    #     return cls.callStack.top().functions[functionIndex]
 
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
@@ -411,7 +412,7 @@ class Interpreter(object):
     @classmethod
     def pushContext(cls, context):
          # Code trees don't need deep copying
-        context.functions = copy.copy(cls.callStack.top().functions)
+        #context.functions = copy.copy(cls.callStack.top().functions)
         context.inheritSymbolTable(cls.callStack.top())
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
