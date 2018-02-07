@@ -24,7 +24,7 @@ var tupyHighlightRules = function() {
     );
 
     var builtinConstants = (
-        "nulo|verdadeiro|falso|pi"
+        "nulo|verdadeiro|falso|pi|este|esta"
     );
     
     var builtinFunctions = (

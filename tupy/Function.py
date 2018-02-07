@@ -11,7 +11,7 @@ class Function(object):
     def __repr__(self): # pragma: no cover
         return "F->{0}".format(str(self.argumentTree))
 
-    def put(self, context, argumentList, returnType, code, builtIn=False, isConstructor=False):
+    def put(self, context, argumentList, returnType, code, builtIn=False, isConstructor=False, overrideable=False):
         current_level = self.argumentTree
         depth = context.depth
 
@@ -31,11 +31,13 @@ class Function(object):
                     # Variadic
                     current_level[arg.type] = current_level
             else:
-                current_level[_args_end] = (codeIndex, depth, argumentList, returnType, builtIn, isConstructor)
+                current_level[_args_end] = (codeIndex, depth, argumentList, returnType, 
+                                            builtIn, isConstructor, overrideable)
             current_level = current_level.setdefault(arg.type, {})
             
         # Entry point for the function with all arguments
-        current_level[_args_end] = (codeIndex, depth, argumentList, returnType, builtIn, isConstructor)
+        current_level[_args_end] = (codeIndex, depth, argumentList, returnType, 
+                                    builtIn, isConstructor, overrideable)
 
     def get(self, instArgs):
         current_level = self.argumentTree
@@ -72,18 +74,20 @@ class Function(object):
     def is_ambiguous(self, argumentList, depth):
         # Trying to add argumentList to the possible signatures for function 'name'
         current_level = self.argumentTree
+        overrideable_index = 6 #ugly
 
         for arg in argumentList:
             if arg.defaultValue is not None:
                 if _args_end in current_level:
                     if current_level[_args_end][1] >= depth:
-                        return True
+                        return (not current_level[_args_end][overrideable_index])
             if arg.type not in current_level:
                 return False
             current_level = current_level[arg.type]
         
         if _args_end in current_level:
-            return current_level[_args_end][1] >= depth
+            return current_level[_args_end][1] >= depth and \
+                   not current_level[_args_end][overrideable_index]
         else:
             return False
 

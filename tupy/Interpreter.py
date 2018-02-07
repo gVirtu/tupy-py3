@@ -156,7 +156,7 @@ class Interpreter(object):
         for _ in range(classContextsPushed):
             cls.callStack.push(stackBuffer.pop())
 
-        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor) = function.get(instArgs)
+        (codeIndex, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
         logger.debug("codeIndex = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeIndex, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
@@ -300,7 +300,17 @@ class Interpreter(object):
             objContext.classLineage = copy.deepcopy(classContext.classLineage)
         except KeyError as exc:
             raise NameError("Classe {0} não existe!".format(name)) from exc
-        return tupy.tupy.Instance.Instance(Type.STRUCT, objContext, className=name)
+        ret = tupy.tupy.Instance.Instance(Type.STRUCT, objContext, className=name)
+        objContext.thisInst = ret
+        return ret
+
+    @classmethod
+    def getContextInst(cls):
+        inst = cls.callStack.top().thisInst
+        if inst:
+            return inst
+        else:
+            return tupy.tupy.Instance.Instance(Type.NULL, 0)
 
     @classmethod
     def loadSymbol(cls, name):
@@ -390,6 +400,7 @@ class Interpreter(object):
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
         context.classes = copy.copy(cls.callStack.top().classes)
         context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
+        context.thisInst = cls.callStack.top().thisInst
 
         cls.callStack.push(context)
 

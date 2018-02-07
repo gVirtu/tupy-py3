@@ -728,6 +728,8 @@ class evalVisitor(ParseTreeVisitor):
             return tupy.Variable.Literal(tupy.Instance.Instance(Type.NULL, 0));
         elif ctx.PI() is not None:
             return tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, math.pi));
+        elif ctx.THIS() is not None:
+            return tupy.Variable.Literal(tupy.Interpreter.Interpreter.getContextInst());
         elif len(ctx.CARDINALITY_OP()) == 2:
             res = self.visitTestOrExpression(ctx.testOrExpression())
             return res.cardinality()
@@ -831,7 +833,7 @@ class evalVisitor(ParseTreeVisitor):
             classContext.classLineage = copy.deepcopy(callStackTop.classLineage)
 
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage)
-        callStackTop.locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True)
+        callStackTop.locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True, overrideable=True)
         tupy.Interpreter.Interpreter.callStack.push(classContext)
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage) # Make autoreferences possible
 

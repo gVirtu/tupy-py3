@@ -410,6 +410,7 @@ atom
  | character
  | NULL
  | PI
+ | THIS
  | TRUE
  | FALSE
  ;
@@ -534,6 +535,7 @@ SQUIGGLY : '~~';
 VAL: 'val';
 REF: 'ref';
 PI: 'pi' | 'π';
+THIS: 'este' | 'esta';
 
 INTEGER: 'inteiro';
 REAL: 'real';

@@ -46,6 +46,7 @@ class Context(object):
 
         # In Class Contexts, this is the name of the class this belongs to
         self.structName = struct
+        self.thisInst = None
 
         # In Function Contexts, this is the name of the function being ran
         self.funcName = funcName

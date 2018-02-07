@@ -193,7 +193,7 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
 
     argParamList = list(zip(argNames, argTypes, arrayDimensions, passByRef, classNames, invisible, defaults))
     args = [tupy.Argument.Argument(*params) for params in argParamList]
-    tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, True)
+    tupy.Interpreter.Interpreter.callStack.top().locals.defineFunction(name, ret, args, name, builtIn=True, overrideable=True)
 
 # HELPERS
 def cast(instance, target_type):

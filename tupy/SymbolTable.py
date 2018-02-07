@@ -53,7 +53,7 @@ class SymbolTable(object):
                 childInst = tupy.Interpreter.memRead(child)
                 self.adjustArrayDimensions(childInst, dimensions-1)
 
-    def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False):
+    def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False, overrideable=False):
         tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
         self.datatype[name] = tupy.Type.Type.FUNCTION
         self.classname[name] = None
@@ -65,11 +65,11 @@ class SymbolTable(object):
         except Exception:
             entry = tupy.Function.Function(name)
             self.data[(name, depth)] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
-        finally:
-            if entry.is_ambiguous(argumentList, depth):
-                raise NameError("A função sobrecarregada {0} está ambígua!".format(name))
-            else:
-                entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor)
+
+        if entry.is_ambiguous(argumentList, depth):
+            raise NameError("A função sobrecarregada {0} está ambígua!".format(name))
+        else:
+            entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor, overrideable)
 
     def put(self, name, instance, trailerList):
         if self.hasKey(name):
