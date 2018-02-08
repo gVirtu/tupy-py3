@@ -65,8 +65,11 @@ class JSONPrinter(object):
         element["line"] = line
 
         # Shorten output when consecutive traceouts are in the same line
-        if (len(self.data["trace"]) and element["line"] == self.data["trace"][-1]["line"]):
+        if (len(self.data["trace"]) and \
+            element["line"] == self.data["trace"][-1]["line"] and \
+            tupy.Interpreter.Interpreter.traceSmallStatement):
             del self.data["trace"][-1]
+            tupy.Interpreter.Interpreter.traceSmallStatement = False
 
         if (exception):
             element["event"] = "exception"
@@ -82,18 +85,15 @@ class JSONPrinter(object):
     # the trace heap. Stores the order in which the names appear session-wide.
     def scan_context_locals(self, context, locals_set, locals_order, heap):
         ret = {}
-        for name in sorted(context.locals.declaredDepth.keys()):
-            depth = context.locals.declaredDepth[name]
-            if depth != context.depth:
-                continue
+        for name in sorted(context.locals.data.keys()):
 
             if context.locals.datatype[name] == tupy.Type.Type.FUNCTION:
                 continue
 
-            if context.locals.data[(name, depth)].invisible:
+            if context.locals.data[name].invisible:
                 continue
 
-            heap_ind = self.add_to_heap(heap, context.locals.data[(name, depth)], 
+            heap_ind = self.add_to_heap(heap, context.locals.data[name], 
                                         "{0}-{1}".format(context.depth, name))
 
             if name not in locals_set:
@@ -138,22 +138,18 @@ class JSONPrinter(object):
             instLocals = inst.value.locals
             tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
             usedNames = set()
-            for (name, depth) in sorted(instLocals.data.keys()):
-                tupy.Interpreter.logger.debug("Found {0} at depth {1}".format(name, depth))
+            for name in sorted(instLocals.data.keys()):
+                tupy.Interpreter.logger.debug("[TraceStruct] Found {0}".format(name))
                 if name not in usedNames:
-                    if depth >= tupy.Interpreter.Interpreter.instContextDepth and \
-                    instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
+                    if instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
                         usedNames.add(name)
-                        subMemoryCell = instLocals.data[(name, depth)]
+                        subMemoryCell = instLocals.data[name]
                         if not subMemoryCell.invisible:
                             attribute = []
                             attribute.append(name)
-                            #print("ADDED NAME = {0} DEPTH = {1}".format(name, depth))
                             subIdentifier = "{0}-{1}".format(identifier, name)
                             self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
                             data.append(attribute)
-                #else:
-                    #print("WELP, NAME = {0} DEPTH = {1} WAS NOT ADDED".format(name, depth))
 
         elif (inst.is_pure_array()):
             data = ["LIST"]

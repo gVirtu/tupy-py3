@@ -132,7 +132,6 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#traceOffset
     def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
-        # if (self.functionContext.depth == 0): (why tho?)
         bisect.insort_left(tupy.Interpreter.Interpreter.traceBars, ctx.start.line)
 
     # Visit a parse tree produced by langParser#simpleStatement.

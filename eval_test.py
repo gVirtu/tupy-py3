@@ -1882,6 +1882,28 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "comprimento(2, 3)")
         self.assertRaises(TupyTypeError, Interpreter.interpret, "comprimento(2)")
 
+    def test_lower_depth_variable_access_from_instance(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tcadeia func():\n"
+                                     "\t\tretornar out_func(S)\n"
+                                     "cadeia out_func(cadeia S):\n"
+                                     "\tretornar S + \"K\"\n"
+                                     "cadeia S <- \"O\"\n"
+                                     "Teste T <- Teste()\n"
+                                     "T.func()\n"))
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "OK")
+
+    def test_class_function_override(self):
+        ret = Interpreter.interpret(("tipo Teste:\n"
+                                     "\tinteiro func(inteiro a, inteiro b):\n"
+                                     "\t\tretornar func(a)+func(b)\n"
+                                     "inteiro func(inteiro a):\n"
+                                     "\tretornar a*a\n"
+                                     "Teste T <- Teste()\n"
+                                     "T.func(2,3)\n"))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 13)
 
 if __name__ == '__main__':
     unittest.main()

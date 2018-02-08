@@ -8,10 +8,11 @@ import copy
 
 class Context(object):
     def __init__(self, depth, returnable=False, breakable=False, 
-                 funcName=None, returnType=(None, 0), struct=None):
+                 funcName=None, returnType=(None, 0), struct=None, parent=None):
         # Depth describes how nested the current code block is.
         # Global context has a depth of 0.
         self.depth = depth
+        self.parent = parent
 
         # Locals is the current context's Symbol Table. 
         self.locals = SymbolTable(self)
@@ -53,18 +54,15 @@ class Context(object):
         self.funcName = funcName
 
     def inheritSymbolTable(self, otherContext):
-        self.locals.data = copy.copy(otherContext.locals.data)
-        self.locals.datatype = copy.copy(otherContext.locals.datatype)
-        self.locals.classname = copy.copy(otherContext.locals.classname)
-        self.locals.subscriptlist = copy.deepcopy(otherContext.locals.subscriptlist)
-        self.locals.declaredDepth = copy.copy(otherContext.locals.declaredDepth)
+        self.locals = copy.deepcopy(otherContext.locals)
+        self.locals.context = self
 
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
         memo[id(self)] = result
         # Only locals needs deepcopying
-        setattr(result, 'depth', copy.copy(self.depth))
+        setattr(result, 'depth', self.depth)
         setattr(result, 'locals', copy.deepcopy(self.locals, memo))
         setattr(result, 'returnable', copy.copy(self.returnable))
         setattr(result, 'breakable', copy.copy(self.breakable))
@@ -75,6 +73,7 @@ class Context(object):
         setattr(result, 'classLineage', copy.deepcopy(self.classLineage))
         setattr(result, 'funcName', copy.copy(self.funcName))
         setattr(result, 'structName', copy.copy(self.structName))
+        setattr(result, 'parent', self.parent)
         return result
 
     def __str__(self):
