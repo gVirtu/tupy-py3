@@ -85,7 +85,10 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):
         for statement in ctx.smallStatement():
+            if ctx.SEMI_COLON():
+                tupy.Interpreter.Interpreter.traceSmallStatement = True
             res = self.visitSmallStatement(statement)
+        tupy.Interpreter.Interpreter.traceSmallStatement = False
         return res
 
 
@@ -165,8 +168,7 @@ class evalVisitor(ParseTreeVisitor):
 
                         if (is_reference_assign):
                             if isinstance(rval, tupy.Variable.Symbol):
-                                depth = tupy.Interpreter.Interpreter.getDepth(rval.name)
-                                cell = tupy.Interpreter.Interpreter.getMemoryCell(rval.name, depth)
+                                cell = tupy.Interpreter.Interpreter.getMemoryCell(rval.name)
                                 if (rval.trailers):
                                     try:
                                         cell = tupy.Interpreter.Interpreter.getDeepMemoryCell(tupy.Interpreter.memRead(cell), rval.trailers)
@@ -823,17 +825,11 @@ class evalVisitor(ParseTreeVisitor):
             lineage.extend(inheritLineage)
             tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.inheritSymbolTable(inherited)
-            #classContext.functions = copy.copy(inherited.functions)
             classContext.depth = inherited.depth + 1
-        else:
-            #classContext.functions = copy.copy(callStackTop.functions)
-            classContext.inheritSymbolTable(callStackTop)
-            classContext.classes = copy.copy(callStackTop.classes)
-            classContext.classLineage = copy.deepcopy(callStackTop.classLineage)
 
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage)
         callStackTop.locals.defineFunction(className, (Type.NULL, 0), [], ctx.block(), isConstructor=True, overrideable=True)
-        tupy.Interpreter.Interpreter.callStack.push(classContext)
+        tupy.Interpreter.Interpreter.pushContext(classContext)
         tupy.Interpreter.Interpreter.putClassContext(className, classContext, lineage) # Make autoreferences possible
 
         ret = self.visitBlock(ctx.block(), funcName="Definição da classe {0}".format(className), originalContext=callStackTop)

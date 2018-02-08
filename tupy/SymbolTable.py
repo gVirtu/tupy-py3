@@ -12,7 +12,6 @@ class SymbolTable(object):
         self.datatype = {}
         self.classname = {}
         self.subscriptlist = {}
-        self.declaredDepth = {}
         self.context = ctx
 
     def __deepcopy__(self, memo):
@@ -24,7 +23,6 @@ class SymbolTable(object):
         setattr(result, 'datatype', copy.deepcopy(self.datatype, memo))
         setattr(result, 'classname', copy.deepcopy(self.classname, memo))
         setattr(result, 'subscriptlist', copy.deepcopy(self.subscriptlist, memo))
-        setattr(result, 'declaredDepth', copy.deepcopy(self.declaredDepth, memo))
         setattr(result, 'context', self.context)
         return result
 
@@ -32,8 +30,6 @@ class SymbolTable(object):
         self.datatype[name] = datatype
         self.classname[name] = className
         self.subscriptlist[name] = subscriptList
-        depth = self.context.depth
-        self.declaredDepth[name] = depth
         if len(subscriptList) > 0:
             data = tupy.Variable.Variable.makeDefaultValue(tupy.Type.Type.ARRAY, subscriptList, datatype, className)
         else:
@@ -41,10 +37,10 @@ class SymbolTable(object):
         data.update_roottype(self.datatype[name])
         self.adjustArrayDimensions(data, len(subscriptList))
         data.class_name = className
-        if (name, depth) in self.data:
-            tupy.Interpreter.memRealloc(self.data[(name, depth)], data, invisible)
+        if name in self.data:
+            tupy.Interpreter.memRealloc(self.data[name], data, invisible)
         else:
-            self.data[(name, depth)] = tupy.Interpreter.memAlloc(data, invisible)
+            self.data[name] = tupy.Interpreter.memAlloc(data, invisible)
 
     def adjustArrayDimensions(self, data, dimensions):
         data.array_dimensions = dimensions
@@ -54,19 +50,18 @@ class SymbolTable(object):
                 self.adjustArrayDimensions(childInst, dimensions-1)
 
     def defineFunction(self, name, returnType, argumentList, code, builtIn=False, isConstructor=False, overrideable=False):
-        tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
+        if not builtIn:
+            tupy.Interpreter.logger.debug("Declaring function "+name+" that returns "+str(returnType)+" with arguments "+str(argumentList))
         self.datatype[name] = tupy.Type.Type.FUNCTION
         self.classname[name] = None
         self.subscriptlist[name] = None
-        depth = self.context.depth
-        self.declaredDepth[name] = depth
         try:
-            entry = tupy.Interpreter.memRead(self.data[(name, depth)]).value
+            entry = tupy.Interpreter.memRead(self.data[name]).value
         except Exception:
             entry = tupy.Function.Function(name)
-            self.data[(name, depth)] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
+            self.data[name] = tupy.Interpreter.memAlloc(tupy.Instance.Instance(tupy.Type.Type.FUNCTION, entry))
 
-        if entry.is_ambiguous(argumentList, depth):
+        if entry.is_ambiguous(argumentList, self.context.depth):
             raise NameError("A função sobrecarregada {0} está ambígua!".format(name))
         else:
             entry.put(self.context, argumentList, returnType, code, builtIn, isConstructor, overrideable)
@@ -78,29 +73,51 @@ class SymbolTable(object):
             else:
                 raise TypeError("Tipos incompatíveis na atribuição!")
         else:
-            raise NameError("O nome "+name+" não está definido!")
+            try:
+                self.context.parent.locals.put(name, instance, trailerList)
+            except AttributeError: # No context parent
+                raise NameError("O nome "+name+" não está definido!")
+            except Exception as e:
+                raise e
 
     def ref(self, name, cell):
-        depth = self.declaredDepth[name]
-        self.data[(name, depth)] = cell
+        self.data[name] = cell
 
     def get(self, name):
+        ret = tupy.Interpreter.memRead(self.getCell(name))
+        if ret.type == tupy.Type.Type.FUNCTION:
+            ret_aggregate = copy.deepcopy(ret)
+            next_ctx = self.context.parent
+            while(next_ctx is not None):
+                if name in next_ctx.locals.data:
+                    lower_fn = tupy.Interpreter.memRead(next_ctx.locals.data[name])
+                    if lower_fn.type == tupy.Type.Type.FUNCTION:
+                        ret_aggregate.value.merge(lower_fn.value)
+                next_ctx = next_ctx.parent
+            return ret_aggregate
+        else:
+            return ret
+
+    def getCell(self, name):
         try:
-            depth = self.declaredDepth[name]
+            ret = self.data[name]
         except KeyError as e:
-            if self.context.structName:
-                raise NameError("O tipo {0} não possui o atributo {1}!".format(self.context.structName, name))
-            else: # pragma: no cover
-                raise e # unknown fallback
-        
-        return tupy.Interpreter.memRead(self.data[(name, depth)])
+            try:
+                ret = self.context.parent.locals.getCell(name)
+            except AttributeError:
+                if self.context.structName:
+                    raise NameError("O tipo {0} não possui o atributo {1}!".format(self.context.structName, name))
+                else:
+                    raise NameError(name+" não está definido!")
+            except Exception as e:                
+                raise e
+        return ret
 
     def hasKey(self, name):
-        return name in self.declaredDepth
+        return name in self.data
 
-    def merge(self, symbolTable):
-        # Only add the variables from outer scopes that were changed in inner scopes
-        self.data.update({key:val for key,val in symbolTable.data.items() if key[1] <= self.context.depth})
+    #def merge(self, symbolTable):
+        # DO NOTHING AT ALL
 
     def processDimensions(self, subscriptList, instance, rootType, sizeList, currentData, className):
         tupy.Interpreter.logger.debug("processDimensions({0},{1},{2},{3},{4})".format(subscriptList, instance, rootType, sizeList, currentData))
@@ -295,9 +312,8 @@ class SymbolTable(object):
         if (instance.roottype == tupy.Type.Type.NULL):
             return True
         else:
-            depth = self.declaredDepth[name]
-            current_data = tupy.Interpreter.memRead(self.data[(name, depth)])
-            # self.data[(name, depth)].print_roottype()
+            current_data = tupy.Interpreter.memRead(self.data[name])
+            # self.data[name].print_roottype()
 
             (inst, parent) = tupy.Variable.Variable.retrieveWithTrailers(current_data, trailerList)
 
@@ -339,9 +355,7 @@ class SymbolTable(object):
         # Note that when a name is DECLARED, the trailers won't show up here.
         # e.g.: inteiro A[5,5] <- ... # No trailers! Equivalent to "inteiro A[5,5]; A <- ..."
 
-        depth = self.declaredDepth[name]
-
-        full_data = tupy.Interpreter.memRead(self.data[(name, depth)])
+        full_data = tupy.Interpreter.memRead(self.data[name])
         target_subscript = None
 
         if (instance.type != tupy.Type.Type.STRUCT):
@@ -356,7 +370,6 @@ class SymbolTable(object):
                 tupy.Interpreter.logger.debug("Found call to member {0} at index {1}".format(trailer[1], ind))
                 class_instance, _ = tupy.Variable.Variable.retrieveWithTrailers(full_data, trailers[:ind])
                 class_instance.value.locals.updateData(trailer[1], instance, trailers[(ind+1):], visited=visited)
-                # self.updateRefs(name, depth, visited)
                 return True
 
         if (self.classname[name]): #self.datatype[name] == tupy.Type.Type.STRUCT):
@@ -387,7 +400,6 @@ class SymbolTable(object):
         # Here we automatically fill every omitted subscript with a wildcard
         # e.g.: let A be a 2D matrix, if we want to access A[5], this would
         # be interpreted as A[5, *].
-        instDepth = len(subscriptList)
         applicable_subscripts = self.fillOmittedSizes(name, subscriptList) 
         declared_sizes = self.subscriptlist[name]
 
@@ -409,7 +421,7 @@ class SymbolTable(object):
                 self.updateChildren(target_data, target_subscript, target_depth, instance)
                 full_data.update_size(deep=True)
             else:
-                tupy.Interpreter.memWrite(self.data[(name, depth)], instance)
+                tupy.Interpreter.memWrite(self.data[name], instance)
             return True
         else:
             raise TypeError("Atribuição excede o espaço alocado!")
@@ -468,25 +480,24 @@ class SymbolTable(object):
 
     def __str__(self):
         ret = ""
-        for key in self.data:
-            (name, depth) = key
+        for name in self.data.keys():
             # We shouldn't need to check this... TODO: Check why
             if name in self.datatype.keys() and \
                 self.datatype[name] != tupy.Type.Type.FUNCTION:
-                ret += str(key)
+                ret += str(name)
                 ret += " -> "
-                ret += str(self.data[key])
+                ret += str(self.data[name])
                 ret += "\n"
         return ret
 
     def print_all_locals(self):
-        ret = ""
-        for key in self.data:
-            (name, depth) = key
-            if depth>0:
-                ret += str(key)
-                ret += " -> "
-                ret += str(self.data[key])
-                ret += "\n"
-        return ret
+        return "<disabled for now>"
+        # ret = ""
+        # for name in self.data.keys():
+        #     if (self.context.depth > 0 or self.datatype[name] != tupy.Type.Type.FUNCTION):
+        #         ret += str(name)
+        #         ret += " -> "
+        #         ret += str(self.data[name])
+        #         ret += "\n"
+        # return ret
 

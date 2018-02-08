@@ -58,6 +58,7 @@ class Interpreter(object):
         cls.outStream = StringIO()
         cls.traceOut = None
         cls.traceBars = []
+        cls.traceSmallStatement = False # Shorten one-liners
         cls.singleTraceSkip = False
 
     @classmethod
@@ -178,7 +179,7 @@ class Interpreter(object):
                 if (argumentList[ind].passByRef):
                     refDepth = cls.getDepth(a.name)
                     argPassage.append((refDepth,
-                                       cls.getMemoryCell(a.name, refDepth),
+                                       cls.getMemoryCell(a.name),
                                        a.trailers))
                 else:
                     argPassage.append((-1, None, []))
@@ -188,7 +189,7 @@ class Interpreter(object):
                 if (a.passByRef):
                     refDepth = cls.getDepth(a.defaultValue.name)
                     argPassage.append((refDepth, 
-                                       cls.getMemoryCell(a.defaultValue.name, refDepth), 
+                                       cls.getMemoryCell(a.defaultValue.name), 
                                        a.defaultValue.trailers))
                 else:
                     argPassage.append((-1, None, []))
@@ -260,7 +261,7 @@ class Interpreter(object):
             codeBlock = codeAST.get()
             if (isConstructor):
                 classInstance = cls.newClassInstance(function.name) #, topLocals)
-                cls.callStack.push(classInstance.value)
+                cls.pushContext(classInstance.value)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
                 logger.debug("Constructed {0}".format(classInstance))
@@ -272,7 +273,9 @@ class Interpreter(object):
 
     @classmethod
     def getDepth(cls, name):
-        return cls.callStack.top().locals.declaredDepth[name]
+        for context in reversed(cls.callStack.items):
+            if name in context.locals.data: return context.depth
+        raise KeyError("A variável {0} não foi encontrada!")
 
     @classmethod
     def getClassContext(cls, name):
@@ -306,10 +309,10 @@ class Interpreter(object):
             objContext.inheritSymbolTable(classContext)
             #objContext.locals.merge(outerSymbolTable)
             # Class attributes need to be copied otherwise all instances will share the same data
-            for (local_name, depth) in objContext.locals.data.keys():
-                if (depth == cls.classContextDepth and objContext.locals.datatype[local_name] != Type.FUNCTION):
-                    classAttribute = copy.deepcopy(objContext.locals.data[(local_name, depth)])
-                    objContext.locals.data[(local_name, depth)] = classAttribute
+            for local_name in objContext.locals.data.keys():
+                if (objContext.locals.datatype[local_name] != Type.FUNCTION):
+                    classAttribute = copy.deepcopy(objContext.locals.data[local_name])
+                    objContext.locals.data[local_name] = classAttribute
             #objContext.locals.context = objContext
             logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
             #objContext.functions = copy.copy(classContext.functions)
@@ -331,10 +334,7 @@ class Interpreter(object):
 
     @classmethod
     def loadSymbol(cls, name):
-        if cls.callStack.top().locals.hasKey(name):
-            return cls.callStack.top().locals.get(name)
-        else:
-            raise NameError(name+" não está definido!")
+        return cls.callStack.top().locals.get(name)           
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
@@ -360,8 +360,7 @@ class Interpreter(object):
             (ret, parent_triple) = tupy.Variable.Variable.retrieveWithTrailers(inst, trailerList)
             (parent, trailer, depth) = parent_triple
             if (depth == -2): # A TT.MEMBER is referencing memoryCell
-                memberDepth = parent.value.locals.declaredDepth[trailer]
-                parent.value.locals.data[(trailer, memberDepth)] = memoryCell
+                parent.value.locals.data[trailer] = memoryCell
                 return True
             elif (depth == -1): # A TT.CALL is referencing memoryCell
                 raise SyntaxError("Não é possível atribuir uma referência a uma chamada de função!")
@@ -380,22 +379,21 @@ class Interpreter(object):
         (ret, parent_triple) = tupy.Variable.Variable.retrieveWithTrailers(inst, trailers)
         (parent, trailer, depth) = parent_triple
         if (depth == -2): # Get cell for a TT.MEMBER
-            memberDepth = parent.value.locals.declaredDepth[trailer]
-            return parent.value.locals.data[(trailer, memberDepth)]
+            return parent.value.locals.data[trailer]
         elif (depth == -1): # Get cell for a TT.CALL
-            raise InvalidMemoryAccessException("<Function call>")
+            raise InvalidMemoryAccessException("<Chamada de Função>")
         else: # Get cell for a TT.SUBSCRIPT
             if (trailer.isSingle):
                 if parent.type == Type.STRING:
-                    raise InvalidMemoryAccessException("<Character>")
+                    raise InvalidMemoryAccessException("<Caracter>")
                 else:
                     return parent.value[trailer.begin]
             else:
-                raise InvalidMemoryAccessException("<Range-subscripted array>")
+                raise InvalidMemoryAccessException("<Intervalo de lista>")
 
     @classmethod
-    def getMemoryCell(cls, name, depth):
-        return cls.callStack.top().locals.data[(name, depth)]
+    def getMemoryCell(cls, name):
+        return cls.callStack.top().locals.getCell(name)
 
     # @classmethod
     # def retrieveCodeTree(cls, functionIndex):
@@ -404,7 +402,7 @@ class Interpreter(object):
 
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
-        logger.debug("Pushing frame, cloning top:\n{0}".format(str(cls.callStack.top())))
+        logger.debug("Pushing clean frame, top is:\n{0}".format(str(cls.callStack.top())))
         newContext = tupy.Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
         # newContext.locals.context = newContext
         cls.pushContext(newContext)
@@ -413,11 +411,17 @@ class Interpreter(object):
     def pushContext(cls, context):
          # Code trees don't need deep copying
         #context.functions = copy.copy(cls.callStack.top().functions)
-        context.inheritSymbolTable(cls.callStack.top())
+        #context.inheritSymbolTable(cls.callStack.top())
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
-        context.classes = copy.copy(cls.callStack.top().classes)
-        context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
-        context.thisInst = cls.callStack.top().thisInst
+        if context.structName is None:
+            context.classes = copy.copy(cls.callStack.top().classes)
+            context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
+            context.thisInst = cls.callStack.top().thisInst
+
+        #if cls.callStack.top().depth < context.depth:
+        context.parent = cls.callStack.top()
+        #else:
+        #    logger.info("HEY THE CONTEXT {0} SHOULD NOT HAVE {1} AS PARENT ({2} >= {3})".format(context.funcName, cls.callStack.top().funcName, cls.callStack.top().depth, context.depth))
 
         cls.callStack.push(context)
 
@@ -427,9 +431,9 @@ class Interpreter(object):
         logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context
-        if (prev.structName is None):
+        # if (prev.structName is None):
             # logger.debug("Top before merge:\n{0}".format(str(cls.callStack.top())))
-            cls.callStack.top().locals.merge(prev.locals)
+            # cls.callStack.top().locals.merge(prev.locals)
             # cls.callStack.top().mergeRefMappings(prev.refMappings)
             # logger.debug("Top after merge:\n{0}".format(str(cls.callStack.top())))
 

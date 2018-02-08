@@ -52,10 +52,10 @@ class Variable(object):
                 # except Exception:
                     # raise TypeError("{0} is not callable!".format(ret.type))
             elif ttype == TrailerType.MEMBER:
-                tupy.Interpreter.Interpreter.callStack.push(ret.value)
-                parent = (ret, tid, -2)
                 if ret.type == Type.NULL:
                     raise RuntimeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
+                tupy.Interpreter.Interpreter.pushContext(ret.value)
+                parent = (ret, tid, -2)
                 ret = ret.value.locals.get(tid)
                 classContextsPushed = classContextsPushed+1
 

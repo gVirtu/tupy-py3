@@ -87,6 +87,27 @@ class Function(object):
         else:
             return False
 
+    def merge(self, function):
+        self.merge_recurse(self.argumentTree, function.argumentTree)
+
+    def merge_recurse(self, myNode, copyNode):
+        for ret_type in copyNode.keys():
+            # As this is intended to be used with lower-depth functions,
+            # it won't override anything from above.
+            if ret_type == _args_end:
+                if ret_type in myNode:
+                    continue
+                else:
+                    myNode[ret_type] = copyNode[ret_type] # copy?
+                    nextOwnNode = myNode[ret_type]
+            else:
+                nextOwnNode = myNode.setdefault(ret_type, {})
+            nextCopyNode = copyNode[ret_type]
+
+            # Variadic = infinite recursion depth
+            if ret_type != Type.TUPLE and isinstance(nextCopyNode, dict):
+                self.merge_recurse(nextOwnNode, nextCopyNode)
+
 class FunctionAST(object):
     def __init__(self, block):
         self.block = block
