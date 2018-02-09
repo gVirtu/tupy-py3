@@ -16,6 +16,7 @@ import logging
 import sys
 import bisect
 import io
+import os
 
 FORMAT = "=> %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -60,15 +61,19 @@ class Interpreter(object):
         cls.traceBars = []
         cls.traceSmallStatement = False # Shorten one-liners
         cls.singleTraceSkip = False
+        cls.outfile = sys.stdout
 
     @classmethod
-    def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None):
+    def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None, quiet=False):
         logger.debug("Input is {0}".format(str(input)))
         if (input[-1] != '\n'):
             input = input + "\n"
-            print("")
+            print("", file=cls.outfile)
         cls.outStream.close()
         cls.initialize()
+
+        if quiet:
+            cls.outfile = open(os.devnull, 'w')
 
         if (isinstance(stdin, str)):
             cls.inStream = io.StringIO(stdin)
@@ -122,14 +127,14 @@ class Interpreter(object):
                 raise e
             else:
                 ret = cls.traceOut.dump()
-                print(ret)
+                print(ret, file=cls.outfile)
                 return ret
 
         if (cls.traceOut is None):
             return ret_visit
         else:
             ret = cls.traceOut.dump()
-            print(ret)
+            print(ret, file=cls.outfile)
             return ret
 
     @classmethod
@@ -513,7 +518,7 @@ class Interpreter(object):
     def output(cls, string):
         logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
         if cls.traceOut is None:
-            print(string)
+            print(string, file=cls.outfile)
         cls.outStream.write(string)
         cls.outStream.write("\n")
 
@@ -521,7 +526,6 @@ class Interpreter(object):
     def trace(cls, line, returnData=None, exception=None):
         if cls.traceOut is not None:
             if (exception or cls.should_print(line)):
-                logger.info("I am at line {0} and should print. Bars at {1}".format(line, cls.traceBars))
                 cls.traceOut.trace(line, returnData, exception)
 
     @classmethod

@@ -1101,7 +1101,7 @@ def fila(vetor, highlights, extraHeader, extraFooter):
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
     header = ("[[DOT digraph G {{ node [shape=plaintext]; edge [arrowsize = 0.5]; {0} "
-              "C [label = \" \"]; F [label = \" \"]; F -> 1; 1 -> C; {{rank = same; F; 1; C;}} 1 [label = "
+              "C [label = \" \"]; F [label = \" \"]; C -> 1 [dir=back]; 1 -> F [dir=back]; {{rank = same; F; 1; C;}} 1 [label = "
               "<<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">").format(extraHeader)
     trailer = "</TABLE>>]; {0}}}]]".format(extraFooter)
     element = ("<TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
@@ -1111,11 +1111,10 @@ def fila(vetor, highlights, extraHeader, extraFooter):
     getSides = lambda i: "BT" if columns == 1 else {0: "BRT", (columns-1): "LBT"}.get(i, "LBRT")
     result = [header]
     result.append(rowHeader)
-    for i, column in enumerate(reversed(vetor)):
+    for i, column in enumerate(vetor):
         columnInst = tupy.Interpreter.memRead(column)
         columnText = html.escape(stringProcess(printInstance(columnInst)))
-        effective_i = len(vetor)-i-1
-        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(effective_i), getSides(i), "v{0}".format(effective_i)))
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i), "v{0}".format(i)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))

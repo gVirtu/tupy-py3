@@ -372,8 +372,7 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#classDefinition.
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
-        return # self.visitChildren(ctx)
-    # Leave parsing of classes to the evalVisitor.
+        return self.visitChildren(ctx)
 
 
     # UNUSED (handled by evalVisitor)
