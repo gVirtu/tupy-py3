@@ -312,7 +312,8 @@ class evalVisitor(ParseTreeVisitor):
         # tupy.Interpreter.Interpreter.trace(ctx.start.line)
         while( bool(self.visitTest(testTree).get().value) ):
             ret = self.visitBlock(ctx.block(), funcName="Laço (enquanto)")
-            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK or
+                tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
                     break
             iterations += 1
             if iterations > tupy.Interpreter.Interpreter.iterationLimit:
@@ -374,7 +375,8 @@ class evalVisitor(ParseTreeVisitor):
             else:
                 ret = self.visitBlock(block, funcName="Laço (para)")
             
-            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK or
+                tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
                 break
 
             currentLiteral = tupy.Variable.Literal(tupy.Interpreter.Interpreter.loadSymbol(names[0]))

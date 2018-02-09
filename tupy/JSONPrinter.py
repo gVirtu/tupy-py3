@@ -19,7 +19,7 @@ class JSONPrinter(object):
         tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
-        if tupy.Interpreter.Interpreter.callStack.top().funcName.startswith("Instância de"):
+        if not exception and tupy.Interpreter.Interpreter.callStack.top().funcName.startswith("Instância de"):
             return; # Skip these
 
         if (returnData is not None):

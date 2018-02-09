@@ -56,7 +56,10 @@ class Variable(object):
                     raise RuntimeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
                 tupy.Interpreter.Interpreter.pushContext(ret.value)
                 parent = (ret, tid, -2)
-                ret = ret.value.locals.get(tid)
+                if ret.value.locals.hasKey(tid):
+                    ret = ret.value.locals.get(tid)
+                else:
+                    raise NameError("O tipo {0} não possui o atributo {1}!".format(ret.value.structName, tid))
                 classContextsPushed = classContextsPushed+1
 
         for i in range(classContextsPushed):

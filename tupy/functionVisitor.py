@@ -17,12 +17,13 @@ import tupy.evalVisitor
 
 class functionVisitor(ParseTreeVisitor):
 
-    def __init__(self, parser, functionContext, className="", constructorContext=None):
+    def __init__(self, parser, functionContext, className="", constructorContext=None, scanTraceBars=False):
         self.parser = parser
         self.functionContext = functionContext
         self.className = className
         self.evalV = tupy.Interpreter.Interpreter.visitor
         self.rootLevel = True
+        self.scanTraceBars = scanTraceBars
         if (constructorContext is not None):
             self.constructorContext = constructorContext
         else:
@@ -57,7 +58,7 @@ class functionVisitor(ParseTreeVisitor):
             self.functionContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
             if (isConstructor):
                 self.constructorContext.locals.defineFunction(function_name, (return_type, array_dimensions), argumentList, codeTree, isConstructor=isConstructor)
-            return True
+            return self.visitBlock(ctx.block())
         except NameError as e:
             tupy.errorHelper.nameError(e.args[0], ctx)
         # except TypeError as e:
@@ -132,7 +133,8 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#traceOffset
     def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
-        bisect.insort_left(tupy.Interpreter.Interpreter.traceBars, ctx.start.line)
+        if self.scanTraceBars:
+            bisect.insort_left(tupy.Interpreter.Interpreter.traceBars, ctx.start.line)
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):

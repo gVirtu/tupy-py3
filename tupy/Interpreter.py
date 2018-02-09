@@ -107,7 +107,7 @@ class Interpreter(object):
             treenode = getattr(parser, rule)
             tree = treenode()
             cls.visitor.setParser(parser)
-            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
+            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top(), scanTraceBars=True)
             logger.debug("Using rule " + rule)
             funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
             funcvisit(tree)
@@ -521,6 +521,7 @@ class Interpreter(object):
     def trace(cls, line, returnData=None, exception=None):
         if cls.traceOut is not None:
             if (exception or cls.should_print(line)):
+                logger.info("I am at line {0} and should print. Bars at {1}".format(line, cls.traceBars))
                 cls.traceOut.trace(line, returnData, exception)
 
     @classmethod

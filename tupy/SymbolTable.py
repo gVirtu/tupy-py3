@@ -105,10 +105,7 @@ class SymbolTable(object):
             try:
                 ret = self.context.parent.locals.getCell(name)
             except AttributeError:
-                if self.context.structName:
-                    raise NameError("O tipo {0} não possui o atributo {1}!".format(self.context.structName, name))
-                else:
-                    raise NameError(name+" não está definido!")
+                raise NameError(name+" não está definido!")
             except Exception as e:                
                 raise e
         return ret

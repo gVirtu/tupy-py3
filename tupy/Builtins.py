@@ -5,12 +5,14 @@ import tupy.Variable
 import inspect
 import math
 import random
+import datetime
 import copy
 import html
 import builtins
 from tupy.Type import Type
 
 def initialize():
+    random.seed(datetime.datetime.now())
     function("asserção", Type.NULL, [Type.BOOL])
     function("assercao", Type.NULL, [Type.BOOL])
     function("escrever", Type.STRING, [Type.TUPLE])
@@ -652,7 +654,7 @@ def heap(vector, highlights, edgeHighlights, extraHeader, extraFooter):
     trailer = "}]]"
     vector = vector.value
     highlights = highlights.value
-    edgeHighlights = set([cell_value(highlight) for highlight in edgeHighlights.value])
+    edgeHighlights = set([cell_value(highlight) % len(vector) for highlight in edgeHighlights.value])
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
 
@@ -672,7 +674,7 @@ def heap(vector, highlights, edgeHighlights, extraHeader, extraFooter):
             parsed_connections.append("{0} -- {1} {2}; ".format((i-1) >> 1, i, params))
 
         parsed_connections = "".join(parsed_connections)
-        parsed_highlights = "".join(["{0} {1}".format(cell_value(elem), _graph_highlight) for elem in highlights \
+        parsed_highlights = "".join(["{0} {1}".format(cell_value(elem) % len(vector), _graph_highlight) for elem in highlights \
                                                                                           if elem.data.value < len(vector)])
         
         ret = "".join([header, _graph_opts, extraHeader, " ", parsed_connections, parsed_highlights,
@@ -985,7 +987,8 @@ def matriz(matriz, arg1, arg2, arg3, arg4=None, arg5=None):
 
 def _matriz(matriz, highlights, row_offset, column_offset, extraHeader, extraFooter):
     matriz = matriz.value
-    if not len(matriz): return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
+    rows = len(matriz)
+    if not rows: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
     highlights = highlights.value
     highlightSet = set()
     # Parse highlights into a set
@@ -993,7 +996,10 @@ def _matriz(matriz, highlights, row_offset, column_offset, extraHeader, extraFoo
         highlight = cell_value(highlight)
         if len(highlight) != 2:
             raise ValueError("A lista de destaques da função matriz deve conter listas de exatamente dois elementos cada!")
-        pair = tuple([cell_value(coord) for coord in highlight])
+        row_num = cell_value(highlight[0]) % rows
+        row = cell_value(matriz[row_num])
+        columns = len(row)
+        pair = tuple([row_num, cell_value(highlight[1]) % columns])
         highlightSet.add(pair)
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
@@ -1038,7 +1044,7 @@ def _vetor(vetor, highlights, column_offset, extraHeader, extraFooter):
     vetor = vetor.value
     columns = len(vetor)
     if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.value]
+    highlights = [cell_value(cell) % columns for cell in highlights.value]
     highlightSet = set(highlights)
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
@@ -1065,7 +1071,7 @@ def pilha(vetor, highlights, extraHeader, extraFooter):
     vetor = vetor.value
     rows = len(vetor)
     if not rows: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.value]
+    highlights = [cell_value(cell) % rows for cell in highlights.value]
     highlightSet = set(highlights)
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
@@ -1081,7 +1087,8 @@ def pilha(vetor, highlights, extraHeader, extraFooter):
     for i, row in enumerate(reversed(vetor)):
         rowInst = tupy.Interpreter.memRead(row)
         rowText = html.escape(stringProcess(printInstance(rowInst)))
-        result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(i), getSides(i), "v{0}".format(len(vetor)-i-1)))
+        effective_i = len(vetor)-i-1
+        result.append(element.format(rowText, dot_table_font_size(rowText), 1, getBgColor(effective_i), getSides(i), "v{0}".format(effective_i)))
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
 
@@ -1089,7 +1096,7 @@ def fila(vetor, highlights, extraHeader, extraFooter):
     vetor = vetor.value
     columns = len(vetor)
     if not columns: return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
-    highlights = [cell_value(cell) for cell in highlights.value]
+    highlights = [cell_value(cell) % columns for cell in highlights.value]
     highlightSet = set(highlights)
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
@@ -1107,7 +1114,8 @@ def fila(vetor, highlights, extraHeader, extraFooter):
     for i, column in enumerate(reversed(vetor)):
         columnInst = tupy.Interpreter.memRead(column)
         columnText = html.escape(stringProcess(printInstance(columnInst)))
-        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(i), getSides(i), "v{0}".format(len(vetor)-i-1)))
+        effective_i = len(vetor)-i-1
+        result.append(element.format(columnText, dot_table_font_size(columnText), 1, getBgColor(effective_i), getSides(i), "v{0}".format(effective_i)))
     result.append(rowTrailer)
     result.append(trailer)
     return tupy.Instance.Instance(Type.STRING, "".join(result))
