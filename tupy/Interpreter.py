@@ -1,4 +1,5 @@
 import copy
+import timeout_decorator
 from antlr4 import *
 from tupy.langLexer import langLexer
 from tupy.langParser import langParser
@@ -24,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 from enum import Enum
 from tupy.Type import Type
-from io import StringIO
 
 class FlowEvent(Enum):
     STEP = 0
@@ -40,7 +40,7 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
 
 class Interpreter(object):
     isDebug = False
-    outStream = StringIO()
+    outStream = StringIO()    
     iterationLimit = 1000
     classContextDepth = 7777777
     instContextDepth = 7777777 #9999999
@@ -56,7 +56,7 @@ class Interpreter(object):
         cls.bufferedLine = ""
         cls.bufferedLineTokens = []
         cls.bufferedLineIndices = []
-        cls.outStream = StringIO()
+        cls.outStream = io.StringIO()
         cls.traceOut = None
         cls.traceBars = []
         cls.traceSmallStatement = False # Shorten one-liners
@@ -64,7 +64,7 @@ class Interpreter(object):
         cls.outfile = sys.stdout
 
     @classmethod
-    def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None, quiet=False):
+    def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None, quiet=False, timeout=False):
         cls.outStream.close()
         cls.initialize()
 
@@ -121,7 +121,10 @@ class Interpreter(object):
             visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
             #logger.debug(visit)
         
-            ret_visit = visit(tree)
+            if (timeout):
+                ret_visit = cls.executeProgram(visit, tree)
+            else:
+                ret_visit = visit(tree)
         except tupy.errorHelper.TupyError as e:
             cls.trace(e.args[1], exception=e.args[0])
             if (cls.traceOut is None):
@@ -137,6 +140,11 @@ class Interpreter(object):
             ret = cls.traceOut.dump()
             print(ret, file=cls.outfile)
             return ret
+
+    @classmethod
+    @timeout_decorator.timeout(15, timeout_exception=tupy.errorHelper.TupyTimeoutError, use_signals=False)
+    def executeProgram(cls, visitFN, AST):
+        return visitFN(AST)
 
     @classmethod
     def executeBlock(cls, function, callArgs, classContextsPushed):
@@ -159,7 +167,7 @@ class Interpreter(object):
         # We evaluate all literals once beforehand, otherwise we can end up
         # making function calls twice unnecessarily if the literal has CALL trailers.
         instArgs = [literal.get() for literal in callArgs]
-
+        
         (codeAST, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
         logger.debug("codeAST = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeAST, argumentList, returnType, isBuiltIn, isConstructor))
@@ -267,7 +275,7 @@ class Interpreter(object):
             codeBlock = codeAST.get()
             if (isConstructor):
                 classInstance = cls.newClassInstance(function.name) #, topLocals)
-                cls.pushContext(classInstance.value, True)
+                cls.pushContext(classInstance.value, classInstance)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
                 logger.debug("Constructed {0}".format(classInstance))
@@ -414,15 +422,17 @@ class Interpreter(object):
         cls.pushContext(newContext)
 
     @classmethod
-    def pushContext(cls, context, isStructInstance = False):
+    def pushContext(cls, context, structInstance = None):
          # Code trees don't need deep copying
         #context.functions = copy.copy(cls.callStack.top().functions)
         #context.inheritSymbolTable(cls.callStack.top())
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
-        if not isStructInstance:
+        if structInstance is None:
             context.classes = copy.copy(cls.callStack.top().classes)
             context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
             context.thisInst = cls.callStack.top().thisInst
+        else:
+            context.thisInst = structInstance
 
         context.parent.append(cls.callStack.top())
         cls.callStack.push(context)

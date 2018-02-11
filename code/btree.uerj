@@ -1,0 +1,97 @@
+~~ visual ARV <- árvore(nulo, "chave_visual", "filhos", [], "node [shape=rectangle]")
+
+tipo Nó:
+  ~~ cadeia oculta chave_visual
+  -------------------------------------------------------------
+  inteiro oculto ordem
+  caracter oculto chaves[*]
+  Nó oculto filhos[*]
+  lógico oculto é_folha
+  
+  Nó(inteiro ord):
+    ordem <- ord
+  
+  ~~ AtualizaChaveVisual():
+    ~~ chave_visual <- juntar(["| ", juntar(chaves, " | "), " |"])
+  -------------------------------------------------------------
+  
+  DivideFilho(inteiro ind):
+    Nó novo <- Nó(ordem)
+    Nó filho <- filhos[ind]
+    novo.é_folha <- filho.é_folha
+    inteiro i
+    ------------------------------------------------------------
+    para i <- 0..ordem-1:
+      novo.chaves <- inserir(novo.chaves, filho.chaves[i+ordem])
+    ------------------------------------------------------------
+    ~~ novo.AtualizaChaveVisual()
+    se não filho.é_folha:
+      ------------------------------------------------------------
+      para i <- 0..ordem:
+        novo.filhos <- inserir(novo.filhos, filho.filhos[i+ordem])
+      filho.filhos <- filho.filhos[0..ordem-1]
+      ------------------------------------------------------------
+    chaves <- inserir(chaves, filho.chaves[ordem-1], ind)
+    filho.chaves <- filho.chaves[0..ordem-2]
+    ~~ filho.AtualizaChaveVisual()
+    ~~ AtualizaChaveVisual()
+    filhos <- inserir(filhos, novo, ind+1)
+    ~~ ARV <- árvore(T.raiz, "chave_visual", "filhos", [], "node [shape=rectangle]")
+  
+  InsereChave(caracter nova):
+    asserção(|chaves| < (2*ordem - 1))
+    ~~ ARV <- árvore(T.raiz, "chave_visual", "filhos", [esta], "node [shape=rectangle]")
+    inteiro pos <- BuscaInserção(nova)
+    se é_folha:
+      chaves <- inserir(chaves, nova, pos)
+      ~~AtualizaChaveVisual()
+    senão:
+      Nó filho <- filhos[pos]
+      se |filho.chaves| = (2*ordem - 1):
+        DivideFilho(pos)
+        se nova > chaves[pos]:
+          filho <- filhos[pos+1]
+      filho.InsereChave(nova)
+      
+  inteiro BuscaInserção(caracter novo):
+    inteiro i <- 0
+    enquanto i < |chaves| e chaves[i] < novo:
+      i <- i + 1
+    retornar i
+  
+tipo ÁrvoreB:
+  Nó oculto raiz
+  inteiro ordem
+  
+  ----------------------------
+  ÁrvoreB(inteiro d):
+    ordem <- d
+    raiz <- Nó(ordem)
+    raiz.é_folha <- verdadeiro
+  ----------------------------
+  
+  Inserção(caracter novo):
+    se |raiz.chaves| = (2*ordem - 1):
+      Nó novaraiz <- Nó(ordem)
+      novaraiz.é_folha <- falso
+      novaraiz.filhos <- inserir(novaraiz.filhos, raiz)
+      novaraiz.DivideFilho(0)
+      raiz <- novaraiz
+      ~~ ARV <- árvore(T.raiz, "chave_visual", "filhos", [], "node [shape=rectangle]")
+    raiz.InsereChave(novo)
+    ~~ ARV <- árvore(T.raiz, "chave_visual", "filhos", [], "node [shape=rectangle]")
+      
+ÁrvoreB T <- ÁrvoreB(2)
+------------------------
+caracter ins[*]
+caracter i
+
+para i <- 'A'..'M':
+  ins <- inserir(ins, i)
+ins <- embaralhar(ins)
+
+inteiro j
+------------------------
+
+para j <- 0..|ins|:
+  T.Inserção(ins[j])

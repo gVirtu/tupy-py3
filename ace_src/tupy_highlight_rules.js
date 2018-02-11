@@ -8,11 +8,12 @@ var tupyHighlightRules = function() {
 
     var keywordControls = (
         "parar|avancar|senao|para|passo|se|" +
-        "retornar|enquanto|inclusive"
+        "retornar|enquanto|inclusive|" +
+        "senão|avançar|até|incl\\."
     );
     
     var storageType = (
-        "logico|caracter|real|inteiro|cadeia|tipo|visual"
+        "logico|caracter|real|inteiro|cadeia|tipo|visual|lógico"
     );
 
     var storageModifiers = (
@@ -20,11 +21,11 @@ var tupyHighlightRules = function() {
     );
 
     var keywordOperators = (
-        "e|ou|nao|mod|div|xor"
+        "e|ou|nao|mod|div|xor|não"
     );
 
     var builtinConstants = (
-        "nulo|verdadeiro|falso|pi|este|esta"
+        "nulo|verdadeiro|falso|pi|este|esta|π"
     );
     
     var builtinFunctions = (
@@ -34,7 +35,8 @@ var tupyHighlightRules = function() {
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
         "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila|lista_encadeada|" +
         "grafo_valorado_MA|digrafo_valorado_MA|grafo_valorado_LA|digrafo_valorado_LA|heap|" +
-        "comprimento|assercao|escrita"
+        "comprimento|assercao|escrita|" +
+        "binário|aleatório|inteiro_aleatório|mín|máx|árvore|asserção"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({
@@ -71,23 +73,6 @@ var tupyHighlightRules = function() {
                 token : "comment", //Trace offsetter
                 regex : "\-{3,}"
             }, {
-            ///////////////////////////////////// BEGIN BROKEN UNICODE RULES
-                token : "keyword.control",
-                regex : "senão|avançar|até|incl\\."
-            }, {
-                token : "keyword.operator",
-                regex : "não"
-            }, {
-                token : "storage.type",
-                regex : "lógico"
-            }, {
-                token : "support.function",
-                regex : "binário|aleatório|inteiro_aleatório|mín|máx|árvore|asserção"
-            }, {
-                token : "constant.language",
-                regex : "π"
-            }, {
-            ///////////////////////////////////// END BROKEN UNICODE RULES
                 token : "string", // character
                 regex : "'(?:" + escapeRe + "|.)?'"
             }, {
@@ -115,7 +100,7 @@ var tupyHighlightRules = function() {
                 regex : "[+-]?\\d+(?:(?:\\.\\d*)?)?\\b"
             }, {
                 token : keywordMapper,
-                regex : "[a-zA-Z_$][a-zA-Z0-9_$]*"
+                regex : "[a-zA-Z_$áóíéãçπ][a-zA-Z0-9_$áóíéãç]*"
             }, {
                 token : "keyword.operator",
                 regex : /&&|\|\||[*\/+\-\^|~!<>=]=?/

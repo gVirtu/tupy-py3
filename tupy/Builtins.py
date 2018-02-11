@@ -303,7 +303,7 @@ def printInstance(arg):
 
 def printStruct(inst):
     try:
-        tupy.Interpreter.Interpreter.pushContext(inst.value)
+        tupy.Interpreter.Interpreter.pushContext(inst.value, inst)
         function_data = tupy.Interpreter.Interpreter.loadSymbol("escrita").value
         function = function_data.get([])
         returnTypeIndex = 3 #ugly

@@ -1,6 +1,7 @@
 import antlr4
 import re
-
+import signal
+ 
 class TupyError(Exception):
     pass
 
@@ -27,6 +28,10 @@ class TupySyntaxError(TupyError):
 
 class TupyRuntimeError(TupyError):
     pass
+
+class TupyTimeoutError(TupyError):
+    def __init__(self,*args,**kwargs):
+        TupyError.__init__(self,*("ERRO: Tempo limite de execução atingido!", 0),**kwargs)
 
 def indexError(message, ctx:antlr4.ParserRuleContext):
     raise TupyIndexError("ERRO: {0}".format(translate(message)), ctx.start.line)

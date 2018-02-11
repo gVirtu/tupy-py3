@@ -54,7 +54,7 @@ class Variable(object):
             elif ttype == TrailerType.MEMBER:
                 if ret.type == Type.NULL:
                     raise RuntimeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
-                tupy.Interpreter.Interpreter.pushContext(ret.value, True)
+                tupy.Interpreter.Interpreter.pushContext(ret.value, ret)
                 parent = (ret, tid, -2)
                 if ret.value.locals.hasKey(tid):
                     ret = ret.value.locals.get(tid)
@@ -128,123 +128,148 @@ class Variable(object):
             return ret
 
     def power(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value ** rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value ** ri.value))
 
     def positive(self):
-        return Literal(tupy.Instance.Instance(self.get().type, +self.get().value))
+        li = self.get()
+        return Literal(tupy.Instance.Instance(li.type, +li.value))
 
     def negative(self):
-        return Literal(tupy.Instance.Instance(self.get().type, -self.get().value))
+        li = self.get()
+        return Literal(tupy.Instance.Instance(li.type, -li.value))
 
     def bitwise_flip(self):
-        if (self.get().type != Type.INT):
+        li = self.get()
+        if (li.type != Type.INT):
             raise TypeError("Não é possível fazer negação de bits com tipo não-inteiro!")
-        return Literal(tupy.Instance.Instance(Type.INT, ~self.get().value))
+        return Literal(tupy.Instance.Instance(Type.INT, ~li.value))
 
     def multiply(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value * rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value * ri.value))
 
     def divide(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value / rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value / ri.value))
 
     def modulo(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value % rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value % ri.value))
 
     def integer_divide(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value // rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value // ri.value))
 
     def add(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
         if typ == Type.STRING:
-            return Literal(tupy.Instance.Instance(typ, self.stringConcat(self.get(), rhs.get())))
+            return Literal(tupy.Instance.Instance(typ, self.stringConcat(li, ri)))
         else:
-            return Literal(tupy.Instance.Instance(typ, self.get().value + rhs.get().value))
+            return Literal(tupy.Instance.Instance(typ, li.value + ri.value))
 
     def subtract(self, rhs:'Variable'):
-        typ = self.resultType(self.get().type, rhs.get().type)
-        return Literal(tupy.Instance.Instance(typ, self.get().value - rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        typ = self.resultType(li.type, ri.type)
+        return Literal(tupy.Instance.Instance(typ, li.value - ri.value))
 
     def left_shift(self, rhs:'Variable'):
-        if (self.get().type != Type.INT or rhs.get().type != Type.INT):
+        li, ri = self.get(), rhs.get()
+        if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer deslocamento de bits para a esquerda com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, self.get().value << rhs.get().value))
+        return Literal(tupy.Instance.Instance(typ, li.value << ri.value))
 
     def right_shift(self, rhs:'Variable'):
-        if (self.get().type != Type.INT or rhs.get().type != Type.INT):
+        li, ri = self.get(), rhs.get()
+        if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer deslocamento de bits para a direita com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, self.get().value >> rhs.get().value))
+        return Literal(tupy.Instance.Instance(typ, li.value >> ri.value))
 
     def bitwise_and(self, rhs:'Variable'):
-        if (self.get().type != Type.INT or rhs.get().type != Type.INT):
+        li, ri = self.get(), rhs.get()
+        if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer E (AND) de bits com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, self.get().value & rhs.get().value))
+        return Literal(tupy.Instance.Instance(typ, li.value & ri.value))
 
     def bitwise_or(self, rhs:'Variable'):
-        if (self.get().type != Type.INT or rhs.get().type != Type.INT):
+        li, ri = self.get(), rhs.get()
+        if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer OU (OR) de bits com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, self.get().value | rhs.get().value))
+        return Literal(tupy.Instance.Instance(typ, li.value | ri.value))
 
     def bitwise_xor(self, rhs:'Variable'):
-        if (self.get().type != Type.INT or rhs.get().type != Type.INT):
+        li, ri = self.get(), rhs.get()
+        if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer OU EXCLUSIVO (XOR) de bits com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, self.get().value ^ rhs.get().value))
+        return Literal(tupy.Instance.Instance(typ, li.value ^ ri.value))
 
     def gt(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, 
-                                              self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) and
-                                              self.get().value > rhs.get().value))
+                                              self.validateComparisonTypes(li.type,
+                                                                           ri.type) and
+                                              li.value > ri.value))
 
     def lt(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, 
-                                              self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) and
-                                              self.get().value < rhs.get().value))
+                                              self.validateComparisonTypes(li.type,
+                                                                           ri.type) and
+                                              li.value < ri.value))
 
     def gt_eq(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, 
-                                              self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) and
-                                              self.get().value >= rhs.get().value))
+                                              self.validateComparisonTypes(li.type,
+                                                                           ri.type) and
+                                              li.value >= ri.value))
 
     def lt_eq(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL,
-                                              self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) and
-                                              self.get().value <= rhs.get().value))
+                                              self.validateComparisonTypes(li.type,
+                                                                           ri.type) and
+                                              li.value <= ri.value))
 
     def eq(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, 
-                                              self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) and
-                                              self.get().value == rhs.get().value))
+                                              self.validateComparisonTypes(li.type,
+                                                                           ri.type) and
+                                              li.value == ri.value))
 
     def neq(self, rhs:'Variable'):
+        li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, 
-                                              not self.validateComparisonTypes(self.get().type,
-                                                                           rhs.get().type) or
-                                              self.get().value != rhs.get().value))
+                                              not self.validateComparisonTypes(li.type,
+                                                                           ri.type) or
+                                              li.value != ri.value))
 
     def logic_not(self):
-        return Literal(tupy.Instance.Instance(Type.BOOL, not self.get().value))
+        li = self.get()
+        return Literal(tupy.Instance.Instance(Type.BOOL, not li.value))
 
     def logic_and(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        return Literal(tupy.Instance.Instance(Type.BOOL, ri.value))
 
     def logic_or(self, rhs:'Variable'):
-        return Literal(tupy.Instance.Instance(Type.BOOL, rhs.get().value))
+        li, ri = self.get(), rhs.get()
+        return Literal(tupy.Instance.Instance(Type.BOOL, ri.value))
 
     def cardinality(self):
+        li = self.get()
         return Literal(tupy.Instance.Instance(Type.INT, self.get().size))
 
     def validateComparisonTypes(self, a, b):
