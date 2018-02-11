@@ -348,13 +348,24 @@ class Interpreter(object):
 
     @classmethod
     def loadSymbol(cls, name):
-        return cls.callStack.top().locals.get(name)           
+        (ctx, ind) = cls.callStack.lookup(name)
+        ret = memRead(ctx.locals.get(name))
+        if ret.type == tupy.Type.Type.FUNCTION:
+            ret_aggregate = copy.deepcopy(ret)
+            for i in reversed(range(ind)):
+                if cls.callStack.items[i].locals.hasKey(name) and \
+                cls.callStack.items[i].locals.datatype[name] == tupy.Type.Type.FUNCTION:
+                    lower_fn = tupy.Interpreter.memRead(cls.callStack.items[i].locals.get(name))
+                    ret_aggregate.value.merge(lower_fn.value)
+            return ret_aggregate
+        else:
+            return ret
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
         logger.debug("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
         # logger.debug("CallStack: {0}".format(cls.callStack.items))
-        return cls.callStack.top().locals.put(name, instance, trailerList)
+        return cls.callStack.lookup(name)[0].locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className, isInvisible):
@@ -407,7 +418,7 @@ class Interpreter(object):
 
     @classmethod
     def getMemoryCell(cls, name):
-        return cls.callStack.top().locals.getCell(name)
+        return cls.callStack.lookup(name)[0].locals.get(name)
 
     # @classmethod
     # def retrieveCodeTree(cls, functionIndex):
@@ -434,13 +445,11 @@ class Interpreter(object):
         else:
             context.thisInst = structInstance
 
-        context.parent.append(cls.callStack.top())
         cls.callStack.push(context)
 
     @classmethod
     def popFrame(cls):
         prev = cls.callStack.pop()
-        prev.parent.pop()
         logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context

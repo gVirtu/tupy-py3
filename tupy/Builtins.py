@@ -958,7 +958,7 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
         return "{0} -> {1} [style = invis]; {1} [style = invis]; ".format(parentIdentifier, identifier)
     else :
         neighbors = [tupy.Interpreter.memRead(neighbor) \
-                        for neighbor in treeInst.value.locals.get(edgesName).value]
+                        for neighbor in tupy.Interpreter.memRead(treeInst.value.locals.get(edgesName)).value]
 
         if all(neighbor.type == Type.NULL for neighbor in neighbors):
             result = [] # avoid putting unnecessary stuff
@@ -973,7 +973,7 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
         if (id(treeInst.value) in highlights):
             result.append("{0} {1}".format(identifier, _graph_highlight))
         
-        keyInst = treeInst.value.locals.get(keyName)
+        keyInst = tupy.Interpreter.memRead(treeInst.value.locals.get(keyName))
         result.append("{0} [label = \"{1}\"]; ".format(identifier, stringProcess(printInstance(keyInst))))
         resultString = "".join(result)
 
@@ -1207,11 +1207,11 @@ def recurse_list(listInst, parentIdentifier, keyName, nextName, highlights:set, 
         else:
             identifier = nameMapping[id(listInst.value)]
 
-        neighbor = listInst.value.locals.get(nextName)
+        neighbor = tupy.Interpreter.memRead(listInst.value.locals.get(nextName))
         edge = "s{0}:{2} -> s{1}:{3}; "
 
         if isNewNode:
-            keyInst = listInst.value.locals.get(keyName)
+            keyInst = tupy.Interpreter.memRead(listInst.value.locals.get(keyName))
             doubleLinkAddon = ("<TD BORDER=\"0\" PORT=\"l\"><TABLE CELLPADDING=\"0\" CELLSPACING=\"0\" BORDER=\"0\" >"
                                "<TR><TD PORT=\"lu\"> </TD></TR><TR><TD PORT=\"ld\"> </TD></TR></TABLE></TD>") if isDoubleLink else ""
             doubleLinkSide = "L" if isDoubleLink else ""

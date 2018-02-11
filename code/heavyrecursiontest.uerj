@@ -1,0 +1,12 @@
+# Now this works!
+inteiro V[*] <- [1, 5, 10, 25, 50, 100]
+
+inteiro Moedas(inteiro p, inteiro n):
+  se p = 0 ou n < 0:
+    retornar 0
+  senão se n = 0:
+    retornar 1
+  senão:
+    retornar Moedas(p, n - V[p-1]) + Moedas(p-1, n)
+  
+Moedas(|V|, 20)

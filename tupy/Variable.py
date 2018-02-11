@@ -57,7 +57,7 @@ class Variable(object):
                 tupy.Interpreter.Interpreter.pushContext(ret.value, ret)
                 parent = (ret, tid, -2)
                 if ret.value.locals.hasKey(tid):
-                    ret = ret.value.locals.get(tid)
+                    ret = tupy.Interpreter.memRead(ret.value.locals.get(tid))
                 else:
                     raise NameError("O tipo {0} não possui o atributo {1}!".format(ret.value.structName, tid))
                 classContextsPushed = classContextsPushed+1
