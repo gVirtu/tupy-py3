@@ -179,7 +179,9 @@ simpleStatement
 smallStatement
  : testOrExpressionStatement
  | declarationStatement
- | flowStatement 
+ | breakStatement 
+ | continueStatement 
+ | returnStatement  
  | enumSpecifier
  ;
 
@@ -227,14 +229,6 @@ enumeratorList
 
 enumerator
  :   NAME (EQUALS expression)?
- ;
-
-/* BREAK/CONTINUE/RETURN */
-/// flowStatement: breakStatement | continueStatement | returnStatement | raise_stmt | yield_stmt
-flowStatement
- : breakStatement 
- | continueStatement 
- | returnStatement 
  ;
 
 /// breakStatement: 'break'

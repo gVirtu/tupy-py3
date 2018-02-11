@@ -148,9 +148,10 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
         tupy.Interpreter.Interpreter.singleTraceSkip = ctx.SQUIGGLY() is not None
-        for child in ctx.getChildren():
-            tupy.Interpreter.logger.debug("This statement has a {0}".format(type(child.getChild(0))))
-        return self.visitChildren(ctx)
+        if ctx.simpleStatement():
+            return self.visitSimpleStatement(ctx.simpleStatement())
+        elif ctx.compoundStatement():
+            return self.visitCompoundStatement(ctx.compoundStatement())
 
     # Visit a parse tree produced by langParser#traceOffset
     def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
@@ -168,7 +169,16 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#smallStatement.
     def visitSmallStatement(self, ctx:langParser.SmallStatementContext):
-        return self.visitChildren(ctx)
+        if ctx.testOrExpressionStatement():
+            return self.visitTestOrExpressionStatement(ctx.testOrExpressionStatement())
+        elif ctx.declarationStatement():
+            return self.visitDeclarationStatement(ctx.declarationStatement())
+        elif ctx.breakStatement():
+            return self.visitBreakStatement(ctx.breakStatement())
+        elif ctx.continueStatement():
+            return self.visitContinueStatement(ctx.continueStatement())
+        else:
+            return self.visitReturnStatement(ctx.returnStatement())
 
 
     # Visit a parse tree produced by langParser#declarationStatement.
@@ -275,7 +285,10 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#testOrExpression.
     def visitTestOrExpression(self, ctx:langParser.TestOrExpressionContext):
         try:
-            return self.visitChildren(ctx)
+            if ctx.test():
+                return self.visitTest(ctx.test())
+            else:
+                return self.visitExpression(ctx.expression())
         # except NameError as e:
         #     tupy.errorHelper.nameError(e.args[0], ctx)
         except TypeError as e:
@@ -306,11 +319,6 @@ class evalVisitor(ParseTreeVisitor):
     #====================================================================
 
 
-    # Visit a parse tree produced by langParser#flowStatement.
-    def visitFlowStatement(self, ctx:langParser.FlowStatementContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by langParser#breakStatement.
     def visitBreakStatement(self, ctx:langParser.BreakStatementContext):
         # Trace - Flow Statement 1
@@ -334,8 +342,10 @@ class evalVisitor(ParseTreeVisitor):
         expr = None
         if ctx.testOrExpressionList():
             try:
-                expr = [literal.get() for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList())]
-            except RecursionError:
+                expr = []
+                for literal in self.visitTestOrExpressionList(ctx.testOrExpressionList()):
+                    expr.append(literal.get())
+            except RecursionError as e:
                 tupy.errorHelper.runtimeError("Limite de recursão alcançado!", ctx)
             except Exception as e:
                 raise e
@@ -354,7 +364,16 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#compoundStatement.
     def visitCompoundStatement(self, ctx:langParser.CompoundStatementContext):
-        return self.visitChildren(ctx)
+        if ctx.ifStatement():
+            return self.visitIfStatement(ctx.ifStatement())
+        elif ctx.whileStatement():
+            return self.visitWhileStatement(ctx.whileStatement())
+        elif ctx.forStatement():
+            return self.visitForStatement(ctx.forStatement())
+        elif ctx.functionDefinition():
+            return self.visitFunctionDefinition(ctx.functionDefinition())
+        else:
+            return self.visitClassDefinition(ctx.classDefinition())
 
 
     # Visit a parse tree produced by langParser#ifStatement.
