@@ -23,7 +23,7 @@ class TestTupyProgram(unittest.TestCase):
         result = json.loads(output)
         self.assertTrue("code" in result.keys())            
         self.assertTrue("trace" in result.keys())            
-        self.assertEqual(len(result["trace"]), 14)
+        self.assertEqual(len(result["trace"]), 15)
 
     def test_entrypoint_tracebars(self):
         output = subprocess.getoutput("python3 -m tupy code/tracebars.uerj -t")
@@ -37,7 +37,7 @@ class TestTupyProgram(unittest.TestCase):
         result = json.loads(output)
         self.assertTrue("code" in result.keys())            
         self.assertTrue("trace" in result.keys())            
-        self.assertEqual(len(result["trace"]), 2)
+        self.assertEqual(len(result["trace"]), 4)
         self.assertEqual(result["trace"][-1]["event"], "exception")
 
     def test_entrypoint_tokens(self):

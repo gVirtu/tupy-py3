@@ -54,7 +54,7 @@ class Variable(object):
             elif ttype == TrailerType.MEMBER:
                 if ret.type == Type.NULL:
                     raise RuntimeError("Tentativa de acessar o campo {0} de instância não inicializada!".format(tid))
-                tupy.Interpreter.Interpreter.pushContext(ret.value)
+                tupy.Interpreter.Interpreter.pushContext(ret.value, True)
                 parent = (ret, tid, -2)
                 if ret.value.locals.hasKey(tid):
                     ret = ret.value.locals.get(tid)

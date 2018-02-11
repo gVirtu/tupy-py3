@@ -200,7 +200,7 @@ def function(name, ret, argTypes, arrayDimensions=None, passByRef=None, defaults
 # HELPERS
 def cast(instance, target_type):
     if target_type == Type.INT:
-        string = instance.value.upper()
+        string = str(instance.value).upper()
         base = 10
         if string.startswith("0X"):
             base = 16
@@ -303,12 +303,12 @@ def printInstance(arg):
 
 def printStruct(inst):
     try:
-        tupy.Interpreter.Interpreter.callStack.push(inst.value)
+        tupy.Interpreter.Interpreter.pushContext(inst.value)
         function_data = tupy.Interpreter.Interpreter.loadSymbol("escrita").value
         function = function_data.get([])
         returnTypeIndex = 3 #ugly
         if function[returnTypeIndex] == (Type.STRING, 0): # 0-d array of string
-            retInst = tupy.Interpreter.Interpreter.executeBlock(function_data, [], 0)
+            retInst = tupy.Interpreter.Interpreter.executeBlock(function_data, [], 1)
             ret = retInst.value
         else:
             ret = inst.class_name
@@ -393,7 +393,7 @@ def real(literal):
 def inteiro(literal, base=None):
     if (base):
         try:
-            return tupy.Instance.Instance(Type.INT, int(literal.value, base.value))
+            return tupy.Instance.Instance(Type.INT, int(str(literal.value), base.value))
         except ValueError:
             raise ValueError("Erro na conversão para INTEIRO (base {0})!".format(base))
     else:
@@ -654,13 +654,13 @@ def heap(vector, highlights, edgeHighlights, extraHeader, extraFooter):
     trailer = "}]]"
     vector = vector.value
     highlights = highlights.value
-    edgeHighlights = set([cell_value(highlight) % len(vector) for highlight in edgeHighlights.value])
     extraHeader = extraHeader.value
     extraFooter = extraFooter.value
 
     if not len(vector):
         return tupy.Instance.Instance(Type.STRING, _empty_graphviz_return)
     else:
+        edgeHighlights = set([cell_value(highlight) % len(vector) for highlight in edgeHighlights.value])
         parsed_connections = []
 
         inst = tupy.Interpreter.memRead(vector[0])

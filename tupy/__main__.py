@@ -58,7 +58,8 @@ def main(argv):
                 sys.exit(2)
 
     tupy.Interpreter.Interpreter.isDebug = args.debug
-    out.close()
+    if args.quiet:
+        out.close()
     return tupy.Interpreter.Interpreter.interpret(myinput, trace=args.trace, printTokens=args.tokens, quiet=args.quiet)
 
 if __name__ == '__main__': # pragma: no cover

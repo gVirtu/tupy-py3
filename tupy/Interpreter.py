@@ -65,15 +65,16 @@ class Interpreter(object):
 
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None, quiet=False):
-        logger.debug("Input is {0}".format(str(input)))
-        if (input[-1] != '\n'):
-            input = input + "\n"
-            print("", file=cls.outfile)
         cls.outStream.close()
         cls.initialize()
 
         if quiet:
             cls.outfile = open(os.devnull, 'w')
+
+        logger.debug("Input is {0}".format(str(input)))
+        if (input[-1] != '\n'):
+            input = input + "\n"
+            print("", file=cls.outfile)
 
         if (isinstance(stdin, str)):
             cls.inStream = io.StringIO(stdin)
@@ -266,7 +267,7 @@ class Interpreter(object):
             codeBlock = codeAST.get()
             if (isConstructor):
                 classInstance = cls.newClassInstance(function.name) #, topLocals)
-                cls.pushContext(classInstance.value)
+                cls.pushContext(classInstance.value, True)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
                 logger.debug("Constructed {0}".format(classInstance))
@@ -413,26 +414,23 @@ class Interpreter(object):
         cls.pushContext(newContext)
 
     @classmethod
-    def pushContext(cls, context):
+    def pushContext(cls, context, isStructInstance = False):
          # Code trees don't need deep copying
         #context.functions = copy.copy(cls.callStack.top().functions)
         #context.inheritSymbolTable(cls.callStack.top())
         # context.refMappings = copy.copy(cls.callStack.top().refMappings)
-        if context.structName is None:
+        if not isStructInstance:
             context.classes = copy.copy(cls.callStack.top().classes)
             context.classLineage = copy.deepcopy(cls.callStack.top().classLineage)
             context.thisInst = cls.callStack.top().thisInst
 
-        #if cls.callStack.top().depth < context.depth:
-        context.parent = cls.callStack.top()
-        #else:
-        #    logger.info("HEY THE CONTEXT {0} SHOULD NOT HAVE {1} AS PARENT ({2} >= {3})".format(context.funcName, cls.callStack.top().funcName, cls.callStack.top().depth, context.depth))
-
+        context.parent.append(cls.callStack.top())
         cls.callStack.push(context)
 
     @classmethod
     def popFrame(cls):
         prev = cls.callStack.pop()
+        prev.parent.pop()
         logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context

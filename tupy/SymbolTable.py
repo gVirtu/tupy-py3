@@ -73,12 +73,13 @@ class SymbolTable(object):
             else:
                 raise TypeError("Tipos incompatíveis na atribuição!")
         else:
-            try:
-                self.context.parent.locals.put(name, instance, trailerList)
-            except AttributeError: # No context parent
+            if len(self.context.parent):
+                orig_parent_list = copy.copy(self.context.parent)
+                next_ctx = self.context.parent.pop()
+                next_ctx.locals.put(name, instance, trailerList)
+                self.context.parent = orig_parent_list
+            else:
                 raise NameError("O nome "+name+" não está definido!")
-            except Exception as e:
-                raise e
 
     def ref(self, name, cell):
         self.data[name] = cell
@@ -87,27 +88,33 @@ class SymbolTable(object):
         ret = tupy.Interpreter.memRead(self.getCell(name))
         if ret.type == tupy.Type.Type.FUNCTION:
             ret_aggregate = copy.deepcopy(ret)
-            next_ctx = self.context.parent
-            while(next_ctx is not None):
-                if name in next_ctx.locals.data:
-                    lower_fn = tupy.Interpreter.memRead(next_ctx.locals.data[name])
-                    if lower_fn.type == tupy.Type.Type.FUNCTION:
-                        ret_aggregate.value.merge(lower_fn.value)
-                next_ctx = next_ctx.parent
+            self.generate_function_aggregate(self.context, name, ret_aggregate)
             return ret_aggregate
         else:
             return ret
+
+    def generate_function_aggregate(self, context, name, aggregate):
+        if len(context.parent):
+            orig_parent_list = copy.copy(context.parent)
+            next_ctx = context.parent.pop()
+            if name in next_ctx.locals.data:
+                lower_fn = tupy.Interpreter.memRead(next_ctx.locals.data[name])
+                if lower_fn.type == tupy.Type.Type.FUNCTION:
+                    aggregate.value.merge(lower_fn.value)
+            self.generate_function_aggregate(next_ctx, name, aggregate)
+            context.parent = orig_parent_list
 
     def getCell(self, name):
         try:
             ret = self.data[name]
         except KeyError as e:
-            try:
-                ret = self.context.parent.locals.getCell(name)
-            except AttributeError:
-                raise NameError(name+" não está definido!")
-            except Exception as e:                
-                raise e
+            if len(self.context.parent):
+                orig_parent_list = copy.copy(self.context.parent)
+                next_ctx = self.context.parent.pop()
+                ret = next_ctx.locals.getCell(name)
+                self.context.parent = orig_parent_list
+            else:
+                raise NameError("O nome "+name+" não está definido!")
         return ret
 
     def hasKey(self, name):

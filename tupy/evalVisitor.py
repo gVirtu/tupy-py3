@@ -13,6 +13,7 @@ import tupy.Instance
 import tupy.Interpreter
 import traceback
 import tupy.Context
+import tupy.Builtins
 import tupy.Variable
 import tupy.functionVisitor as fv
 
@@ -379,8 +380,13 @@ class evalVisitor(ParseTreeVisitor):
                 tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
                 break
 
-            currentLiteral = tupy.Variable.Literal(tupy.Interpreter.Interpreter.loadSymbol(names[0]))
+            currentInstance = tupy.Interpreter.Interpreter.loadSymbol(names[0])
+            iteratorType = currentInstance.type
+
+            currentLiteral = tupy.Variable.Literal(currentInstance)
             currentInstance = (currentLiteral.add(steps[0])).get()
+            currentInstance = tupy.Builtins.cast(currentInstance, iteratorType)
+
             tupy.Interpreter.Interpreter.storeSymbol(names[0], currentInstance, [])
 
             iterations += 1

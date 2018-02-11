@@ -12,7 +12,10 @@ class Context(object):
         # Depth describes how nested the current code block is.
         # Global context has a depth of 0.
         self.depth = depth
-        self.parent = parent
+        if parent is None:
+            self.parent = []
+        else:
+            self.parent = parent
 
         # Locals is the current context's Symbol Table. 
         self.locals = SymbolTable(self)
