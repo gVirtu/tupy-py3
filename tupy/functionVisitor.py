@@ -307,7 +307,7 @@ class functionVisitor(ParseTreeVisitor):
     def visitExpression(self, ctx:langParser.ExpressionContext):
         return self.visitChildren(ctx)
 
-
+    """
     # Visit a parse tree produced by langParser#xorExpression.
     def visitXorExpression(self, ctx:langParser.XorExpressionContext):
         return self.visitChildren(ctx)
@@ -341,7 +341,7 @@ class functionVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#power.
     def visitPower(self, ctx:langParser.PowerContext):
         return self.visitChildren(ctx)
-
+    """
 
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):

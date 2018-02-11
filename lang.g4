@@ -294,39 +294,11 @@ block
 /* TESTE: E, OU, NÃO, COMPARAÇÕES DE EXPRESSÕES*/
 /// orTest: andTest ('or' andTest)*
 test
- : orTest
- ;
-
-orTest
- : andTest ( OR andTest )*
- ;
-
-/// andTest: notTest ('and' notTest)*
-andTest
- : notTest ( AND notTest )*
- ;
-
-/// notTest: 'not' notTest | comparison
-notTest
- : NOT notTest 
- | comparison
- ;
-
-/// comparison: star_expr (comparisonOperator star_expr)*
-comparison
- : expression ( comparisonOperator expression )*
- ;
-
-/// # <> isn't actually a valid comparison operator in Python. It's here for the
-/// # sake of a __future__ import described in PEP 401
-/// comparisonOperator: '<'|'>'|'=='|'>='|'<='|'<>'|'!='|'in'|'not' 'in'|'is'|'is' 'not'
-comparisonOperator
- : GREATER_THAN
- | LESS_THAN
- | EQUALS
- | GT_EQ
- | LT_EQ
- | NOT_EQ
+ : expression 
+ | test op=(GREATER_THAN | LESS_THAN | EQUALS | GT_EQ | LT_EQ | NOT_EQ) test
+ | op=NOT test
+ | test op=AND test
+ | test op=OR test
  ;
  
 /// range
@@ -342,55 +314,17 @@ rangeList
  : loopRange ( COMMA loopRange )*
  ;
 
-/// expression: xorExpression ('|' xorExpression)*
 expression
- : xorExpression ( OR_OP xorExpression )*
- ;
-
-/// xorExpression: andExpression ('^' andExpression)*
-xorExpression
- : andExpression ( XOR andExpression )*
- ;
-
-/// andExpression: shiftExpression ('&' shiftExpression)*
-andExpression
- : shiftExpression ( AND_OP shiftExpression )*
- ;
-
-/// shiftExpression: arithmeticExpression (('<<'|'>>') arithmeticExpression)*
-shiftExpression
- : arithmeticExpression ( LEFT_SHIFT arithmeticExpression 
-              | RIGHT_SHIFT arithmeticExpression 
-              )*
- ;
-
-/// arithmeticExpression: term (('+'|'-') term)*
-arithmeticExpression
- : term ( ADD term
-        | MINUS term 
-        )*
- ;
-
-/// term: factor (('*'|'/'|'%'|'//') factor)*
-term
- : factor ( STAR factor
-          | DIV factor
-          | MOD factor 
-          | IDIV factor 
-          )*
- ;
-
-/// factor: ('+'|'-'|'~') factor | power
-factor
- : ADD factor 
- | MINUS factor 
- | NOT_OP factor 
- | power
- ;
-
-/// power: atom trailer* ['**' factor]
-power
- : atom trailer* ( POWER factor )?
+ : atom trailer*
+ | <assoc=right> expression op=POWER expression
+ | op=(ADD | MINUS) expression 
+ | op=NOT_OP expression
+ | expression op=(STAR | DIV | MOD | IDIV) expression
+ | expression op=(ADD | MINUS) expression
+ | expression op=(LEFT_SHIFT | RIGHT_SHIFT) expression
+ | expression op=AND_OP expression
+ | expression op=XOR expression
+ | expression op=OR_OP expression
  ;
 
 /// atom: ('(' [yield_expr|testlist_comp] ')' |

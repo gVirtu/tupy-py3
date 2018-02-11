@@ -261,11 +261,11 @@ class Variable(object):
         return Literal(tupy.Instance.Instance(Type.BOOL, not li.value))
 
     def logic_and(self, rhs:'Variable'):
-        li, ri = self.get(), rhs.get()
+        ri = rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, ri.value))
 
     def logic_or(self, rhs:'Variable'):
-        li, ri = self.get(), rhs.get()
+        ri = rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL, ri.value))
 
     def cardinality(self):

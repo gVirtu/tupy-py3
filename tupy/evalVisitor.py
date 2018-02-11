@@ -13,6 +13,7 @@ import tupy.Instance
 import tupy.Interpreter
 import traceback
 import tupy.Context
+import tupy.Stack
 import tupy.Builtins
 import tupy.Variable
 import tupy.functionVisitor as fv
@@ -26,6 +27,78 @@ class evalVisitor(ParseTreeVisitor):
 
     def setParser(self, parser):
         self.parser = parser
+        self.opMap = {
+            (self.parser.ADD, 1): "positive",
+            (self.parser.MINUS, 1): "negative",
+            (self.parser.NOT_OP, 1): "bitwise_flip",
+            (self.parser.OR_OP, 2): "bitwise_or",
+            (self.parser.XOR, 2): "bitwise_xor",
+            (self.parser.AND_OP, 2): "bitwise_and",
+            (self.parser.LEFT_SHIFT, 2): "left_shift",
+            (self.parser.RIGHT_SHIFT, 2): "right_shift",
+            (self.parser.ADD, 2): "add",
+            (self.parser.MINUS, 2): "subtract",
+            (self.parser.STAR, 2): "multiply",
+            (self.parser.DIV, 2): "divide",
+            (self.parser.MOD, 2): "modulo",
+            (self.parser.IDIV, 2): "integer_divide",
+            (self.parser.POWER, 2): "power",
+            (self.parser.GREATER_THAN, 2): "gt",
+            (self.parser.LESS_THAN, 2): "lt",
+            (self.parser.EQUALS, 2): "eq",
+            (self.parser.GT_EQ, 2): "gt_eq",
+            (self.parser.LT_EQ, 2): "lt_eq",
+            (self.parser.NOT_EQ, 2): "neq",
+            (self.parser.NOT, 1): "logic_not",
+            (self.parser.AND, 2): "logic_and",
+            (self.parser.OR, 2): "logic_or"
+        }
+
+    CONST_ATOM_OPERAND = 0
+    CONST_EXPR_OPERAND = 1
+    CONST_LITERAL_OPERAND = 2
+    CONST_OPERATOR = 3
+
+    def parseRPN(self, evalList):
+        # Parse a reverse polish notation expression iteratively to maximize user's max recursion depth
+        evalStack = tupy.Stack.Stack()
+        for (kind, elem) in evalList:
+            if kind == self.CONST_OPERATOR:
+                (_opType, arity) = elem
+                op = self.opMap.get(elem)
+                if arity == 1:
+                    singleVar = self.evaluateRPNOperand(evalStack.pop())
+                    evalStack.push( (self.CONST_LITERAL_OPERAND, getattr(singleVar, op)()) )
+                else:
+                    rhsStackVar = evalStack.pop()
+                    lhsVar = self.evaluateRPNOperand(evalStack.pop())
+                    # Short circuit handling
+                    if elem == (self.parser.AND, 2) and not lhsVar.get().value:
+                        evalStack.push( (self.CONST_LITERAL_OPERAND,
+                                         tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False))) )
+                    elif elem == (self.parser.OR, 2) and lhsVar.get().value:
+                        evalStack.push( (self.CONST_LITERAL_OPERAND,
+                                         tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, True))) )
+                    else:
+                        rhsVar = self.evaluateRPNOperand(rhsStackVar)
+                        evalStack.push( (self.CONST_LITERAL_OPERAND, getattr(lhsVar, op)(rhsVar)) )
+            else:
+                evalStack.push( (kind, elem) )
+
+        return self.evaluateRPNOperand(evalStack.pop())
+
+    def evaluateRPNOperand(self, operand):
+        (kind, elem) = operand
+        if kind == self.CONST_LITERAL_OPERAND:
+            return elem
+        elif kind == self.CONST_EXPR_OPERAND:
+            return self.visitExpression(elem)
+        elif kind == self.CONST_ATOM_OPERAND:
+            (atom, trailers) = elem
+            myvar = self.visitAtom(atom)
+            for t in trailers:
+                myvar.trailers.append(self.visitTrailer(t))
+            return myvar
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
@@ -493,80 +566,25 @@ class evalVisitor(ParseTreeVisitor):
 
 
     # Visit a parse tree produced by langParser#test.
-    def visitTest(self, ctx:langParser.TestContext):
-        res = self.visitOrTest(ctx.orTest())
-        return res
-
-
-    # Visit a parse tree produced by langParser#orTest.
-    def visitOrTest(self, ctx:langParser.OrTestContext):
-        res = self.visitAndTest(ctx.andTest(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                if res.get().value: 
-                    return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, True))
-                else:
-                    rhs = self.visitAndTest(c)
-                    res = res.logic_or(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#andTest.
-    def visitAndTest(self, ctx:langParser.AndTestContext):
-        res = self.visitNotTest(ctx.notTest(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                if not res.get().value: 
-                    return tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False))
-                else:
-                    rhs = self.visitNotTest(c)
-                    res = res.logic_and(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#notTest.
-    def visitNotTest(self, ctx:langParser.NotTestContext):
-        if ctx.NOT() is not None:
-            res = self.visitNotTest(ctx.notTest())
-            return res.logic_not()
+    def visitTest(self, ctx:langParser.TestContext, evalList = None):
+        if evalList is None:
+            evalList = []
+            isRoot = True
         else:
-            return self.visitComparison(ctx.comparison())
+            isRoot = False
 
+        if (ctx.expression()):
+            evalList.append( (self.CONST_EXPR_OPERAND, ctx.expression()) )
+        else:
+            # Unary/Binary operators
+            for expr in ctx.test():
+                self.visitTest(expr, evalList)
+            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.test()))) )
 
-    # Visit a parse tree produced by langParser#comparison.
-    def visitComparison(self, ctx:langParser.ComparisonContext):
-        res = self.visitExpression(ctx.expression(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, self.parser.ComparisonOperatorContext): 
-                op = c.getChild(0).getSymbol().type
-            else:
-                rhs = self.visitExpression(c)
-                if op == self.parser.GREATER_THAN:
-                    res = res.gt(rhs)
-                elif op == self.parser.LESS_THAN:
-                    res = res.lt(rhs)
-                elif op == self.parser.EQUALS:
-                    res = res.eq(rhs)
-                elif op == self.parser.GT_EQ:
-                    res = res.gt_eq(rhs)
-                elif op == self.parser.LT_EQ:
-                    res = res.lt_eq(rhs)
-                elif op == self.parser.NOT_EQ:
-                    res = res.neq(rhs)
-        return res
+        if isRoot:
+            return self.parseRPN(evalList)
+        else:
+            return evalList
 
     # UNUSED - TOKEN ACCESSED DIRECTLY
     #====================================================================
@@ -596,134 +614,26 @@ class evalVisitor(ParseTreeVisitor):
 
 
     # Visit a parse tree produced by langParser#expression.
-    def visitExpression(self, ctx:langParser.ExpressionContext):
-        res = self.visitXorExpression(ctx.xorExpression(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitXorExpression(c)
-                res = res.bitwise_or(rhs)
-        return res
+    def visitExpression(self, ctx:langParser.ExpressionContext, evalList = None):
+        if evalList is None:
+            evalList = []
+            isRoot = True
+        else:
+            isRoot = False
 
+        if (ctx.atom()):
+            # Atomic expressions
+            evalList.append( (self.CONST_ATOM_OPERAND, (ctx.atom(), ctx.trailer())) )
+        else:
+            # Unary/Binary operators
+            for expr in ctx.expression():
+                self.visitExpression(expr, evalList)
+            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.expression()))) )
 
-    # Visit a parse tree produced by langParser#xorExpression.
-    def visitXorExpression(self, ctx:langParser.XorExpressionContext):
-        res = self.visitAndExpression(ctx.andExpression(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitAndExpression(c)
-                res = res.bitwise_xor(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#andExpression.
-    def visitAndExpression(self, ctx:langParser.AndExpressionContext):
-        res = self.visitShiftExpression(ctx.shiftExpression(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitShiftExpression(c)
-                res = res.bitwise_and(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#shiftExpression.
-    def visitShiftExpression(self, ctx:langParser.ShiftExpressionContext):
-        res = self.visitArithmeticExpression(ctx.arithmeticExpression(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitArithmeticExpression(c)
-                if op == self.parser.LEFT_SHIFT:
-                    res = res.left_shift(rhs)
-                elif op == self.parser.RIGHT_SHIFT:
-                    res = res.right_shift(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#arithmeticExpression.
-    def visitArithmeticExpression(self, ctx:langParser.ArithmeticExpressionContext):
-        res = self.visitTerm(ctx.term(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitTerm(c)
-                if op == self.parser.ADD:
-                    res = res.add(rhs)
-                elif op == self.parser.MINUS:
-                    res = res.subtract(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#term.
-    def visitTerm(self, ctx:langParser.TermContext):
-        res = self.visitFactor(ctx.factor(0))
-        op = 0
-        i_children = iter(ctx.getChildren())
-        next(i_children) # all except first factor
-        for c in i_children:
-            if isinstance(c, TerminalNode): 
-                op = c.getSymbol().type
-            else:
-                rhs = self.visitFactor(c)
-                if op == self.parser.STAR:
-                    res = res.multiply(rhs)
-                elif op == self.parser.DIV:
-                    res = res.divide(rhs)
-                elif op == self.parser.MOD:
-                    res = res.modulo(rhs)
-                elif op == self.parser.IDIV:
-                    res = res.integer_divide(rhs)
-        return res
-
-
-    # Visit a parse tree produced by langParser#factor.
-    def visitFactor(self, ctx:langParser.FactorContext):
-        if ctx.ADD() is not None:
-            f = self.visitFactor(ctx.factor())
-            return f.positive()
-        elif ctx.MINUS() is not None:
-            f = self.visitFactor(ctx.factor())
-            return f.negative()
-        elif ctx.NOT_OP() is not None:
-            f = self.visitFactor(ctx.factor())
-            return f.bitwise_flip()
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by langParser#power.
-    def visitPower(self, ctx:langParser.PowerContext):
-        at = self.visitAtom(ctx.atom())
-        # tupy.Interpreter.logger.debug(at)
-        for t in ctx.trailer():
-            at.trailers.append(self.visitTrailer(t))
-
-        if ctx.POWER() is not None:
-            rhs = self.visitFactor(ctx.factor())
-            return at.power(rhs)
-        return at
-
+        if isRoot:
+            return self.parseRPN(evalList)
+        else:
+            return evalList
 
     # Visit a parse tree produced by langParser#atom.
     def visitAtom(self, ctx:langParser.AtomContext):
