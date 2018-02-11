@@ -40,7 +40,7 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
 
 class Interpreter(object):
     isDebug = False
-    outStream = StringIO()    
+    outStream = io.StringIO()    
     iterationLimit = 1000
     classContextDepth = 7777777
     instContextDepth = 7777777 #9999999
