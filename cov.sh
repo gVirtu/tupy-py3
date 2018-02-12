@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-py.test --cov=. . \
+pytest -v --pdb --cov=. . \
 	--cov-report html \
 	--cov-config .coveragerc
