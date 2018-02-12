@@ -159,12 +159,8 @@ importStatement
 /* DECLARAÇÃO */
 /// statement: simpleStatement | compoundStatement
 statement
- : (SQUIGGLY? (simpleStatement | compoundStatement))
- | traceOffset
- ;
-
-traceOffset
- : MINUS MINUS MINUS+ NEWLINE
+ : simpleStatement 
+ | compoundStatement
  ;
 
 /* DECLARAÇÃO SIMPLES */
@@ -459,7 +455,6 @@ LT_EQ : '<=';
 NOT_EQ : '!=';
 AT : '@';
 ARROW : '->';
-SQUIGGLY : '~~';
 VAL: 'val';
 REF: 'ref';
 PI: 'pi' | 'π';

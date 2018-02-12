@@ -1,5 +1,6 @@
 ---------------
 inteiro a <- inteiro_aleatorio(5)
 inteiro b <- inteiro_aleatorio(5)
-inteiro c <- a*b
----------------
+  ---------------
+
+  ~~ inteiro c <- a*b

@@ -13,6 +13,7 @@ import tupy.Variable
 import tupy.Instance
 import tupy.Builtins
 import tupy.errorHelper
+import tupy.InputPreprocessor
 import logging
 import sys
 import bisect
@@ -60,7 +61,7 @@ class Interpreter(object):
         cls.traceOut = None
         cls.traceBars = []
         cls.traceSmallStatement = False # Shorten one-liners
-        cls.singleTraceSkip = False
+        cls.traceSquiggles = set()
         cls.outfile = sys.stdout
 
     @classmethod
@@ -76,11 +77,13 @@ class Interpreter(object):
             input = input + "\n"
             print("", file=cls.outfile)
 
+        (input, visibleInput) = tupy.InputPreprocessor.preprocess(input)
+
         if (isinstance(stdin, str)):
             cls.inStream = io.StringIO(stdin)
 
         if (trace):
-            cls.traceOut = tupy.JSONPrinter.JSONPrinter(input)
+            cls.traceOut = tupy.JSONPrinter.JSONPrinter(visibleInput)
         if (cls.isDebug):
             logging.getLogger().setLevel(logging.DEBUG)
         else:
@@ -113,7 +116,7 @@ class Interpreter(object):
             treenode = getattr(parser, rule)
             tree = treenode()
             cls.visitor.setParser(parser)
-            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top(), scanTraceBars=True)
+            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
             logger.debug("Using rule " + rule)
             funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
             funcvisit(tree)
@@ -551,7 +554,7 @@ class Interpreter(object):
 
     @classmethod
     def should_print(cls, line):
-        if cls.singleTraceSkip: return False
+        if line in cls.traceSquiggles: return False
         if len(cls.traceBars) == 0: return True
         else: return cls.find_next_tracebar(line)%2 == len(cls.traceBars)%2
 

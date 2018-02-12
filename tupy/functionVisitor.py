@@ -5,8 +5,6 @@ from tupy.Type import TrailerType, Type
 from antlr4 import *
 from tupy.langParser import langParser
 
-import bisect
-
 import tupy.errorHelper
 
 import tupy.Interpreter
@@ -17,13 +15,12 @@ import tupy.evalVisitor
 
 class functionVisitor(ParseTreeVisitor):
 
-    def __init__(self, parser, functionContext, className="", constructorContext=None, scanTraceBars=False):
+    def __init__(self, parser, functionContext, className="", constructorContext=None):
         self.parser = parser
         self.functionContext = functionContext
         self.className = className
         self.evalV = tupy.Interpreter.Interpreter.visitor
         self.rootLevel = True
-        self.scanTraceBars = scanTraceBars
         if (constructorContext is not None):
             self.constructorContext = constructorContext
         else:
@@ -130,11 +127,6 @@ class functionVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
         return self.visitChildren(ctx)
-
-    # Visit a parse tree produced by langParser#traceOffset
-    def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
-        if self.scanTraceBars:
-            bisect.insort_left(tupy.Interpreter.Interpreter.traceBars, ctx.start.line)
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):

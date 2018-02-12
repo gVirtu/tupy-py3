@@ -106,7 +106,6 @@ class evalVisitor(ParseTreeVisitor):
         tupy.Interpreter.logger.debug("ALL DONE!")
         tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
         tupy.Interpreter.logger.debug("Returnin {0}".format(res))
-        tupy.Interpreter.Interpreter.singleTraceSkip = False
         tupy.Interpreter.Interpreter.trace(ctx.stop.line, res)
         return res
 
@@ -147,15 +146,10 @@ class evalVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
-        tupy.Interpreter.Interpreter.singleTraceSkip = ctx.SQUIGGLY() is not None
         if ctx.simpleStatement():
             return self.visitSimpleStatement(ctx.simpleStatement())
         elif ctx.compoundStatement():
             return self.visitCompoundStatement(ctx.compoundStatement())
-
-    # Visit a parse tree produced by langParser#traceOffset
-    def visitTraceOffset(self, ctx:langParser.TraceOffsetContext):
-        return
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):
