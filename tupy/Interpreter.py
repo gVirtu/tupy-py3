@@ -13,6 +13,7 @@ import tupy.Variable
 import tupy.Instance
 import tupy.Builtins
 import tupy.errorHelper
+import tupy.InputPreprocessor
 import logging
 import sys
 import bisect
@@ -40,7 +41,7 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
 
 class Interpreter(object):
     isDebug = False
-    outStream = StringIO()    
+    outStream = io.StringIO()    
     iterationLimit = 1000
     classContextDepth = 7777777
     instContextDepth = 7777777 #9999999
@@ -60,7 +61,7 @@ class Interpreter(object):
         cls.traceOut = None
         cls.traceBars = []
         cls.traceSmallStatement = False # Shorten one-liners
-        cls.singleTraceSkip = False
+        cls.traceSquiggles = set()
         cls.outfile = sys.stdout
 
     @classmethod
@@ -76,11 +77,13 @@ class Interpreter(object):
             input = input + "\n"
             print("", file=cls.outfile)
 
+        (input, visibleInput) = tupy.InputPreprocessor.preprocess(input)
+
         if (isinstance(stdin, str)):
             cls.inStream = io.StringIO(stdin)
 
         if (trace):
-            cls.traceOut = tupy.JSONPrinter.JSONPrinter(input)
+            cls.traceOut = tupy.JSONPrinter.JSONPrinter(visibleInput)
         if (cls.isDebug):
             logging.getLogger().setLevel(logging.DEBUG)
         else:
@@ -113,7 +116,7 @@ class Interpreter(object):
             treenode = getattr(parser, rule)
             tree = treenode()
             cls.visitor.setParser(parser)
-            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top(), scanTraceBars=True)
+            funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
             logger.debug("Using rule " + rule)
             funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
             funcvisit(tree)
@@ -348,13 +351,24 @@ class Interpreter(object):
 
     @classmethod
     def loadSymbol(cls, name):
-        return cls.callStack.top().locals.get(name)           
+        (ctx, ind) = cls.callStack.lookup(name)
+        ret = memRead(ctx.locals.get(name))
+        if ret.type == tupy.Type.Type.FUNCTION:
+            ret_aggregate = copy.deepcopy(ret)
+            for i in reversed(range(ind)):
+                if cls.callStack.items[i].locals.hasKey(name) and \
+                cls.callStack.items[i].locals.datatype[name] == tupy.Type.Type.FUNCTION:
+                    lower_fn = tupy.Interpreter.memRead(cls.callStack.items[i].locals.get(name))
+                    ret_aggregate.value.merge(lower_fn.value)
+            return ret_aggregate
+        else:
+            return ret
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
         logger.debug("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
         # logger.debug("CallStack: {0}".format(cls.callStack.items))
-        return cls.callStack.top().locals.put(name, instance, trailerList)
+        return cls.callStack.lookup(name)[0].locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className, isInvisible):
@@ -407,7 +421,7 @@ class Interpreter(object):
 
     @classmethod
     def getMemoryCell(cls, name):
-        return cls.callStack.top().locals.getCell(name)
+        return cls.callStack.lookup(name)[0].locals.get(name)
 
     # @classmethod
     # def retrieveCodeTree(cls, functionIndex):
@@ -434,13 +448,11 @@ class Interpreter(object):
         else:
             context.thisInst = structInstance
 
-        context.parent.append(cls.callStack.top())
         cls.callStack.push(context)
 
     @classmethod
     def popFrame(cls):
         prev = cls.callStack.pop()
-        prev.parent.pop()
         logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context
@@ -542,7 +554,7 @@ class Interpreter(object):
 
     @classmethod
     def should_print(cls, line):
-        if cls.singleTraceSkip: return False
+        if line in cls.traceSquiggles: return False
         if len(cls.traceBars) == 0: return True
         else: return cls.find_next_tracebar(line)%2 == len(cls.traceBars)%2
 

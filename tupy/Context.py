@@ -8,14 +8,10 @@ import copy
 
 class Context(object):
     def __init__(self, depth, returnable=False, breakable=False, 
-                 funcName=None, returnType=(None, 0), struct=None, parent=None):
+                 funcName=None, returnType=(None, 0), struct=None):
         # Depth describes how nested the current code block is.
         # Global context has a depth of 0.
         self.depth = depth
-        if parent is None:
-            self.parent = []
-        else:
-            self.parent = parent
 
         # Locals is the current context's Symbol Table. 
         self.locals = SymbolTable(self)
@@ -76,7 +72,6 @@ class Context(object):
         setattr(result, 'classLineage', copy.deepcopy(self.classLineage))
         setattr(result, 'funcName', copy.copy(self.funcName))
         setattr(result, 'structName', copy.copy(self.structName))
-        setattr(result, 'parent', self.parent)
         return result
 
     def __str__(self):
