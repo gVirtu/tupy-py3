@@ -25,6 +25,12 @@ class evalVisitor(ParseTreeVisitor):
     def __init__(self):
         self.parser = None
 
+    CONST_ATOM_OPERAND = 0
+    CONST_EXPR_OPERAND = 1
+    CONST_LITERAL_OPERAND = 2
+    CONST_OPERATOR = 3
+    CONST_DUMMY = 99999999999
+
     def setParser(self, parser):
         self.parser = parser
         self.opMap = {
@@ -54,51 +60,84 @@ class evalVisitor(ParseTreeVisitor):
             (self.parser.OR, 2): "logic_or"
         }
 
-    CONST_ATOM_OPERAND = 0
-    CONST_EXPR_OPERAND = 1
-    CONST_LITERAL_OPERAND = 2
-    CONST_OPERATOR = 3
+    def parsePN(self, evalList):
+        # Parse a prefix notation expression iteratively to maximize user's max recursion depth
+        evalStack = []
+        operatorIndices = []
+        shortCircuitType = None
+        shortCircuitIndex = -1
+        i = 0
 
-    def parseRPN(self, evalList):
-        # Parse a reverse polish notation expression iteratively to maximize user's max recursion depth
-        evalStack = tupy.Stack.Stack()
-        for (kind, elem) in evalList:
-            if kind == self.CONST_OPERATOR:
-                (_opType, arity) = elem
-                op = self.opMap.get(elem)
-                if arity == 1:
-                    singleVar = self.evaluateRPNOperand(evalStack.pop())
-                    evalStack.push( (self.CONST_LITERAL_OPERAND, getattr(singleVar, op)()) )
+        while i < len(evalList) or len(operatorIndices) > 0:
+            tupy.Interpreter.logger.debug("[PARSEPN] EVALSTACK = {0}".format(evalStack))
+            tupy.Interpreter.logger.debug("[PARSEPN] OPERATOR INDICES = {0}".format(operatorIndices))
+
+            if (i < len(evalList)):
+                (kind, elem) = evalList[i]
+                if kind == self.CONST_OPERATOR:
+                    operatorIndices.append(len(evalStack))
+                    tupy.Interpreter.logger.debug("[PARSEPN] Pushing operator {0}".format(elem))
+                    evalStack.append(elem)
+                elif shortCircuitType is None:
+                    if kind == self.CONST_LITERAL_OPERAND:
+                        evalStack.append(elem)
+                    elif kind == self.CONST_EXPR_OPERAND:
+                        evalStack.append(self.visitExpression(elem))
+                    elif kind == self.CONST_ATOM_OPERAND:
+                        (atom, trailers) = elem
+                        myvar = self.visitAtom(atom)
+                        for t in trailers:
+                            myvar.trailers.append(self.visitTrailer(t))
+                        evalStack.append(myvar)
                 else:
-                    rhsStackVar = evalStack.pop()
-                    lhsVar = self.evaluateRPNOperand(evalStack.pop())
-                    # Short circuit handling
-                    if elem == (self.parser.AND, 2) and not lhsVar.get().value:
-                        evalStack.push( (self.CONST_LITERAL_OPERAND,
-                                         tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, False))) )
-                    elif elem == (self.parser.OR, 2) and lhsVar.get().value:
-                        evalStack.push( (self.CONST_LITERAL_OPERAND,
-                                         tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, True))) )
+                    evalStack.append(self.CONST_DUMMY)
+
+                i = i + 1
+
+                if not len(operatorIndices): break
+
+            topOperatorIndex = operatorIndices[-1]
+            opElem = (opType, arity) = evalStack[topOperatorIndex]
+
+            if len(evalStack)-(topOperatorIndex)-1 >= arity:
+                op = self.opMap.get(opElem)
+                if arity == 1:
+                    singleVar = evalStack.pop()
+                    evalStack.pop() #operator
+                    tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1}".format(op, singleVar))
+                    if shortCircuitType is None:
+                        evalStack.append( getattr(singleVar, op)() )
                     else:
-                        rhsVar = self.evaluateRPNOperand(rhsStackVar)
-                        evalStack.push( (self.CONST_LITERAL_OPERAND, getattr(lhsVar, op)(rhsVar)) )
-            else:
-                evalStack.push( (kind, elem) )
+                        evalStack.append( tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, shortCircuitType)) )
+                else:
+                    rhsVar = evalStack.pop()
+                    lhsVar = evalStack.pop()
+                    evalStack.pop() #operator
+                    tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1} {2}".format(lhsVar, op, rhsVar))
+                    if shortCircuitType is None:
+                        evalStack.append( getattr(lhsVar, op)(rhsVar) )
+                    else:
+                        evalStack.append( tupy.Variable.Literal(tupy.Instance.Instance(Type.BOOL, shortCircuitType)) )
 
-        return self.evaluateRPNOperand(evalStack.pop())
+                if topOperatorIndex == shortCircuitIndex:
+                    shortCircuitType = None
+                    shortCircuitIndex = -1
 
-    def evaluateRPNOperand(self, operand):
-        (kind, elem) = operand
-        if kind == self.CONST_LITERAL_OPERAND:
-            return elem
-        elif kind == self.CONST_EXPR_OPERAND:
-            return self.visitExpression(elem)
-        elif kind == self.CONST_ATOM_OPERAND:
-            (atom, trailers) = elem
-            myvar = self.visitAtom(atom)
-            for t in trailers:
-                myvar.trailers.append(self.visitTrailer(t))
-            return myvar
+                operatorIndices.pop()
+
+            if len(operatorIndices) and shortCircuitType is None:
+                topOperatorIndex = operatorIndices[-1]
+                (opType, arity) = evalStack[topOperatorIndex]
+
+                if opType == self.parser.AND and len(evalStack)-(topOperatorIndex)-1 >= 1:
+                    if not evalStack[-1].get().value:
+                        shortCircuitType = False
+                        shortCircuitIndex = topOperatorIndex
+                elif opType == self.parser.OR and len(evalStack)-(topOperatorIndex)-1 >= 1:
+                    if evalStack[-1].get().value:
+                        shortCircuitType = True
+                        shortCircuitIndex = topOperatorIndex
+        return evalStack[-1]
 
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
@@ -591,12 +630,12 @@ class evalVisitor(ParseTreeVisitor):
             evalList.append( (self.CONST_EXPR_OPERAND, ctx.expression()) )
         else:
             # Unary/Binary operators
+            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.test()))) )
             for expr in ctx.test():
                 self.visitTest(expr, evalList)
-            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.test()))) )
 
         if isRoot:
-            return self.parseRPN(evalList)
+            return self.parsePN(evalList)
         else:
             return evalList
 
@@ -640,12 +679,12 @@ class evalVisitor(ParseTreeVisitor):
             evalList.append( (self.CONST_ATOM_OPERAND, (ctx.atom(), ctx.trailer())) )
         else:
             # Unary/Binary operators
+            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.expression()))) )
             for expr in ctx.expression():
                 self.visitExpression(expr, evalList)
-            evalList.append( (self.CONST_OPERATOR, (ctx.op.type, len(ctx.expression()))) )
 
         if isRoot:
-            return self.parseRPN(evalList)
+            return self.parsePN(evalList)
         else:
             return evalList
 
