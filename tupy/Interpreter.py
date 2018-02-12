@@ -19,6 +19,7 @@ import sys
 import bisect
 import io
 import os
+import time
 
 FORMAT = "=> %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -36,12 +37,12 @@ class FlowEvent(Enum):
 def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook): # pragma: no cover
     if len(exception.args) > 1:
         print("[{0}] {1} - Linha {2}".format(exception_type.__name__, exception.args[0], exception.args[1]))
-    else: 
+    else:
         print("[{0}] {1}".format(exception_type.__name__, exception))
 
 class Interpreter(object):
     isDebug = False
-    outStream = io.StringIO()    
+    outStream = io.StringIO()
     iterationLimit = 1000
     classContextDepth = 7777777
     instContextDepth = 7777777 #9999999
@@ -63,6 +64,8 @@ class Interpreter(object):
         cls.traceSmallStatement = False # Shorten one-liners
         cls.traceSquiggles = set()
         cls.outfile = sys.stdout
+        cls.timeoutSeconds = 15
+        cls.executionStart = time.time()
 
     @classmethod
     def interpret(cls, input, rule="r", trace=False, printTokens=False, stdin=None, quiet=False, timeout=False):
@@ -72,7 +75,8 @@ class Interpreter(object):
         if quiet:
             cls.outfile = open(os.devnull, 'w')
 
-        logger.debug("Input is {0}".format(str(input)))
+        if __debug__:
+            logger.debug("Input is {0}".format(str(input)))
         if (input[-1] != '\n'):
             input = input + "\n"
             print("", file=cls.outfile)
@@ -117,17 +121,15 @@ class Interpreter(object):
             tree = treenode()
             cls.visitor.setParser(parser)
             funcscanner = tupy.functionVisitor.functionVisitor(parser, cls.callStack.top())
-            logger.debug("Using rule " + rule)
+            if __debug__:
+                logger.debug("Using rule " + rule)
             funcvisit = getattr(funcscanner, "visit" + rule[0].upper() + rule[1:])
             funcvisit(tree)
             #logger.debug(tree.toStringTree())
             visit = getattr(cls.visitor, "visit" + rule[0].upper() + rule[1:])
             #logger.debug(visit)
-        
-            if (timeout):
-                ret_visit = cls.executeProgram(visit, tree)
-            else:
-                ret_visit = visit(tree)
+
+            ret_visit = visit(tree)
         except tupy.errorHelper.TupyError as e:
             cls.trace(e.args[1], exception=e.args[0])
             if (cls.traceOut is None):
@@ -143,11 +145,6 @@ class Interpreter(object):
             ret = cls.traceOut.dump()
             print(ret, file=cls.outfile)
             return ret
-
-    @classmethod
-    @timeout_decorator.timeout(15, timeout_exception=tupy.errorHelper.TupyTimeoutError, use_signals=False)
-    def executeProgram(cls, visitFN, AST):
-        return visitFN(AST)
 
     @classmethod
     def executeBlock(cls, function, callArgs, classContextsPushed):
@@ -170,9 +167,10 @@ class Interpreter(object):
         # We evaluate all literals once beforehand, otherwise we can end up
         # making function calls twice unnecessarily if the literal has CALL trailers.
         instArgs = [literal.get() for literal in callArgs]
-        
+
         (codeAST, _depth, argumentList, returnType, isBuiltIn, isConstructor, _overrideable) = function.get(instArgs)
-        logger.debug("codeAST = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
+        if __debug__:
+            logger.debug("codeAST = {0}; argList = {1}; return = {2}; isBuiltin = {3}; isConstructor = {4}".format(
                 codeAST, argumentList, returnType, isBuiltIn, isConstructor))
         argNames = [a.name for a in argumentList]
         argTypes = [a.type for a in argumentList]
@@ -205,8 +203,8 @@ class Interpreter(object):
                 argValues.append(a.defaultValue.get())
                 if (a.passByRef):
                     refDepth = cls.getDepth(a.defaultValue.name)
-                    argPassage.append((refDepth, 
-                                       cls.getMemoryCell(a.defaultValue.name), 
+                    argPassage.append((refDepth,
+                                       cls.getMemoryCell(a.defaultValue.name),
                                        a.defaultValue.trailers))
                 else:
                     argPassage.append((-1, None, []))
@@ -247,7 +245,7 @@ class Interpreter(object):
                     symbols = callArgs[fixedCount:]
                     if not all([isinstance(symbol, tupy.Variable.Symbol) for symbol in symbols]):
                         raise SyntaxError("Referência inválida!")
-                    extraInsts = [tupy.Instance.Instance(Type.REFERENCE, symbol) 
+                    extraInsts = [tupy.Instance.Instance(Type.REFERENCE, symbol)
                                     for symbol in symbols]
                 memExtraArgs = [memAlloc(inst) for inst in extraInsts]
                 packed = tupy.Instance.Instance(Type.TUPLE, tuple(memExtraArgs))
@@ -257,18 +255,20 @@ class Interpreter(object):
                 # from the argumentList. (variadic args won't have them so None ends up
                 # being added to argValues)
                 packed = tupy.Instance.Instance(Type.TUPLE, tuple())
-            
+
             argValues.append(packed)
 
         topLocals = cls.callStack.top().locals
         # Undo that thing we did right when we started this function
         for _ in range(classContextsPushed):
-            cls.callStack.push(stackBuffer.pop())            
-        
+            cls.callStack.push(stackBuffer.pop())
+
         finalArgs = list(zip(argNames, argTypes, argDimensions, argPassage, argIsInvisible, argClassNames, argValues))
-        logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
+        if __debug__:
+            logger.debug("GONNA EXECUTE A CODE BLOCK {0}".format(finalArgs))
         if (isBuiltIn):
-            logger.debug("Builtin name is {0}".format(codeAST))
+            if __debug__:
+                logger.debug("Builtin name is {0}".format(codeAST))
             builtInFunc = getattr(tupy.Builtins, codeAST)
             passValues = [argValues[i] if argPassage[i][0] == -1 \
                                        else tupy.Instance.Instance(Type.REFERENCE, callArgs[i]) \
@@ -281,11 +281,12 @@ class Interpreter(object):
                 cls.pushContext(classInstance.value, classInstance)
                 cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Construtor de {0}".format(function.name))
                 cls.callStack.pop()
-                logger.debug("Constructed {0}".format(classInstance))
+                if __debug__:
+                    logger.debug("Constructed {0}".format(classInstance))
                 ret = classInstance
             else:
                 ret = cls.visitor.visitBlock(codeBlock, finalArgs, returnType, funcName="Função {0}".format(function.name))
-            
+
         return ret
 
     @classmethod
@@ -313,7 +314,8 @@ class Interpreter(object):
 
     @classmethod
     def isValidClass(cls, name):
-        logger.debug(cls.callStack.top().classes)
+        if __debug__:
+            logger.debug(cls.callStack.top().classes)
         return name in cls.callStack.top().classes
 
     @classmethod
@@ -331,7 +333,8 @@ class Interpreter(object):
                     classAttribute = copy.deepcopy(objContext.locals.data[local_name])
                     objContext.locals.data[local_name] = classAttribute
             #objContext.locals.context = objContext
-            logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
+            if __debug__:
+                logger.debug("Now my locals are {0}".format(objContext.locals.print_all_locals()))
             #objContext.functions = copy.copy(classContext.functions)
             objContext.classes = copy.copy(classContext.classes)
             objContext.classLineage = copy.deepcopy(classContext.classLineage)
@@ -354,36 +357,47 @@ class Interpreter(object):
         (ctx, ind) = cls.callStack.lookup(name)
         ret = memRead(ctx.locals.get(name))
         if ret.type == tupy.Type.Type.FUNCTION:
-            ret_aggregate = copy.deepcopy(ret)
+            ret_mergeable = []
             for i in reversed(range(ind)):
                 if cls.callStack.items[i].locals.hasKey(name) and \
                 cls.callStack.items[i].locals.datatype[name] == tupy.Type.Type.FUNCTION:
-                    lower_fn = tupy.Interpreter.memRead(cls.callStack.items[i].locals.get(name))
-                    ret_aggregate.value.merge(lower_fn.value)
-            return ret_aggregate
+                    ret_mergeable.append(cls.callStack.items[i].locals.get(name))
+
+            if len(ret_mergeable): # Don't deepcopy unless really necessary
+                ret_aggregate = copy.deepcopy(ret)
+
+                for lower_fn in ret_mergeable:
+                    ret_aggregate.value.merge(tupy.Interpreter.memRead(lower_fn).value)
+                return ret_aggregate
+            else:
+                return ret
         else:
             return ret
 
     @classmethod
     def storeSymbol(cls, name, instance, trailerList):
-        logger.debug("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
+        if __debug__:
+            logger.debug("Storing "+name+" as "+str(instance)+" with trailers "+str(trailerList))
         # logger.debug("CallStack: {0}".format(cls.callStack.items))
         return cls.callStack.lookup(name)[0].locals.put(name, instance, trailerList)
 
     @classmethod
     def declareSymbol(cls, name, datatype, subscriptList, className, isInvisible):
-        logger.debug("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
+        if __debug__:
+            logger.debug("Declaring "+name+" as "+str(datatype)+" with subscripts "+str(subscriptList))
         return cls.callStack.top().locals.declare(name, datatype, subscriptList, className, isInvisible)
 
     @classmethod
     def referenceSymbol(cls, name, memoryCell, trailerList = None):
         if (trailerList is None): trailerList = []
         if not trailerList:
-            logger.debug("Setting "+name+" to reference "+str(memoryCell))
+            if __debug__:
+                logger.debug("Setting "+name+" to reference "+str(memoryCell))
             cls.callStack.top().locals.ref(name, memoryCell)
             return True
         else:
-            logger.debug("Setting {0}{1} to reference {2}".format(name, trailerList, str(memoryCell)))
+            if __debug__:
+                logger.debug("Setting {0}{1} to reference {2}".format(name, trailerList, str(memoryCell)))
             inst = cls.loadSymbol(name)
             (ret, parent_triple) = tupy.Variable.Variable.retrieveWithTrailers(inst, trailerList)
             (parent, trailer, depth) = parent_triple
@@ -423,14 +437,10 @@ class Interpreter(object):
     def getMemoryCell(cls, name):
         return cls.callStack.lookup(name)[0].locals.get(name)
 
-    # @classmethod
-    # def retrieveCodeTree(cls, functionIndex):
-    #     logger.debug("RETRIEVIN CODE TREE {0} FROM CONTEXT {1}".format(functionIndex, cls.callStack.top().functions))
-    #     return cls.callStack.top().functions[functionIndex]
-
     @classmethod
     def pushFrame(cls, returnable=False, breakable=False, returnType=None, funcName=None):
-        logger.debug("Pushing clean frame, top is:\n{0}".format(str(cls.callStack.top())))
+        if __debug__:
+            logger.debug("Pushing clean frame, top is:\n{0}".format(str(cls.callStack.top())))
         newContext = tupy.Context.Context(cls.callStack.size(), returnable, breakable, funcName, returnType)
         # newContext.locals.context = newContext
         cls.pushContext(newContext)
@@ -453,7 +463,8 @@ class Interpreter(object):
     @classmethod
     def popFrame(cls):
         prev = cls.callStack.pop()
-        logger.debug("Dropped context:\n{0}".format(str(prev)))
+        if __debug__:
+            logger.debug("Dropped context:\n{0}".format(str(prev)))
 
         # Only merge if dropped context is not a class context
         # if (prev.structName is None):
@@ -536,7 +547,8 @@ class Interpreter(object):
 
     @classmethod
     def output(cls, string):
-        logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
+        if __debug__:
+            logger.debug("STDOUT>>>>>>>>>>>>>>>>>>>>>>>>>>>{0}".format(string))
         if cls.traceOut is None:
             print(string, file=cls.outfile)
         cls.outStream.write(string)
@@ -624,4 +636,3 @@ class TupyErrorStrategy(error.ErrorStrategy.DefaultErrorStrategy):
     # Make sure we don't attempt to recover from problems in subrules.#
     def sync(self, recognizer:Parser):
         pass
-        

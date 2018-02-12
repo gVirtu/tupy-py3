@@ -202,6 +202,9 @@ class TestEvalVisitor(unittest.TestCase):
         ret = self.evalExpression("6*2-4\n")
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 8)
+        ret = self.evalExpression("2 + 2*5 + 5*5\n")
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 37)
 
     def test_typed_arithmetic(self):
         ret = self.evalExpression("verdadeiro + falso\n")

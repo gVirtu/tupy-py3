@@ -1,7 +1,7 @@
 import antlr4
 import re
 import signal
- 
+
 class TupyError(Exception):
     pass
 
@@ -30,8 +30,7 @@ class TupyRuntimeError(TupyError):
     pass
 
 class TupyTimeoutError(TupyError):
-    def __init__(self,*args,**kwargs):
-        TupyError.__init__(self,*("ERRO: Tempo limite de execução atingido!", 0),**kwargs)
+    pass
 
 def indexError(message, ctx:antlr4.ParserRuleContext):
     raise TupyIndexError("ERRO: {0}".format(translate(message)), ctx.start.line)
@@ -57,9 +56,12 @@ def runtimeError(message, ctx:antlr4.ParserRuleContext):
 def assertionError(message, ctx:antlr4.ParserRuleContext):
     raise TupyAssertionError("ERRO: {0}".format(translate(message)), ctx.start.line)
 
+def timeoutError(message, ctx:antlr4.ParserRuleContext):
+    raise TupyTimeoutError("ERRO: {0}".format(translate(message)), ctx.start.line)
+
 def translate(msg):
     msg = str(msg)
-    dicionario = {"mismatched input": "entrada incompatível", 
+    dicionario = {"mismatched input": "entrada incompatível",
                     "expecting": "era esperado",
                     "no viable alternative at input": "não foi possível interpretar as instruções",
                     "unknown recognition error type": "erro desconhecido de reconhecimento",
@@ -77,7 +79,7 @@ def translate(msg):
                     "Type.BOOL": "LÓGICO",
                     "Type.STRUCT": "ESTRUTURA",
                     "Type.NULL": "NULO"
-                    } 
+                    }
 
     rep = dict((re.escape(k), v) for k, v in dicionario.items())
     pattern = re.compile("|".join(rep.keys()))

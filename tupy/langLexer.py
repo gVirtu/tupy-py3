@@ -767,7 +767,7 @@ class langLexer(Lexer):
                 indent = self.getIndentationCount(spaces)
                 previous = self.indents[-1] if self.indents else 0
                 # NEWLINE is actually the '\n' char
-                self.emitToken(self.commonToken(self.NEWLINE, newLine, indent=indent))      
+                self.emitToken(self.commonToken(self.NEWLINE, newLine, indent=indent))
                 if indent == previous:
                     self.skip()
                 elif indent > previous:

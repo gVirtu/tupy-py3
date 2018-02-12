@@ -16,7 +16,8 @@ class JSONPrinter(object):
         return json.dumps(self.data, indent=None)
 
     def trace(self, line, returnData=None, exception=None):
-        tupy.Interpreter.logger.debug("----------------TRACE----------------")
+        if __debug__:
+            tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
         heap = {}
         if not exception and tupy.Interpreter.Interpreter.callStack.top().funcName.startswith("Instância de"):
@@ -25,7 +26,7 @@ class JSONPrinter(object):
         if (returnData is not None):
             returnData = tupy.Interpreter.memAlloc(returnData)
 
-        element["globals"] = self.scan_context_locals(tupy.Interpreter.Interpreter.callStack.items[0], self.globalVars, 
+        element["globals"] = self.scan_context_locals(tupy.Interpreter.Interpreter.callStack.items[0], self.globalVars,
                                  self.globalVarList, heap)
         element["ordered_globals"] = copy.copy(self.globalVarList)
 
@@ -48,7 +49,7 @@ class JSONPrinter(object):
 
             element["globals"]["__return__"] = rd
             element["ordered_globals"].append("__return__")
-        
+
         element["stack_to_render"] = stack
 
         tupy.Interpreter.Interpreter.outStream.seek(0)
@@ -75,7 +76,7 @@ class JSONPrinter(object):
             element["event"] = "exception"
             element["exception_msg"] = exception
         else:
-            element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(), 
+            element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(),
                                                     returnData is not None)
 
         # All done!
@@ -93,7 +94,7 @@ class JSONPrinter(object):
             if context.locals.data[name].invisible:
                 continue
 
-            heap_ind = self.add_to_heap(heap, context.locals.data[name], 
+            heap_ind = self.add_to_heap(heap, context.locals.data[name],
                                         "{0}-{1}".format(context.depth, name))
 
             if name not in locals_set:
@@ -127,28 +128,31 @@ class JSONPrinter(object):
                 heap[k] = ["HEAP_PRIMITIVE", "primitivo", v]
 
     # Recursively extracts data from an instance and outputs the trace-ready
-    # parsed data that goes into the heap. 
+    # parsed data that goes into the heap.
     def parse_cell(self, cell, heap, identifier):
-        tupy.Interpreter.logger.debug("PARSE_CELL {0}".format(cell))
+        if __debug__:
+            tupy.Interpreter.logger.debug("PARSE_CELL {0}".format(cell))
         inst = cell.data
         if (inst.type == tupy.Type.Type.STRUCT):
             header = "C_STRUCT"
             address = str(id(cell))
             data = [header, address, inst.class_name]
             instLocals = inst.value.locals
-            tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
+            if __debug__:
+                tupy.Interpreter.logger.debug("Here's a {0}: {1}".format(inst.class_name, inst.value))
             usedNames = set()
             for name in sorted(instLocals.data.keys()):
-                tupy.Interpreter.logger.debug("[TraceStruct] Found {0}".format(name))
+                if __debug__:
+                    tupy.Interpreter.logger.debug("[TraceStruct] Found {0}".format(name))
                 if name not in usedNames:
-                    if instLocals.datatype[name] != tupy.Type.Type.FUNCTION: 
+                    if instLocals.datatype[name] != tupy.Type.Type.FUNCTION:
                         usedNames.add(name)
                         subMemoryCell = instLocals.data[name]
                         if not subMemoryCell.invisible:
                             attribute = []
                             attribute.append(name)
                             subIdentifier = "{0}-{1}".format(identifier, name)
-                            self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)  
+                            self.handle_submemory_cell(subMemoryCell, attribute, heap, subIdentifier)
                             data.append(attribute)
 
         elif (inst.is_pure_array()):
@@ -178,7 +182,7 @@ class JSONPrinter(object):
             else:
                 value = inst.value
             data = [header, address, type_str, value]
-        
+
         return data
 
     # Makes sure nested lists are stored separatedly
@@ -207,7 +211,7 @@ class JSONPrinter(object):
         stack_element["is_highlighted"] = is_highlighted
         stack_element["is_parent"] = False
         stack_element["parent_frame_id_list"] = []
-        stack_element["encoded_locals"] = self.scan_context_locals(context, self.contextVars[unique_id], 
+        stack_element["encoded_locals"] = self.scan_context_locals(context, self.contextVars[unique_id],
                                  self.contextVarList[unique_id], heap)
         stack_element["ordered_varnames"] = copy.copy(self.contextVarList[unique_id])
         if is_highlighted and returnData:
@@ -220,14 +224,14 @@ class JSONPrinter(object):
         stack_element["is_zombie"] = False
         stack_element["frame_id"] = frame_id
         stack_element["func_name"] = context.funcName
-        stack_element["unique_hash"] = "{0}_{1}".format(stack_element["func_name"], 
+        stack_element["unique_hash"] = "{0}_{1}".format(stack_element["func_name"],
                                                         stack_element["frame_id"])
 
         return stack_element
 
 
     def map_event_to_string(self, contextCount, is_return):
-        if contextCount > self.lastContextCount: 
+        if contextCount > self.lastContextCount:
             self.lastContextCount = contextCount
             return "call"
         elif is_return:

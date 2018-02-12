@@ -48,7 +48,7 @@ def initialize():
     function("lógico", Type.BOOL, [Type.CHAR])
     function("lógico", Type.BOOL, [Type.INT])
     function("lógico", Type.BOOL, [Type.STRING])
-    function("log", Type.FLOAT, [Type.FLOAT, Type.FLOAT], 
+    function("log", Type.FLOAT, [Type.FLOAT, Type.FLOAT],
              defaults=[None, tupy.Variable.Literal(tupy.Instance.Instance(Type.FLOAT, 10.0))])
     function("ln", Type.FLOAT, [Type.FLOAT])
     function("raiz", Type.FLOAT, [Type.FLOAT])
@@ -155,7 +155,7 @@ def initialize():
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, "")),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("matriz", Type.STRING, [t, Type.INT, Type.INT, Type.INT, Type.STRING, Type.STRING], arrayDimensions=[2,2,0,0,0,0],
-                defaults=[None, None, None, None, 
+                defaults=[None, None, None, None,
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, "")),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("vetor", Type.STRING, [t, Type.INT, Type.STRING, Type.STRING], arrayDimensions=[1,1,0,0],
@@ -163,7 +163,7 @@ def initialize():
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, "")),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("vetor", Type.STRING, [t, Type.INT, Type.INT, Type.STRING, Type.STRING], arrayDimensions=[1,1,0,0,0],
-                defaults=[None, None, None, 
+                defaults=[None, None, None,
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, "")),
                         tupy.Variable.Literal(tupy.Instance.Instance(Type.STRING, ""))])
         function("pilha", Type.STRING, [t, Type.INT, Type.STRING, Type.STRING], arrayDimensions=[1,1,0,0],
@@ -231,7 +231,7 @@ def graph_nodes_and_highlights(node_count, highlights):
     node_list = ["{0}; ".format(i) for i in range(node_count)]
 
     # Parse highlights
-    parsed_highlights = ["{0} {1}".format(cell_value(elem), 
+    parsed_highlights = ["{0} {1}".format(cell_value(elem),
                                             _graph_highlight) for elem in highlights]
 
     return "".join(node_list + parsed_highlights)
@@ -260,7 +260,7 @@ def digraph_adj_in_bounds(node, node_count):
     else: raise IndexError()
 
 def dot_table_font_size(text):
-    return {1: 27, 2: 23, 3: 20, 4: 15, 5: 12, 6: 10, 7: 9, 
+    return {1: 27, 2: 23, 3: 20, 4: 15, 5: 12, 6: 10, 7: 9,
             8: 8, 9: 7, 10: 6, 11: 6, 12: 5, 13: 5}.get(len(str(text)), 4)
 
 # BUILT-IN FUNCTIONS
@@ -281,9 +281,9 @@ def escrever(argsTuple):
 def printInstance(arg):
     inst = arg
     typ = inst.type
-    if typ == Type.ARRAY: 
+    if typ == Type.ARRAY:
         out = [printInstance(tupy.Interpreter.memRead(child)) for child in inst.value]
-    elif typ == Type.TUPLE: 
+    elif typ == Type.TUPLE:
         out = tuple([printInstance(tupy.Interpreter.memRead(child)) for child in inst.value])
     elif typ == Type.CHAR:
         out = chr(inst.value)
@@ -340,7 +340,7 @@ def ler(argsTuple):
             tupy.Interpreter.Interpreter.storeSymbol(symbol.name, new_inst, symbol.trailers)
             successCount = successCount + 1
     except IndexError:
-        pass    
+        pass
     return tupy.Instance.Instance(Type.INT, successCount)
 
 def ler_linha(instSimbolo):
@@ -361,7 +361,7 @@ def copiar(argsTuple):
     instance = tupy.Interpreter.memRead(argsTuple.value[0])
     if instance.type != Type.STRUCT:
         raise TypeError("A função copiar não deve receber um tipo primitivo!")
-    
+
     memo = {"structCopy": True}
     new_instance = copy.deepcopy(instance, memo)
     return new_instance
@@ -564,7 +564,7 @@ def inserir(argsTuple):
         inst = tupy.Interpreter.memRead(argsTuple[0])
         if (inst.is_pure_array()):
             val = inst.value
-            elem_inst = tupy.Interpreter.memRead(argsTuple[1])
+            elem_inst = copy.deepcopy(tupy.Interpreter.memRead(argsTuple[1]))
 
             # Root type == Literal Array when is empty, so most things are okay
             if (elem_inst.array_dimensions != inst.array_dimensions - 1 and inst.roottype != Type.ARRAY):
@@ -575,10 +575,10 @@ def inserir(argsTuple):
                     raise TypeError("A função inserir espera receber como segundo argumento um elemento de {0} dimens{1}!"
                                   .format(dimensions, "ão" if dimensions == 1 else "ões"))
 
-            if (elem_inst.roottype != inst.roottype and inst.roottype != Type.ARRAY): 
+            if (elem_inst.roottype != inst.roottype and inst.roottype != Type.ARRAY):
                 raise TypeError("A função inserir espera receber como segundo argumento um elemento de mesmo tipo que os contidos na lista!")
 
-            if (elem_inst.type == Type.STRUCT and 
+            if (elem_inst.type == Type.STRUCT and
                 not tupy.Interpreter.Interpreter.areClassNamesCompatible(inst.class_name, elem_inst.class_name)):
                 raise TypeError("A classe {1} não pode ser inserida em uma lista de {0}!".format(inst.class_name, elem_inst.class_name))
 
@@ -676,7 +676,7 @@ def heap(vector, highlights, edgeHighlights, extraHeader, extraFooter):
         parsed_connections = "".join(parsed_connections)
         parsed_highlights = "".join(["{0} {1}".format(cell_value(elem) % len(vector), _graph_highlight) for elem in highlights \
                                                                                           if elem.data.value < len(vector)])
-        
+
         ret = "".join([header, _graph_opts, extraHeader, " ", parsed_connections, parsed_highlights,
                        extraFooter, " ", trailer])
         return tupy.Instance.Instance(Type.STRING, ret)
@@ -711,7 +711,7 @@ def grafo_MA(matrix, highlights, edgeHighlights, extraHeader, extraFooter, weigh
                                                              if val and matrix_access(matrix, j, i)]
             parsed_connections = "".join(parsed_connections)
 
-            ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_lines, highlights), 
+            ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_lines, highlights),
                             parsed_connections, extraFooter, " ", trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
@@ -742,16 +742,16 @@ def digrafo_MA(matrix, highlights, edgeHighlights, extraHeader, extraFooter, wei
 
     n_lines = len(matrix)
     if all(len(cell_value(line)) == n_lines for line in matrix):
-        if all(cell_value(elem) < n_lines for elem in highlights):            
+        if all(cell_value(elem) < n_lines for elem in highlights):
             # Parse connections
-            parsed_connections = ["{0} -> {1}{2}; ".format(i, j, make_graph_edge_params(i, j, edgeHighlightSet, val, weighted)) 
+            parsed_connections = ["{0} -> {1}{2}; ".format(i, j, make_graph_edge_params(i, j, edgeHighlightSet, val, weighted))
                                                              for i in range(n_lines) \
                                                              for j in range(n_lines) \
                                                              for val in [matrix_access(matrix, i, j)] \
                                                              if val]
             parsed_connections = "".join(parsed_connections)
 
-            ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_lines, highlights), 
+            ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_lines, highlights),
                             parsed_connections, extraFooter, " ", trailer])
             return tupy.Instance.Instance(Type.STRING, ret)
         else:
@@ -783,8 +783,8 @@ def grafo_LA(adjList, highlights, edgeHighlights, extraHeader, extraFooter, weig
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
-            try:           
-                existing_connections = set()    
+            try:
+                existing_connections = set()
                 # Parse connections
                 if weighted:
                     parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections, edgeHighlightSet, weight) \
@@ -795,7 +795,7 @@ def grafo_LA(adjList, highlights, edgeHighlights, extraHeader, extraFooter, weig
                                                                 for weight  in [cell_value(pairJ[1])] \
                                                                 if (i, valJ) not in existing_connections \
                                                                 and i in [cell_value(cell_value(cell)[0]) \
-                                                                        for cell in cell_value(adjList[valJ])] 
+                                                                        for cell in cell_value(adjList[valJ])]
                                                                 ]
                 else:
                     parsed_connections = [ make_graph_LA_edge(i, valJ, existing_connections, edgeHighlightSet) \
@@ -804,11 +804,11 @@ def grafo_LA(adjList, highlights, edgeHighlights, extraHeader, extraFooter, weig
                                                                 for valJ in [cell_value(elemJ)] \
                                                                 if (i, valJ) not in existing_connections \
                                                                 and i in [cell_value(cell) \
-                                                                        for cell in cell_value(adjList[valJ])] 
+                                                                        for cell in cell_value(adjList[valJ])]
                                                                 ]
                 parsed_connections = "".join(parsed_connections)
 
-                ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_nodes, highlights), 
+                ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_nodes, highlights),
                                 parsed_connections, extraFooter, " ", trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
@@ -839,7 +839,7 @@ def digrafo_LA(adjList, highlights, edgeHighlights, extraHeader, extraFooter, we
 
     n_nodes = len(adjList)
     if all(cell_value(elem) < n_nodes for elem in highlights):
-            try:               
+            try:
                 # Parse connections
                 if weighted:
                     parsed_connections = ["{0} -> {1}{2}; ".format(i, valJ, make_graph_edge_params(i, valJ, edgeHighlightSet, weight, True)) \
@@ -859,7 +859,7 @@ def digrafo_LA(adjList, highlights, edgeHighlights, extraHeader, extraFooter, we
                                                                 ]
                 parsed_connections = "".join(parsed_connections)
 
-                ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_nodes, highlights), 
+                ret = "".join([header, _graph_opts, extraHeader, " ", graph_nodes_and_highlights(n_nodes, highlights),
                                 parsed_connections, extraFooter, " ", trailer])
                 return tupy.Instance.Instance(Type.STRING, ret)
             except IndexError as ex:
@@ -898,7 +898,7 @@ def árvore(argsTuple):
             raise TypeError("O segundo parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém a chave do nó!")
         if (treeEdgesNameInst.type != Type.STRING):
             raise TypeError("O terceiro parâmetro para a função árvore deve ser uma cadeia com o nome do atributo que contém uma lista de filhos!")
-        if (not highlightsInst.is_pure_array() or 
+        if (not highlightsInst.is_pure_array() or
             (highlightsInst.array_length() > 0 and
              treeInst.type != Type.NULL and
              highlightsInst.heldtype != Type.NULL and
@@ -927,7 +927,7 @@ def árvore(argsTuple):
         treeDefinition = "".join(recurse_tree(treeInst, None, 0, treeKeyName, treeEdgesName, highlights, set(), levelMap))
         levelDefinitions = []
         for nodeLevel, nodeList in levelMap.items():
-            level = "".join("{0}; ".format(node) for node in nodeList)  
+            level = "".join("{0}; ".format(node) for node in nodeList)
             level = ["{rank = same; ", level, "}; "]
             level = "".join(level)
             levelDefinitions.append(level)
@@ -942,7 +942,7 @@ def árvore(argsTuple):
 def arvore(argsTuple):
     return árvore(argsTuple)
 
-def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName, 
+def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
                     highlights:set, nameMapping:set, levelMap:dict):
     identifier = len(nameMapping)
     if (id(treeInst) in nameMapping):
@@ -972,7 +972,7 @@ def recurse_tree(treeInst, parentIdentifier, level, keyName, edgesName,
 
         if (id(treeInst.value) in highlights):
             result.append("{0} {1}".format(identifier, _graph_highlight))
-        
+
         keyInst = tupy.Interpreter.memRead(treeInst.value.locals.get(keyName))
         result.append("{0} [label = \"{1}\"]; ".format(identifier, stringProcess(printInstance(keyInst))))
         resultString = "".join(result)
@@ -1151,7 +1151,7 @@ def lista_encadeada(argsTuple):
             raise TypeError("O terceiro parâmetro para a função lista_encadeada deve ser uma cadeia com o nome do atributo que aponta para o próximo nó!")
         if (listIsDoubleLinkInst.type != Type.BOOL):
             raise TypeError("O quarto parâmetro para a função lista_encadeada (opcional) deve ser do tipo lógico e indicar se a lista é duplamente encadeada!")
-        if (not highlightsInst.is_pure_array() or 
+        if (not highlightsInst.is_pure_array() or
             (highlightsInst.array_length() > 0 and
              listInst.type != Type.NULL and
              highlightsInst.heldtype != Type.NULL and
@@ -1215,28 +1215,28 @@ def recurse_list(listInst, parentIdentifier, keyName, nextName, highlights:set, 
             doubleLinkAddon = ("<TD BORDER=\"0\" PORT=\"l\"><TABLE CELLPADDING=\"0\" CELLSPACING=\"0\" BORDER=\"0\" >"
                                "<TR><TD PORT=\"lu\"> </TD></TR><TR><TD PORT=\"ld\"> </TD></TR></TABLE></TD>") if isDoubleLink else ""
             doubleLinkSide = "L" if isDoubleLink else ""
-            result = [_linkedlist_element.format(identifier, html.escape(keyName), 
+            result = [_linkedlist_element.format(identifier, html.escape(keyName),
                                                      html.escape(stringProcess(printInstance(keyInst))),
                                                      "yellow" if (id(listInst.value) in highlights) \
                                                                        else "white",
                                                      doubleLinkAddon, doubleLinkSide)]
-            result.append(recurse_list(neighbor, identifier, keyName, nextName, highlights, 
+            result.append(recurse_list(neighbor, identifier, keyName, nextName, highlights,
                                        nameMapping, isDoubleLink))
             if (parentIdentifier is not None):
-                result.append(edge.format(parentIdentifier, identifier, 
+                result.append(edge.format(parentIdentifier, identifier,
                                           "ru" if isDoubleLink else "r",
                                           "lu" if isDoubleLink else keyName))
                 if (isDoubleLink):
                     result.append(edge.format(identifier, parentIdentifier, "ld", "rd"))
         else:
             result = ["null [style=invis]; "]
-            result.append(edge.format(parentIdentifier, identifier, 
+            result.append(edge.format(parentIdentifier, identifier,
                                           "ru:e" if isDoubleLink else "r:s",
                                           "lu:n" if isDoubleLink else "{0}:s".format(keyName)))
             if (isDoubleLink):
                 result.append(edge.format(identifier, parentIdentifier,
                                           "ld:w", "rd:s"))
-            
+
         resultString = "".join(result)
 
         return resultString

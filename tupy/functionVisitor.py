@@ -41,7 +41,7 @@ class functionVisitor(ParseTreeVisitor):
             return_type = Type.NULL
             try:
                 return_type = self.mapLexType(ctx.dataType().getChild(0).getSymbol().type)
-            except Exception: 
+            except Exception:
                 # Is a function with no return
                 pass
 
@@ -80,7 +80,7 @@ class functionVisitor(ParseTreeVisitor):
         op = self.parser.COMMA
         variadic_param_passage = False
         for c in iter(ctx.getChildren()):
-            if isinstance(c, TerminalNode): 
+            if isinstance(c, TerminalNode):
                 op = c.getSymbol().type
                 # Variadic param
                 if op == self.parser.NAME:
@@ -104,7 +104,7 @@ class functionVisitor(ParseTreeVisitor):
         className = ctx.dataType().getChild(0).getText() if datatype == Type.STRUCT else None
         invisible = ctx.INVISIBLE() is not None
         array_dimensions = self.getArrayLength(ctx.OPEN_BRACK())
-        if ctx.paramPassage() is not None: 
+        if ctx.paramPassage() is not None:
             passByRef = self.visitParamPassage(ctx.paramPassage())
         else:
             passByRef = False
@@ -126,12 +126,15 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#statement.
     def visitStatement(self, ctx:langParser.StatementContext):
-        return self.visitChildren(ctx)
+        if ctx.simpleStatement():
+            return #nada
+        elif ctx.compoundStatement():
+            return self.visitCompoundStatement(ctx.compoundStatement())
 
     # Visit a parse tree produced by langParser#simpleStatement.
     def visitSimpleStatement(self, ctx:langParser.SimpleStatementContext):
         return #self.visitChildren(ctx)
-    # Unneeded, we just parse blocks to find trace bars.
+    # leave block parsing to the EvalVisitor
 
     # UNUSED (handled by evalVisitor)
     #====================================================================
@@ -159,13 +162,13 @@ class functionVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#expressionList.
     def visitExpressionList(self, ctx:langParser.ExpressionListContext):
         return #self.visitChildren(ctx)
-    # Unneeded, we just parse blocks to find trace bars.
+    # leave block parsing to the EvalVisitor
 
 
     # Visit a parse tree produced by langParser#testOrExpression.
     def visitTestOrExpression(self, ctx:langParser.TestOrExpressionContext):
         return #self.visitChildren(ctx)
-    # Unneeded, we just parse blocks to find trace bars.
+    # leave block parsing to the EvalVisitor
 
 
     # NOT IMPLEMENTED
@@ -215,7 +218,8 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#compoundStatement.
     def visitCompoundStatement(self, ctx:langParser.CompoundStatementContext):
-        return self.visitChildren(ctx)
+        if ctx.functionDefinition():
+            return self.visitFunctionDefinition(ctx.functionDefinition())
 
 
     # Visit a parse tree produced by langParser#ifStatement.
@@ -240,17 +244,14 @@ class functionVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by langParser#block.
     def visitBlock(self, ctx:langParser.BlockContext):
-        orig_level = self.rootLevel
-        self.rootLevel = False
-        ret = self.visitChildren(ctx)
-        self.rootLevel = orig_level
-        return ret
+        return #self.visitChildren(ctx)
+    # leave block parsing to the EvalVisitor
 
 
     # Visit a parse tree produced by langParser#test.
     def visitTest(self, ctx:langParser.TestContext):
         return #self.visitChildren(ctx)
-    # Unneeded, we just parse blocks to find trace bars.
+    # leave block parsing to the EvalVisitor
 
 
     # UNUSED (handled by evalVisitor)

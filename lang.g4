@@ -133,11 +133,11 @@ parameters
 ///                ['*' [typedFunctionParam] (',' typedFunctionParam ['=' test])* [',' '**' typedFunctionParam] | '**' typedFunctionParam]]
 ///              |  '*' [typedFunctionParam] (',' typedFunctionParam ['=' test])* [',' '**' typedFunctionParam] | '**' typedFunctionParam)
 typedArgsList
- : 
+ :
   (paramPassage)? NAME VARIADIC |
   typedFunctionParam ( COMMA typedFunctionParam )* COMMA (paramPassage)? NAME VARIADIC |
  	typedFunctionParam ( COMMA typedFunctionParam )* ( COMMA typedFunctionParam ASSIGN expression)* |
- 	typedFunctionParam ASSIGN expression ( COMMA typedFunctionParam ASSIGN expression)* 			
+ 	typedFunctionParam ASSIGN expression ( COMMA typedFunctionParam ASSIGN expression)*
  ;
 
 /// typedFunctionParam: NAME [':' test]
@@ -159,7 +159,7 @@ importStatement
 /* DECLARAÇÃO */
 /// statement: simpleStatement | compoundStatement
 statement
- : simpleStatement 
+ : simpleStatement
  | compoundStatement
  ;
 
@@ -175,9 +175,9 @@ simpleStatement
 smallStatement
  : testOrExpressionStatement
  | declarationStatement
- | breakStatement 
- | continueStatement 
- | returnStatement  
+ | breakStatement
+ | continueStatement
+ | returnStatement
  | enumSpecifier
  ;
 
@@ -199,15 +199,15 @@ dataType
 /// expressionStatement: expressionList (augassign (yield_expr|testList) |
 ///                      ('=' (yield_expr|expressionList))*)
 testOrExpressionStatement
- : testOrExpressionList ( ASSIGN REF? testOrExpressionList )*                      
- ;           
+ : testOrExpressionList ( ASSIGN REF? testOrExpressionList )*
+ ;
 
 /* LISTA DE EXPRESSÕES */
 /// expressionList: (test|star_expr) (',' (test|star_expr))* [',']
 expressionList
  : expression ( COMMA expression )*
  ;
- 
+
  testOrExpression
  :  test |
  	expression
@@ -249,11 +249,11 @@ nameList
 
 /// compoundStatement: ifStatement | whileStatement | forStatement | try_stmt | with_stmt | functionDefinition | classDefinition | decorated
 compoundStatement
- : ifStatement 
- | whileStatement 
- | forStatement 
- | functionDefinition 
- | classDefinition 
+ : ifStatement
+ | whileStatement
+ | forStatement
+ | functionDefinition
+ | classDefinition
  ;
 
 /// ifStatement: 'if' test ':' block ('elif' test ':' block)* ['else' ':' block]
@@ -277,20 +277,20 @@ forStatement
 
 /// block: simpleStatement | NEWLINE INDENT statement+ DEDENT
 block
- : simpleStatement 
+ : simpleStatement
  | NEWLINE INDENT statement+ DEDENT
  ;
 
 /* TESTE: E, OU, NÃO, COMPARAÇÕES DE EXPRESSÕES*/
 /// orTest: andTest ('or' andTest)*
 test
- : expression 
+ : expression
  | test op=(GREATER_THAN | LESS_THAN | EQUALS | GT_EQ | LT_EQ | NOT_EQ) test
  | op=NOT test
  | test op=AND test
  | test op=OR test
  ;
- 
+
 /// range
 loopRange
  : expression rangeDelimiter expression INCLUSIVE?
@@ -299,7 +299,7 @@ loopRange
 rangeDelimiter
  : UNTIL | RANGE_OP
  ;
- 
+
 rangeList
  : loopRange ( COMMA loopRange )*
  ;
@@ -307,7 +307,7 @@ rangeList
 expression
  : atom trailer*
  | <assoc=right> expression op=POWER expression
- | op=(ADD | MINUS) expression 
+ | op=(ADD | MINUS) expression
  | op=NOT_OP expression
  | expression op=(STAR | DIV | MOD | IDIV) expression
  | expression op=(ADD | MINUS) expression
@@ -325,12 +325,12 @@ expression
 /// P.S.: 'dataType' is included instead of NAME so that the casting functions get
 ///       matched as well
 atom
- : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN 
+ : OPEN_PAREN (testOrExpressionList)? CLOSE_PAREN
  | OPEN_BRACK (testOrExpressionList)? CLOSE_BRACK
  | CARDINALITY_OP testOrExpression CARDINALITY_OP
- | dataType 
- | number 
- | string+ 
+ | dataType
+ | number
+ | string+
  | character
  | NULL
  | PI
@@ -341,9 +341,9 @@ atom
 
 /// trailer: '(' [argList] ')' | '[' subscriptlist ']' | '.' NAME
 trailer
- : OPEN_PAREN argList? CLOSE_PAREN	
- | OPEN_BRACK subscriptList CLOSE_BRACK	
- | DOT NAME									
+ : OPEN_PAREN argList? CLOSE_PAREN
+ | OPEN_BRACK subscriptList CLOSE_BRACK
+ | DOT NAME
  ;
 
 /// subscriptlist: subscript (',' subscript)* [',']
@@ -353,14 +353,14 @@ subscriptList
 
 /// subscript: test | [test] ':' [test] [sliceop]
 subscript
- : expression 
+ : expression
  | expression rangeDelimiter expression
  | STAR
  ;
 
 /// testList: test (',' test)* [',']
 testOrExpressionList
- : testOrExpression ( COMMA testOrExpression )* 
+ : testOrExpression ( COMMA testOrExpression )*
  ;
 
 /// classDefinition: 'class' NAME ['(' [argList] ')'] ':' block
@@ -493,7 +493,7 @@ else:
     indent = self.getIndentationCount(spaces)
     previous = self.indents[-1] if self.indents else 0
     # NEWLINE is actually the '\n' char
-    self.emitToken(self.commonToken(self.NEWLINE, newLine, indent=indent))      
+    self.emitToken(self.commonToken(self.NEWLINE, newLine, indent=indent))
     if indent == previous:
         self.skip()
     elif indent > previous:
@@ -560,15 +560,15 @@ UNKNOWN_CHAR
  : .
  ;
 
-/* 
- * fragments 
+/*
+ * fragments
  */
 
 /// shortstring     ::=  "'" shortstringitem* "'" | '"' shortstringitem* '"'
 /// shortstringitem ::=  shortstringchar | stringescapeseq
 /// shortstringchar ::=  <any source character except "\" or newline or the quote>
 fragment SHORT_STRING
- : '"' ( STRING_ESCAPE_SEQ | ~[\\\r\n"] )* '"'   
+ : '"' ( STRING_ESCAPE_SEQ | ~[\\\r\n"] )* '"'
  ;
 
 /// stringescapeseq ::=  "\" <any source character>
@@ -622,7 +622,7 @@ fragment SHORT_BYTES
  : '\'' ( SHORT_BYTES_CHAR_NO_SINGLE_QUOTE | BYTES_ESCAPE_SEQ )* '\''
  | '"' ( SHORT_BYTES_CHAR_NO_DOUBLE_QUOTE | BYTES_ESCAPE_SEQ )* '"'
  ;
-    
+
 /// longbytes      ::=  "'''" longbytesitem* "'''" | '"""' longbytesitem* '"""'
 fragment LONG_BYTES
  : '\'\'\'' LONG_BYTES_ITEM*? '\'\'\''
@@ -642,7 +642,7 @@ fragment SHORT_BYTES_CHAR_NO_SINGLE_QUOTE
  | [\u000E-\u0026]
  | [\u0028-\u005B]
  | [\u005D-\u007F]
- ; 
+ ;
 
 fragment SHORT_BYTES_CHAR_NO_DOUBLE_QUOTE
  : [\u0000-\u0009]
@@ -650,7 +650,7 @@ fragment SHORT_BYTES_CHAR_NO_DOUBLE_QUOTE
  | [\u000E-\u0021]
  | [\u0023-\u005B]
  | [\u005D-\u007F]
- ; 
+ ;
 
 /// longbyteschar  ::=  <any ASCII character except "\">
 fragment LONG_BYTES_CHAR

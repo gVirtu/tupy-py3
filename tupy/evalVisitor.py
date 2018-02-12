@@ -9,6 +9,7 @@ import tupy.errorHelper
 
 import math
 import copy
+import time
 import tupy.Instance
 import tupy.Interpreter
 import traceback
@@ -69,14 +70,16 @@ class evalVisitor(ParseTreeVisitor):
         i = 0
 
         while i < len(evalList) or len(operatorIndices) > 0:
-            tupy.Interpreter.logger.debug("[PARSEPN] EVALSTACK = {0}".format(evalStack))
-            tupy.Interpreter.logger.debug("[PARSEPN] OPERATOR INDICES = {0}".format(operatorIndices))
+            if __debug__:
+                tupy.Interpreter.logger.debug("[PARSEPN] EVALSTACK = {0}".format(evalStack))
+                tupy.Interpreter.logger.debug("[PARSEPN] OPERATOR INDICES = {0}".format(operatorIndices))
 
             if (i < len(evalList)):
                 (kind, elem) = evalList[i]
                 if kind == self.CONST_OPERATOR:
                     operatorIndices.append(len(evalStack))
-                    tupy.Interpreter.logger.debug("[PARSEPN] Pushing operator {0}".format(elem))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("[PARSEPN] Pushing operator {0}".format(elem))
                     evalStack.append(elem)
                 elif shortCircuitType is None:
                     if kind == self.CONST_LITERAL_OPERAND:
@@ -99,12 +102,13 @@ class evalVisitor(ParseTreeVisitor):
             topOperatorIndex = operatorIndices[-1]
             opElem = (opType, arity) = evalStack[topOperatorIndex]
 
-            if len(evalStack)-(topOperatorIndex)-1 >= arity:
+            while(len(evalStack)-(topOperatorIndex)-1 >= arity):
                 op = self.opMap.get(opElem)
                 if arity == 1:
                     singleVar = evalStack.pop()
                     evalStack.pop() #operator
-                    tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1}".format(op, singleVar))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1}".format(op, singleVar))
                     if shortCircuitType is None:
                         evalStack.append( getattr(singleVar, op)() )
                     else:
@@ -113,7 +117,8 @@ class evalVisitor(ParseTreeVisitor):
                     rhsVar = evalStack.pop()
                     lhsVar = evalStack.pop()
                     evalStack.pop() #operator
-                    tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1} {2}".format(lhsVar, op, rhsVar))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("[PARSEPN] Doing operation {0} {1} {2}".format(lhsVar, op, rhsVar))
                     if shortCircuitType is None:
                         evalStack.append( getattr(lhsVar, op)(rhsVar) )
                     else:
@@ -125,10 +130,13 @@ class evalVisitor(ParseTreeVisitor):
 
                 operatorIndices.pop()
 
-            if len(operatorIndices) and shortCircuitType is None:
-                topOperatorIndex = operatorIndices[-1]
-                (opType, arity) = evalStack[topOperatorIndex]
+                if len(operatorIndices):
+                    topOperatorIndex = operatorIndices[-1]
+                    opElem = (opType, arity) = evalStack[topOperatorIndex]
+                else:
+                    break
 
+            if len(operatorIndices) and shortCircuitType is None:
                 if opType == self.parser.AND and len(evalStack)-(topOperatorIndex)-1 >= 1:
                     if not evalStack[-1].get().value:
                         shortCircuitType = False
@@ -142,9 +150,10 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#r.
     def visitR(self, ctx:langParser.RContext):
         res = self.executeStatements(ctx.statement())
-        tupy.Interpreter.logger.debug("ALL DONE!")
-        tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
-        tupy.Interpreter.logger.debug("Returnin {0}".format(res))
+        if __debug__:
+            tupy.Interpreter.logger.debug("ALL DONE!")
+            tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
+            tupy.Interpreter.logger.debug("Returnin {0}".format(res))
         tupy.Interpreter.Interpreter.trace(ctx.stop.line, res)
         return res
 
@@ -266,7 +275,8 @@ class evalVisitor(ParseTreeVisitor):
                 if (isDeclaration and childcount == current_child):
                     self.doDeclare(lhs, decltype, c, declaredClass, isInvisible)
 
-                tupy.Interpreter.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
+                if __debug__:
+                    tupy.Interpreter.logger.debug("VISITTESTOREXPRESSIONSTATEMENT")
                 # tupy.Interpreter.logger.debug("LHS = "+str(lhs))
                 # tupy.Interpreter.logger.debug("RHS = "+str(rhs))
                 if (len(lhs) == len(rhs)):
@@ -496,7 +506,8 @@ class evalVisitor(ParseTreeVisitor):
         currentInstance = ranges[0][0]
         iterations = 0
         while (not stopFuncs[0](currentInstance.value, ranges[0][1].value)):
-            tupy.Interpreter.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
+            if __debug__:
+                tupy.Interpreter.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
             if (remaining > 1):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
@@ -533,7 +544,8 @@ class evalVisitor(ParseTreeVisitor):
         if not isClassDef:
             tupy.Interpreter.Interpreter.pushFrame(returnable=returnable, breakable=breakable,
                                      returnType=returnType, funcName=funcName)
-        tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
+        if __debug__:
+            tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
         for (name, datatype, arrayDimensions, referenceData, invisible, className, inst) in injectList:
             subscriptList = [Subscript(isWildcard=True)] * arrayDimensions
@@ -562,10 +574,14 @@ class evalVisitor(ParseTreeVisitor):
                 className = funcName
                 classContext = tupy.Interpreter.Interpreter.callStack.top()
                 funcvisitor = fv.functionVisitor(self.parser, classContext, className, originalContext)
-                funcvisitor.visitChildren(ctx)
+                if ctx.statement() is not None:
+                    for stmt in ctx.statement():
+                        funcvisitor.visitStatement(stmt)
         else:
             funcvisitor = fv.functionVisitor(self.parser, tupy.Interpreter.Interpreter.callStack.top())
-            funcvisitor.visitChildren(ctx)
+            if ctx.statement() is not None:
+                for stmt in ctx.statement():
+                    funcvisitor.visitStatement(stmt)
 
         if ctx.simpleStatement() is not None:
             ret = self.visitSimpleStatement(ctx.simpleStatement())
@@ -596,11 +612,13 @@ class evalVisitor(ParseTreeVisitor):
                         tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
                 else:
                     # Cannot return from a function without "retornar"
-                    tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("YOU SHOULD NOT BE RETURNING {0}".format(ret))
                     ret = tupy.Instance.Instance(Type.NULL, 0)
             else:
                 # Retorna nulo
-                tupy.Interpreter.logger.debug("NULL RET")
+                if __debug__:
+                    tupy.Interpreter.logger.debug("NULL RET")
                 ret = tupy.Instance.Instance(retType, retDimensions)
 
             (desiredType, arrayDimensions) = tupy.Interpreter.Interpreter.getReturnType()
@@ -609,7 +627,8 @@ class evalVisitor(ParseTreeVisitor):
             (desiredType == retType and arrayDimensions == retDimensions):
                 tupy.Interpreter.Interpreter.doStep()
             else:
-                tupy.Interpreter.logger.debug("Returned {0}".format(retType))
+                if __debug__:
+                    tupy.Interpreter.logger.debug("Returned {0}".format(retType))
                 tupy.errorHelper.typeError("A função deveria retornar {0}!".format(tupy.Interpreter.Interpreter.getReturnType()[0]), ctx)
 
         if not isClassDef:
@@ -774,7 +793,8 @@ class evalVisitor(ParseTreeVisitor):
     def visitClassDefinition(self, ctx:langParser.ClassDefinitionContext):
         names = ctx.NAME()
         className = names[0].getText()
-        tupy.Interpreter.logger.debug("Visiting a class named {0}".format(className))
+        if __debug__:
+            tupy.Interpreter.logger.debug("Visiting a class named {0}".format(className))
         classContext = tupy.Context.Context(tupy.Interpreter.Interpreter.classContextDepth,
                                 True, struct=className, funcName="Classe {0}".format(className))
 
@@ -794,7 +814,8 @@ class evalVisitor(ParseTreeVisitor):
 
             inheritLineage = tupy.Interpreter.Interpreter.getClassLineage(names[1].getText())
             lineage.extend(inheritLineage)
-            tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
+            if __debug__:
+                tupy.Interpreter.logger.debug("Inheriting from {0}".format(names[1].getText()))
             classContext.inheritSymbolTable(inherited)
             classContext.depth = inherited.depth + 1
 
@@ -894,23 +915,28 @@ class evalVisitor(ParseTreeVisitor):
     def executeStatements(self, statementList):
         s = statementList[0]
         try:
+            if (time.time() - tupy.Interpreter.Interpreter.executionStart) > tupy.Interpreter.Interpreter.timeoutSeconds:
+                raise tupy.errorHelper.timeoutError("Tempo limite de execução atingido!", s)
             ret = None
             for s in statementList:
                 # tupy.Interpreter.logger.debug("visiting {0}".format(s))
-                tupy.Interpreter.logger.debug("Executing statement ({1}) at line {0}...".format(s.start.line, type(s)))
+                if __debug__:
+                    tupy.Interpreter.logger.debug("Executing statement ({1}) at line {0}...".format(s.start.line, type(s)))
 
                 ret = self.visitStatement(s)
 
                 # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
                 flow = tupy.Interpreter.Interpreter.flow
                 if flow == tupy.Interpreter.FlowEvent.BREAK or flow == tupy.Interpreter.FlowEvent.CONTINUE:
-                    tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
                     if tupy.Interpreter.Interpreter.canBreak():
                         tupy.Interpreter.Interpreter.doStep()
                     break
                 elif flow == tupy.Interpreter.FlowEvent.RETURN:
                     ret = tupy.Interpreter.Interpreter.returnData
-                    tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
                     break
 
             #TODO: Double check whether this is intended

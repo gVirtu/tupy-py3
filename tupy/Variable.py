@@ -13,7 +13,7 @@ class Variable(object):
         # e.g.: A[5, 1..2] <- [10, 20]
         # We retrieveWithTrailers(A) but we want to change A[5] specifically
         # so we don't go down all the way to A[5, 1..2]
-        parent = (inst, None, 0) 
+        parent = (inst, None, 0)
         for (ttype, tid) in trailers:
             if ttype == TrailerType.SUBSCRIPT:
                 # Parse subscript list
@@ -69,24 +69,29 @@ class Variable(object):
 
     @classmethod
     def get_array_range(cls, inst, begin, end, level, single=False):
-        tupy.Interpreter.logger.debug("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
+        if __debug__:
+            tupy.Interpreter.logger.debug("get_array_range({0}, {1}, {2}, {3})".format(inst, begin, end, level))
         if level == 0:
             if not inst.is_subscriptable_array():
                 raise TypeError("{0} não contém elementos para acesso posicional!".format(inst.type))
-            
+
             if (single):
                 if inst.type == Type.STRING:
-                    tupy.Interpreter.logger.debug("...returned {0}".format(inst.value[begin]))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("...returned {0}".format(inst.value[begin]))
                     return (ord(inst.value[begin]), Type.CHAR)
                 else:
-                    tupy.Interpreter.logger.debug("...returned {0}".format(tupy.Interpreter.memRead(inst.value[begin]).value))
+                    if __debug__:
+                        tupy.Interpreter.logger.debug("...returned {0}".format(tupy.Interpreter.memRead(inst.value[begin]).value))
                     return (tupy.Interpreter.memRead(inst.value[begin]).value, tupy.Interpreter.memRead(inst.value[begin]).type)
             else:
-                tupy.Interpreter.logger.debug("...returned {0}".format(inst.value[begin:end]))
+                if __debug__:
+                    tupy.Interpreter.logger.debug("...returned {0}".format(inst.value[begin:end]))
                 return (inst.value[begin:end], inst.type)
         else:
             ret = []
-            tupy.Interpreter.logger.debug("Welp, first gotta check {0}".format(inst.value))
+            if __debug__:
+                tupy.Interpreter.logger.debug("Welp, first gotta check {0}".format(inst.value))
             for memoryCell in inst.value:
                 lower_inst = tupy.Interpreter.memRead(memoryCell)
                 lower_level = cls.get_array_range(lower_inst, begin, end, level-1, single)[0] #Not interested in type
@@ -95,8 +100,9 @@ class Variable(object):
                 else:
                     new_inst = tupy.Instance.Instance(lower_inst.type, lower_level)
                 ret.append(tupy.Interpreter.memAlloc(new_inst))
-                
-            tupy.Interpreter.logger.debug("...returned {0}".format(ret))
+
+            if __debug__:
+                tupy.Interpreter.logger.debug("...returned {0}".format(ret))
             return (ret, inst.heldtype)
 
     @classmethod
@@ -216,21 +222,21 @@ class Variable(object):
 
     def gt(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
-        return Literal(tupy.Instance.Instance(Type.BOOL, 
+        return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
                                               li.value > ri.value))
 
     def lt(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
-        return Literal(tupy.Instance.Instance(Type.BOOL, 
+        return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
                                               li.value < ri.value))
 
     def gt_eq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
-        return Literal(tupy.Instance.Instance(Type.BOOL, 
+        return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
                                               li.value >= ri.value))
@@ -244,14 +250,14 @@ class Variable(object):
 
     def eq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
-        return Literal(tupy.Instance.Instance(Type.BOOL, 
+        return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
                                               li.value == ri.value))
 
     def neq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
-        return Literal(tupy.Instance.Instance(Type.BOOL, 
+        return Literal(tupy.Instance.Instance(Type.BOOL,
                                               not self.validateComparisonTypes(li.type,
                                                                            ri.type) or
                                               li.value != ri.value))
