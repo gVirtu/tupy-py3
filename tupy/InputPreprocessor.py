@@ -18,7 +18,8 @@ def preprocess(inputString:str):
             visibleLines.append(result)
         elif line.lstrip().startswith("---"):
             tupy.Interpreter.Interpreter.traceBars.append(i)
-            visibleLines.append(line)
+            parsedLines.append("")
+            visibleLines.append("<INVISIBLE>")
         else:
             parsedLines.append(line)
             visibleLines.append(line)

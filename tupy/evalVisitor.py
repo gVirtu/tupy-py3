@@ -208,15 +208,15 @@ class evalVisitor(ParseTreeVisitor):
 
         rhs = self.visitTestOrExpressionList(ctx.testOrExpressionList(childcount-1))
         # Only for return purposes when no assignment is done
-        lhs = rhs 
+        lhs = rhs
         current_child = 1
         is_reference_assign = False
         if (isDeclaration and childcount == current_child):
             self.doDeclare(lhs, decltype, ctx.testOrExpressionList(childcount-1), declaredClass, isInvisible)
-        
+
         i_children = iter(reversed(list(ctx.getChildren())))
         next(i_children) # all except last
-        
+
         for c in i_children:
             if isinstance(c, TerminalNode) and c.getSymbol().type == self.parser.REF:
                 is_reference_assign = True
@@ -235,7 +235,7 @@ class evalVisitor(ParseTreeVisitor):
                     if not all(isinstance(lval, tupy.Variable.Symbol) for lval in lhs):
                         tupy.errorHelper.syntaxError("Não é possível atribuir a um literal!", c)
                     rvalCache = [literal.get() for literal in rhs]
-                    rvalCache = [tupy.Instance.Instance(elem.type, elem.value, className=elem.class_name) 
+                    rvalCache = [tupy.Instance.Instance(elem.type, elem.value, className=elem.class_name)
                                  for elem in rvalCache]
                     for ind in range(0, len(lhs)):
                         # tupy.Interpreter.logger.debug("ind="+str(ind))
@@ -334,6 +334,10 @@ class evalVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by langParser#returnStatement.
     def visitReturnStatement(self, ctx:langParser.ReturnStatementContext):
         expr = None
+
+        # Trace - Flow Statement 3
+        tupy.Interpreter.Interpreter.trace(ctx.start.line)
+
         if ctx.testOrExpressionList():
             try:
                 expr = []
@@ -343,9 +347,6 @@ class evalVisitor(ParseTreeVisitor):
                 tupy.errorHelper.runtimeError("Limite de recursão alcançado!", ctx)
             except Exception as e:
                 raise e
-        
-        # Trace - Flow Statement 3
-        tupy.Interpreter.Interpreter.trace(ctx.start.line)
 
         tupy.Interpreter.Interpreter.doReturn(expr)
         return None
@@ -423,7 +424,7 @@ class evalVisitor(ParseTreeVisitor):
         stopFuncLT = lambda iterator, limit : (iterator < limit)
         stopFuncGTEQ = lambda iterator, limit : (iterator >= limit)
         stopFuncLTEQ = lambda iterator, limit : (iterator <= limit)
-        
+
         if (len(names) == len(ranges) and (len(ranges) == len(steps) or fillSteps)):
             for r in ranges:
                 if (r[1].value >= r[0].value):
@@ -461,7 +462,7 @@ class evalVisitor(ParseTreeVisitor):
                 self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
             else:
                 ret = self.visitBlock(block, funcName="Laço (para)")
-            
+
             if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK or
                 tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
                 break
@@ -491,7 +492,7 @@ class evalVisitor(ParseTreeVisitor):
         isClassDef = isinstance(ctx.parentCtx, langParser.ClassDefinitionContext)
 
         if not isClassDef:
-            tupy.Interpreter.Interpreter.pushFrame(returnable=returnable, breakable=breakable, 
+            tupy.Interpreter.Interpreter.pushFrame(returnable=returnable, breakable=breakable,
                                      returnType=returnType, funcName=funcName)
         tupy.Interpreter.logger.debug("INJECT LIST IS: {0}".format(injectList))
 
@@ -501,7 +502,7 @@ class evalVisitor(ParseTreeVisitor):
             tupy.Interpreter.Interpreter.storeSymbol(name, inst, [])
 
             (referenceDepth, referenceCell, referenceTrailers) = referenceData
-            
+
             if (inst.type != Type.TUPLE and referenceDepth > -1): #Pass-by-reference only (except variadic)
                 # Grabbing the correct memory cell is trickier if there are trailers
                 # We are mostly concerned with where the result of retrieveWithTrailers
@@ -571,7 +572,7 @@ class evalVisitor(ParseTreeVisitor):
             else:
                 tupy.Interpreter.logger.debug("Returned {0}".format(retType))
                 tupy.errorHelper.typeError("A função deveria retornar {0}!".format(tupy.Interpreter.Interpreter.getReturnType()[0]), ctx)
-        
+
         if not isClassDef:
             tupy.Interpreter.Interpreter.popFrame()
 
@@ -716,12 +717,12 @@ class evalVisitor(ParseTreeVisitor):
             begin_pos = int(self.visitExpression(ctx.expression(0)).get().value)
             end_pos = int(self.visitExpression(ctx.expression(1)).get().value)
             if begin_pos <= end_pos:
-                return Subscript(begin=begin_pos, 
+                return Subscript(begin=begin_pos,
                                 end=end_pos)
             else:
                 tupy.errorHelper.syntaxError("Intervalo inválido!", ctx)
         else:
-            return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value), 
+            return Subscript(begin=int(self.visitExpression(ctx.expression(0)).get().value),
                              end=int(self.visitExpression(ctx.expression(0)).get().value),
                              isSingle=True)
 
@@ -735,7 +736,7 @@ class evalVisitor(ParseTreeVisitor):
         names = ctx.NAME()
         className = names[0].getText()
         tupy.Interpreter.logger.debug("Visiting a class named {0}".format(className))
-        classContext = tupy.Context.Context(tupy.Interpreter.Interpreter.classContextDepth, 
+        classContext = tupy.Context.Context(tupy.Interpreter.Interpreter.classContextDepth,
                                 True, struct=className, funcName="Classe {0}".format(className))
 
         lineage = [className]
@@ -744,7 +745,7 @@ class evalVisitor(ParseTreeVisitor):
 
         if (len(names) > 1):
             try:
-                inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText()) 
+                inherited = tupy.Interpreter.Interpreter.getClassContext(names[1].getText())
             except KeyError:
                 tupy.errorHelper.typeError("A classe herdada {0} não foi encontrada!".format(names[1].getText()), ctx)
 
@@ -829,7 +830,7 @@ class evalVisitor(ParseTreeVisitor):
 
     def doDeclare(self, lhs, decltype, ctx, className, isInvisible):
         for lval in lhs:
-            trailerCount = len(lval.trailers) 
+            trailerCount = len(lval.trailers)
             if trailerCount == 1:
                 if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
                     subscriptList = lval.trailers[0][1]
@@ -858,7 +859,7 @@ class evalVisitor(ParseTreeVisitor):
             for s in statementList:
                 # tupy.Interpreter.logger.debug("visiting {0}".format(s))
                 tupy.Interpreter.logger.debug("Executing statement ({1}) at line {0}...".format(s.start.line, type(s)))
-                
+
                 ret = self.visitStatement(s)
 
                 # tupy.Interpreter.logger.debug("after visit I got {0}".format(ret))
@@ -867,12 +868,12 @@ class evalVisitor(ParseTreeVisitor):
                     tupy.Interpreter.logger.debug("BREAKING OR CONTINUING")
                     if tupy.Interpreter.Interpreter.canBreak():
                         tupy.Interpreter.Interpreter.doStep()
-                    break 
+                    break
                 elif flow == tupy.Interpreter.FlowEvent.RETURN:
                     ret = tupy.Interpreter.Interpreter.returnData
                     tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
                     break
-                
+
             #TODO: Double check whether this is intended
             # try:
             try:
@@ -896,7 +897,7 @@ class evalVisitor(ParseTreeVisitor):
             tupy.errorHelper.valueError(e.args[0], s)
         except IndexError as e:
             tupy.errorHelper.indexError(e.args[0], s)
-            
+
         # except Exception as e:
             # tupy.Interpreter.logger.debug("Poop, returning {0}. Got {1}".format(ret,e))
             # return ret
