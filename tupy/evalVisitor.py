@@ -738,10 +738,7 @@ class evalVisitor(ParseTreeVisitor):
             if ctx.testOrExpressionList() is not None:
                 lit_res = self.visitTestOrExpressionList(ctx.testOrExpressionList())
                 res = [tupy.Interpreter.memAlloc(element.get()) for element in lit_res]
-            try:
-                return tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, list(res)));
-            except TypeError:
-                tupy.errorHelper.typeError("Os tipos dos elementos de uma lista devem ser consistentes!", ctx)
+            return tupy.Variable.Literal(tupy.Instance.Instance(Type.ARRAY, list(res)))
         else:
             return self.visitChildren(ctx)
 
@@ -890,6 +887,9 @@ class evalVisitor(ParseTreeVisitor):
 
     def doDeclare(self, lhs, decltype, ctx, className, isInvisible):
         for lval in lhs:
+            if isinstance(lval, tupy.Variable.Literal):
+                tupy.errorHelper.syntaxError("Declaração incorreta!\nFoi encontrada uma expressão literal após o tipo, era esperado um nome.", ctx)
+
             trailerCount = len(lval.trailers)
             if trailerCount == 1:
                 if lval.trailers[0][0] == TrailerType.SUBSCRIPT:
@@ -939,8 +939,6 @@ class evalVisitor(ParseTreeVisitor):
                         tupy.Interpreter.logger.debug("RETURNING {0}".format(ret))
                     break
 
-            #TODO: Double check whether this is intended
-            # try:
             try:
                 if (len(ret)<=1):
                     return ret[0]

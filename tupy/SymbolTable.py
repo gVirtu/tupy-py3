@@ -105,7 +105,6 @@ class SymbolTable(object):
         #
         # sizeList and currentData describe the symbol that is going to be
         # updated.
-        #TODO: Finish documenting this mess
 
         # A positive length of subscriptList means we still haven't reached the lowest level of
         # an array.

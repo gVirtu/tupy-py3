@@ -1,5 +1,4 @@
 import copy
-import timeout_decorator
 from antlr4 import *
 from tupy.langLexer import langLexer
 from tupy.langParser import langParser
