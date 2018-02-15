@@ -1,0 +1,64 @@
+inteiro N <- 4
+inteiro P[N] <- 0
+
+visual Tabuleiro(inteiro atéLinha, inteiro[] d):
+    cadeia retorno[2 + 2*N + N*N]
+    inteiro pos <- 0
+    retorno[pos] <- "[[DOT digraph G { node [shape=plaintext]" \
+                    " 1 [label = <<TABLE CELLPADDING=\"0\" CELLSPACING=\"0\">"; pos <- pos + 1
+
+    inteiro i, j
+    para i <- 0..N:
+        retorno[pos] <- "<TR BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"; pos <- pos + 1
+
+        para j <- 0..N:
+            cadeia começo, peça, fim
+            se i = d[0] e j = d[1]:
+                começo <- "<TD BGCOLOR=\"yellow\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT COLOR=\"BLACK\" POINT-SIZE=\"42\">"
+            senão se (i+j) mod 2:
+                começo <- "<TD BGCOLOR=\"black\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT COLOR=\"WHITE\" POINT-SIZE=\"42\">"
+            senão:
+                começo <- "<TD BGCOLOR=\"white\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\"><FONT COLOR=\"BLACK\" POINT-SIZE=\"42\">"
+            fim <- "</FONT></TD>"
+            se i < atéLinha e P[i]=j:
+                peça <- "♛"
+            senão:
+                peça <- " "
+            retorno[pos] <- juntar((começo, peça, fim))
+            pos <- pos + 1
+
+        retorno[pos] <- "</TR>"; pos <- pos + 1
+
+    retorno[pos] <- "</TABLE>>] }]]"; pos <- pos + 1
+
+    retornar juntar(retorno)
+-----------------------------------------------------------------------
+
+-----------------------------------------------
+lógico Possível(inteiro linha, inteiro coluna):
+    inteiro i
+    para i <- 0..linha:
+        se P[i] = coluna \
+        ou P[linha-(i+1)] = coluna+(i+1) \
+        ou P[linha-(i+1)] = coluna-(i+1):
+            retornar falso
+    retornar verdadeiro
+-----------------------------------------------
+
+~~ visual V
+
+lógico DamasPacíficas(inteiro linha):
+    se (linha >= N):
+        retornar verdadeiro
+
+    inteiro col
+    para col <- 0..N:
+        ~~ V <- Tabuleiro(linha, [linha, col])
+        se Possível(linha, col):
+            P[linha] <- col
+            se DamasPacíficas(linha+1):
+                escrever(P)
+
+    retornar falso
+
+DamasPacíficas(0)
