@@ -395,7 +395,7 @@ def inteiro(literal, base=None):
         try:
             return tupy.Instance.Instance(Type.INT, int(str(literal.value), base.value))
         except ValueError:
-            raise ValueError("Erro na conversão para INTEIRO (base {0})!".format(base))
+            raise ValueError("Erro na conversão para INTEIRO (base {0})!".format(base.value))
     else:
         # No try/except needed because base will only be None when calling
         # inteiro with a FLOAT, BOOL or CHAR literal.

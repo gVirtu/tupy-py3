@@ -601,7 +601,7 @@ def memRead(cell):
 
 def memWrite(cell, data):
     cell.data.type = data.type #Specifically for NULL -> TYPE
-    cell.data.value = data.value
+    cell.data.value = int(data.value) if data.type == Type.INT else data.value
     cell.data.update_size()
 
 # Custom Error Listener

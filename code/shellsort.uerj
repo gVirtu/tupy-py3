@@ -21,7 +21,7 @@
 Shell(ref inteiro[] P):
     inteiro k <- |A|
     enquanto (k div 2 != 0):
-        P <- inserir(P, k/2)
+        P <- inserir(P, k div 2)
         k <- k div 2
 
 ShellSort(ref inteiro[] A):
