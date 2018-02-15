@@ -72,7 +72,9 @@ class SymbolTable(object):
             if self.hasValidType(name, instance, trailerList):
                 self.updateData(name, instance, trailerList)
             else:
-                raise TypeError("Tipos incompatíveis na atribuição!")
+                raise TypeError("Tipos incompatíveis na atribuição! ({0} <- {1})".format(
+                                    self.classname[name] if self.classname[name] is not None else self.datatype[name],
+                                    instance.class_name if instance.class_name is not None else instance.type))
         else:
             raise NameError("Não foi possível armazenar {0}!".format(name))
 

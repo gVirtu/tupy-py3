@@ -111,6 +111,14 @@ class Instance(object):
         if len(self.value) > 0:
             self.heldtype = tupy.Interpreter.memRead(self.value[0]).type
 
+    def to_python_repr(self):
+        if self.type == Type.ARRAY:
+            return [tupy.Interpreter.memRead(elem).to_python_repr() for elem in self.value]
+        if self.type == Type.TUPLE:
+            return tuple([tupy.Interpreter.memRead(elem).to_python_repr() for elem in self.value])
+        else:
+            return self.value
+
     def is_pure_array(self):
         return self.type == Type.ARRAY
 

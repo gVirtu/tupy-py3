@@ -3,6 +3,7 @@ import tupy.Interpreter #as ii
 import copy
 import tupy.Instance
 import tupy.Context
+import tupy.Builtins
 
 class Variable(object):
     @classmethod
@@ -135,15 +136,18 @@ class Variable(object):
 
     def power(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        self.validateNumbers([li.type, ri.type])
         typ = self.resultType(li.type, ri.type)
         return Literal(tupy.Instance.Instance(typ, li.value ** ri.value))
 
     def positive(self):
         li = self.get()
+        self.validateNumbers([li.type])
         return Literal(tupy.Instance.Instance(li.type, +li.value))
 
     def negative(self):
         li = self.get()
+        self.validateNumbers([li.type])
         return Literal(tupy.Instance.Instance(li.type, -li.value))
 
     def bitwise_flip(self):
@@ -155,20 +159,26 @@ class Variable(object):
     def multiply(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         typ = self.resultType(li.type, ri.type)
+        if (li.type == ri.type and li.type in [Type.STRING, Type.ARRAY]):
+            raise TypeError("Não é possível multiplicar duas variáveis do tipo {0}!".format(li.type))
         return Literal(tupy.Instance.Instance(typ, li.value * ri.value))
 
     def divide(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        self.validateNumbers([li.type, ri.type])
         typ = self.resultType(li.type, ri.type)
         return Literal(tupy.Instance.Instance(typ, li.value / ri.value))
 
     def modulo(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         typ = self.resultType(li.type, ri.type)
+        if (li.type == ri.type and li.type in [Type.STRING, Type.ARRAY]):
+            raise TypeError("Não é possível multiplicar duas variáveis do tipo {0}!".format(li.type))
         return Literal(tupy.Instance.Instance(typ, li.value % ri.value))
 
     def integer_divide(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        self.validateNumbers([li.type, ri.type])
         typ = self.resultType(li.type, ri.type)
         return Literal(tupy.Instance.Instance(typ, li.value // ri.value))
 
@@ -182,6 +192,7 @@ class Variable(object):
 
     def subtract(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        self.validateNumbers([li.type, ri.type])
         typ = self.resultType(li.type, ri.type)
         return Literal(tupy.Instance.Instance(typ, li.value - ri.value))
 
@@ -189,78 +200,82 @@ class Variable(object):
         li, ri = self.get(), rhs.get()
         if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer deslocamento de bits para a esquerda com tipo não-inteiro!")
-        typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, li.value << ri.value))
+        return Literal(tupy.Instance.Instance(Type.INT, li.value << ri.value))
 
     def right_shift(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer deslocamento de bits para a direita com tipo não-inteiro!")
-        typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, li.value >> ri.value))
+        return Literal(tupy.Instance.Instance(Type.INT, li.value >> ri.value))
 
     def bitwise_and(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer E (AND) de bits com tipo não-inteiro!")
-        typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, li.value & ri.value))
+        return Literal(tupy.Instance.Instance(Type.INT, li.value & ri.value))
 
     def bitwise_or(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer OU (OR) de bits com tipo não-inteiro!")
         typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, li.value | ri.value))
+        return Literal(tupy.Instance.Instance(Type.INT, li.value | ri.value))
 
     def bitwise_xor(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         if (li.type != Type.INT or ri.type != Type.INT):
             raise TypeError("Não é possível fazer OU EXCLUSIVO (XOR) de bits com tipo não-inteiro!")
-        typ = Type.INT
-        return Literal(tupy.Instance.Instance(typ, li.value ^ ri.value))
+        return Literal(tupy.Instance.Instance(Type.INT, li.value ^ ri.value))
 
     def gt(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        if (li == Type.STRUCT or ri == Type.STRUCT):
+            raise TypeError("Comparação não permitida para tipos compostos!")
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
-                                              li.value > ri.value))
+                                              li.to_python_repr() > ri.to_python_repr()))
 
     def lt(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        if (li == Type.STRUCT or ri == Type.STRUCT):
+            raise TypeError("Comparação não permitida para tipos compostos!")
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
-                                              li.value < ri.value))
+                                              li.to_python_repr() < ri.to_python_repr()))
 
     def gt_eq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        if (li == Type.STRUCT or ri == Type.STRUCT):
+            raise TypeError("Comparação não permitida para tipos compostos!")
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
-                                              li.value >= ri.value))
+                                              li.to_python_repr() >= ri.to_python_repr()))
 
     def lt_eq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
+        if (li == Type.STRUCT or ri == Type.STRUCT):
+            raise TypeError("Comparação não permitida para tipos compostos!")
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
-                                              li.value <= ri.value))
+                                              li.to_python_repr() <= ri.to_python_repr()))
 
     def eq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               self.validateComparisonTypes(li.type,
                                                                            ri.type) and
-                                              li.value == ri.value))
+                                              li.to_python_repr() == ri.to_python_repr()))
 
     def neq(self, rhs:'Variable'):
         li, ri = self.get(), rhs.get()
         return Literal(tupy.Instance.Instance(Type.BOOL,
                                               not self.validateComparisonTypes(li.type,
                                                                            ri.type) or
-                                              li.value != ri.value))
+                                              li.to_python_repr() != ri.to_python_repr()))
 
     def logic_not(self):
         li = self.get()
@@ -278,6 +293,11 @@ class Variable(object):
         li = self.get()
         return Literal(tupy.Instance.Instance(Type.INT, self.get().size))
 
+    def validateNumbers(self, typelist):
+        numbers = [Type.INT, Type.FLOAT, Type.CHAR]
+        if not all(t in numbers for t in typelist):
+            raise TypeError("Essa operação é restrita para números!")
+
     def validateComparisonTypes(self, a, b):
         if (a == Type.FUNCTION or b == Type.FUNCTION):
             raise TypeError("Comparação proibida para funções!")
@@ -291,7 +311,7 @@ class Variable(object):
         elif (a == Type.ARRAY or b == Type.ARRAY):
             raise TypeError("Uma lista somente pode ser comparada com outras listas!")
         elif (a == Type.TUPLE or b == Type.TUPLE):
-            raise TypeError("Uma tupla somente pode ser comparada com outras listas!")
+            raise TypeError("Uma tupla somente pode ser comparada com outras tuplas!")
         elif (a == Type.FLOAT or b == Type.FLOAT):
             raise TypeError("Um número real somente pode ser comparado com outros números reais!")
         elif (a == Type.STRING or b == Type.STRING):
@@ -306,8 +326,8 @@ class Variable(object):
             raise TypeError("Operação proibida para funções!")
         elif (a == Type.NULL or b == Type.NULL):
             raise TypeError("Operação proibida para o tipo nulo!")
-        # elif (a == Type.RANGE or b == Type.RANGE):
-            # raise TypeError("Cannot operate on instance of type RANGE!")
+        elif (a == Type.NULL or b == Type.TUPLE):
+            raise TypeError("Operação proibida para tuplas!")
         elif (a == Type.ARRAY or b == Type.ARRAY):
             if (a == Type.ARRAY and b == Type.ARRAY):
                 return Type.ARRAY
@@ -326,13 +346,7 @@ class Variable(object):
                 return Type.INT
 
     def stringConcat(self, lhs, rhs):
-        if (lhs.type == Type.CHAR): a = chr(lhs.value)
-        else: a = str(lhs.value)
-
-        if (rhs.type == Type.CHAR): b = chr(rhs.value)
-        else: b = str(rhs.value)
-
-        return a + b
+        return tupy.Builtins.cast(lhs, Type.STRING).value + tupy.Builtins.cast(rhs, Type.STRING).value
 
 
 class Literal(Variable):

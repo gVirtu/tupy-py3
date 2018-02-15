@@ -78,6 +78,9 @@ def translate(msg):
                     "Type.STRING": "CADEIA",
                     "Type.BOOL": "LÓGICO",
                     "Type.STRUCT": "ESTRUTURA",
+                    "Type.ARRAY": "LISTA",
+                    "Type.TUPLE": "TUPLA",
+                    "Type.FUNCTION": "FUNÇÃO",
                     "Type.NULL": "NULO"
                     }
 

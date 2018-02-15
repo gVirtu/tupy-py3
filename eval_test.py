@@ -1914,5 +1914,47 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 13)
 
+    def test_invalid_operations(self):
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "\"a\" ^ 3")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "+[1, 2, 3]")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "-(4, 5, 6)")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "\"a\" ^ \"b\"")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "\"abc\" * \"def\"")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "[1, 2, 3] mod [4, 5, 6]")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "\"%s\" mod \"a\"")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, "[4, 5, 6] / [2]")
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo Teste:\n\tinteiro x\n"
+                                                                "Teste t, u <- Teste(), Teste()\n"
+                                                                "t > u\n"))
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo Teste:\n\tinteiro x\n"
+                                                                "Teste t, u <- Teste(), Teste()\n"
+                                                                "t < u\n"))
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo Teste:\n\tinteiro x\n"
+                                                                "Teste t, u <- Teste(), Teste()\n"
+                                                                "t >= u\n"))
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("tipo Teste:\n\tinteiro x\n"
+                                                                "Teste t, u <- Teste(), Teste()\n"
+                                                                "t <= u\n"))
+
+    def test_list_comparison(self):
+        ret = self.evalExpression("[1, 2, 3] < [1, 2, 4]\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        ret = self.evalExpression("[1, 2, 3] > [1, 2, 4]\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, False)
+        ret = self.evalExpression("(1, 2, 3) <= (1, 2, 4)\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        ret = self.evalExpression("(1, 2, 3) >= (1, 2, 4)\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, False)
+        ret = self.evalExpression("[1, 2, 3] = [1, 2, 3]\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+        ret = self.evalExpression("[1, 2, 3] != [3, 2, 1]\n")
+        self.assertEqual(ret.type, Type.BOOL)
+        self.assertEqual(ret.value, True)
+
 if __name__ == '__main__':
     unittest.main()
