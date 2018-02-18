@@ -9,9 +9,9 @@ var tupyHighlightRules = function() {
     var keywordControls = (
         "parar|avancar|senao|para|passo|se|" +
         "retornar|enquanto|inclusive|" +
-        "senão|avançar|até|incl\\."
+        "senão|avançar|até|incl\."
     );
-    
+
     var storageType = (
         "logico|caracter|real|inteiro|cadeia|tipo|visual|lógico"
     );
@@ -27,7 +27,7 @@ var tupyHighlightRules = function() {
     var builtinConstants = (
         "nulo|verdadeiro|falso|pi|este|esta|π"
     );
-    
+
     var builtinFunctions = (
         "escrever|ler|ler_linha|binario|octal|hexadecimal|aleatorio|inteiro_aleatorio|" +
         "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar|copiar|"+
@@ -59,25 +59,28 @@ var tupyHighlightRules = function() {
           + /(\.((-?\d+)|\*(-?\d+\$)?)?)?/.source // precision
           + /(hh|h|ll|l|j|t|z|q|L|vh|vl|v|hv|hl)?/.source // length modifier
           + /(\[[^"\]]+\]|[diouxXDOUeEfFgGaACcSspn%])/.source; // conversion type
-          
+
     // regexp must not have capturing parentheses. Use (?:) instead.
     // regexps are ordered -> the first match is used
 
-    this.$rules = { 
+    this.$rules = {
         "start" : [
             {
                 token : "comment",
-                regex : "#|~~",
+                regex : "#",
                 next : "singleLineComment"
             }, {
+                token : "comment",
+                regex : /.* ~~(\s|#.*)*$/,
+            }, {
                 token : "comment", //Trace offsetter
-                regex : "\-{3,}"
+                regex : "\-{3,}|~{3,}"
             }, {
                 token : "string", // character
                 regex : "'(?:" + escapeRe + "|.)?'"
             }, {
                 token : "string.start",
-                regex : '"', 
+                regex : '"',
                 stateName: "qqstring",
                 next: [
                     { token: "string", regex: /\\\s*$/, next: "qqstring" },
@@ -100,10 +103,10 @@ var tupyHighlightRules = function() {
                 regex : "[+-]?\\d+(?:(?:\\.\\d*)?)?\\b"
             }, {
                 token : keywordMapper,
-                regex : "[a-zA-Z_$áóíéãçπ][a-zA-Z0-9_$áóíéãç]*"
+                regex : "[a-zA-Z_$áóíéãçπ][a-zA-Z0-9_$\\.áóíéãç]*"
             }, {
                 token : "keyword.operator",
-                regex : /&&|\|\||[*\/+\-\^|~!<>=]=?/
+                regex : /\-\-|&&|\|\||[*\/+\-\^|~!<>=]=?/
             }, {
               token : "punctuation.operator",
               regex : "\\?|\\:|\\,|\\;|\\."

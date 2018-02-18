@@ -449,7 +449,7 @@ OPEN_BRACE : '{' {self.opened+=1};
 CLOSE_BRACE : '}' {self.opened-=1};
 LESS_THAN : '<';
 GREATER_THAN : '>';
-EQUALS : '=';
+EQUALS : '=' | '==';
 GT_EQ : '>=';
 LT_EQ : '<=';
 NOT_EQ : '!=';

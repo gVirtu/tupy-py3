@@ -60,6 +60,7 @@ class Interpreter(object):
         cls.outStream = io.StringIO()
         cls.traceOut = None
         cls.traceBars = []
+        cls.invisiBars = []
         cls.traceSmallStatement = False # Shorten one-liners
         cls.traceSquiggles = set()
         cls.outfile = sys.stdout
@@ -566,14 +567,20 @@ class Interpreter(object):
     @classmethod
     def should_print(cls, line):
         if line in cls.traceSquiggles: return False
-        if len(cls.traceBars) == 0: return True
-        else: return cls.find_next_tracebar(line)%2 == len(cls.traceBars)%2
+        if len(cls.traceBars) + len(cls.invisiBars) == 0: return True
+        elif len(cls.traceBars) == 0:
+            return cls.find_next_tracebar(cls.invisiBars, line)%2 == len(cls.invisiBars)%2
+        elif len(cls.invisiBars) == 0:
+            return cls.find_next_tracebar(cls.traceBars, line)%2 == len(cls.traceBars)%2
+        else: return cls.find_next_tracebar(cls.traceBars, line)%2 == len(cls.traceBars)%2 and \
+                     cls.find_next_tracebar(cls.invisiBars, line)%2 == len(cls.invisiBars)%2
+
 
     @classmethod
-    def find_next_tracebar(cls, line):
+    def find_next_tracebar(cls, bars, line):
         # Find leftmost value greater than 'line' in traceBars
         # returns len(traceBars) if no match
-        ind = bisect.bisect_right(cls.traceBars, line)
+        ind = bisect.bisect_right(bars, line)
         return ind
 
 # Memory access functions
