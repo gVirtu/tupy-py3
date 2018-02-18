@@ -1195,6 +1195,15 @@ class TestEvalVisitor(unittest.TestCase):
                                     ))
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, 24)
+        ret = Interpreter.interpret(("inteiro i, j, soma\n"
+                                    "para i <- 0..3:\n"
+                                    "\tpara j <- 1..9:\n"
+                                    "\t\tsoma <- soma + 1\n"
+                                    "\t\tse j>5:\n"
+                                    "\t\t\tparar\n"
+                                    "soma\n"))
+        self.assertEqual(ret.type, Type.INT)
+        self.assertEqual(ret.value, 18)
 
     def test_continue(self):
         ret = Interpreter.interpret(("inteiro tot, i <- 0, 0\n"

@@ -449,9 +449,11 @@ class evalVisitor(ParseTreeVisitor):
         # tupy.Interpreter.Interpreter.trace(ctx.start.line)
         while( bool(self.visitTest(testTree).get().value) ):
             ret = self.visitBlock(ctx.block(), funcName="Laço (enquanto)")
-            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK or
-                tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
-                    break
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
+                tupy.Interpreter.Interpreter.doStep()
+                break
+            if (tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
+                break
             iterations += 1
             if iterations > tupy.Interpreter.Interpreter.iterationLimit:
                 tupy.errorHelper.runtimeError("Limite de iterações alcançado!", ctx.block())
@@ -494,13 +496,13 @@ class evalVisitor(ParseTreeVisitor):
             # Trace - For Statement
             # tupy.Interpreter.Interpreter.trace(ctx.start.line)
 
-            ret = self.handleInnerFor(None, names, ranges, steps, stopFuncs, ctx.block())
+            ret = self.handleInnerFor(None, names, ranges, steps, stopFuncs, ctx.block(), 0)
 
             return ret
         else:
             tupy.errorHelper.syntaxError("Laço 'para' precisa ter o mesmo número de iteradores e intervalos!", ctx.nameList())
 
-    def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block):
+    def handleInnerFor(self, ret, names, ranges, steps, stopFuncs, block, depth):
         remaining = len(names)
         tupy.Interpreter.Interpreter.storeSymbol(names[0], ranges[0][0], [])
         currentInstance = ranges[0][0]
@@ -509,12 +511,15 @@ class evalVisitor(ParseTreeVisitor):
             if __debug__:
                 tupy.Interpreter.logger.debug("-------------------FOR LOOP: {0} = {1} (limit is {2})".format(names[0], currentInstance.value, ranges[0][1].value))
             if (remaining > 1):
-                self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block)
+                self.handleInnerFor(ret, names[1:], ranges[1:], steps[1:], stopFuncs[1:], block, depth+1)
             else:
                 ret = self.visitBlock(block, funcName="Laço (para)")
 
-            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK or
-                tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
+            if (tupy.Interpreter.Interpreter.lastEvent == tupy.Interpreter.FlowEvent.BREAK):
+                if (depth==0):
+                    tupy.Interpreter.Interpreter.doStep()
+                break
+            if (tupy.Interpreter.Interpreter.flow == tupy.Interpreter.FlowEvent.RETURN):
                 break
 
             currentInstance = tupy.Interpreter.Interpreter.loadSymbol(names[0])
