@@ -96,6 +96,7 @@ def initialize():
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
     function("comprimento", Type.INT, [Type.TUPLE])
+    function("dot", Type.STRING, [Type.STRING])
     for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING]:
         function("min", t, [t, t])
         function("mín", t, [t, t])
@@ -632,6 +633,10 @@ def comprimento(argsTuple):
             return tupy.Instance.Instance(Type.INT, len(inst.value))
         else:
             raise TypeError("A função comprimento espera receber uma lista como argumento!")
+
+def dot(definition):
+    defStr = definition.value
+    return tupy.Instance.Instance(Type.STRING, "[[DOT {0}]]".format(defStr))
 
 def min(x, y):
     return tupy.Instance.Instance(x.type, builtins.min(x.value, y.value))

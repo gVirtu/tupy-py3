@@ -1965,5 +1965,9 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.BOOL)
         self.assertEqual(ret.value, True)
 
+    def test_dot(self):
+        ret = Interpreter.interpret("dot(\"graph G { 1 -> 2 }\")\n")
+        self.assertEqual(ret.value, "[[DOT graph G { 1 -> 2 }]]")
+
 if __name__ == '__main__':
     unittest.main()
