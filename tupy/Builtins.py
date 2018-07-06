@@ -19,6 +19,9 @@ def initialize():
     function("ler", Type.STRING, [Type.TUPLE], passByRef=[True])
     function("ler_linha", Type.STRING, [Type.STRING], passByRef=[True])
     function("copiar", Type.STRUCT, [Type.TUPLE])
+    # TODO: Move all(isinstance(symbol)) restriction from Interpreter to the body of functions
+    #       that demand it (e.g.: ler). For any arg that is a literal, just pass it on
+    #function("realocar", Type.ARRAY, [Type.TUPLE], passByRef=[True])
     function("caracter", Type.CHAR, [Type.INT])
     function("caracter", Type.CHAR, [Type.STRING])
     function("real", Type.FLOAT, [Type.INT])
@@ -95,6 +98,10 @@ def initialize():
     function("embaralhar", Type.ARRAY, [Type.TUPLE])
     function("inserir", Type.ARRAY, [Type.TUPLE])
     function("remover", Type.ARRAY, [Type.TUPLE])
+    function("sublista", Type.ARRAY, [Type.TUPLE])
+    function("substituir", Type.STRING, [Type.STRING, Type.STRING, Type.STRING, Type.INT],
+             defaults=[None, None, None, tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, -1))])
+    function("ordenar", Type.ARRAY, [Type.TUPLE])
     function("comprimento", Type.INT, [Type.TUPLE])
     function("dot", Type.STRING, [Type.STRING])
     for t in [Type.INT, Type.FLOAT, Type.CHAR, Type.STRING]:
@@ -623,16 +630,80 @@ def remover(argsTuple):
         else:
             raise TypeError("A função remover espera receber uma lista como primeiro argumento!")
 
+def sublista(argsTuple):
+    argsTuple = argsTuple.value
+    if (len(argsTuple) < 1):
+        raise TypeError("Faltam argumentos para a função sublista(lista [, inicio, cont, passo])!")
+    elif (len(argsTuple) > 4):
+        raise TypeError("A função sublista(lista [, inicio, cont, passo]) recebeu argumentos demais!")
+    else:
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (not inst.is_pure_array()):
+            raise TypeError("A função sublista espera receber uma lista como primeiro argumento!")
+
+        pos_inst = tupy.Interpreter.memRead(argsTuple[1]) if len(argsTuple) > 1 else tupy.Instance.Instance(Type.NULL, 0)
+        if (pos_inst.type == Type.INT):     pos = pos_inst.value
+        elif (pos_inst.type == Type.NULL):  pos = None
+        else:
+            raise TypeError("A função sublista espera receber um inteiro ou nulo como segundo argumento!")
+
+        cont_inst = tupy.Interpreter.memRead(argsTuple[2]) if len(argsTuple) > 2 else tupy.Instance.Instance(Type.NULL, 0)
+        if (cont_inst.type == Type.INT):     cont = cont_inst.value
+        elif (cont_inst.type == Type.NULL):  cont = None
+        else:
+            raise TypeError("A função sublista espera receber um inteiro ou nulo como terceiro argumento!")
+
+        step_inst = tupy.Interpreter.memRead(argsTuple[3]) if len(argsTuple) > 3 else tupy.Instance.Instance(Type.NULL, 0)
+        if (step_inst.type == Type.INT):     step = step_inst.value
+        elif (step_inst.type == Type.NULL):  step = None
+        else:
+            raise TypeError("A função sublista espera receber um inteiro ou nulo como quarto argumento!")
+
+        new_inst = copy.deepcopy(inst)
+        new_inst.value = new_inst.value[pos::step][:cont]
+        new_inst.update_size()
+
+        return new_inst
+
+def substituir(string, substring, replace, max_replaces=None):
+    return tupy.Instance.Instance(Type.STRING, string.value.replace(substring.value, replace.value, max_replaces.value))
+
+def ordenar(argsTuple):
+    argsTuple = argsTuple.value
+    if (len(argsTuple) not in [1, 2]):
+        raise TypeError("A função ordenar(lista, [função]) espera receber apenas um ou dois argumentos!")
+    else:
+        inst = tupy.Interpreter.memRead(argsTuple[0])
+        if (not inst.is_pure_array()):
+            raise TypeError("A função ordenar espera receber uma lista como primeiro argumento!")
+
+        function = lambda x : tupy.Interpreter.memRead(x).value
+        if (len(argsTuple) > 1):
+            argFunc = tupy.Interpreter.memRead(argsTuple[1])
+            if (argFunc.type == Type.FUNCTION):
+                function_data = argFunc.value
+                def key_func(x):
+                    cx = tupy.Interpreter.memRead(x)
+                    ret = tupy.Interpreter.Interpreter.executeBlock(function_data, [tupy.Variable.Literal(cx)], 0)
+                    return ret.value
+                function = key_func
+            else:
+                raise TypeError("O segundo argumento da função ordenar deve ser uma função unária!")
+
+        new_inst = copy.deepcopy(inst)
+        new_inst.value.sort(key=function)
+        return new_inst
+
 def comprimento(argsTuple):
     argsTuple = argsTuple.value
     if (len(argsTuple) != 1):
-        raise TypeError("A função comprimento(lista) espera receber um único argumento!")
+        raise TypeError("A função comprimento(lista_ou_cadeia) espera receber um único argumento!")
     else:
         inst = tupy.Interpreter.memRead(argsTuple[0])
-        if (inst.is_pure_array()):
+        if (inst.is_pure_array() or inst.type == Type.STRING):
             return tupy.Instance.Instance(Type.INT, len(inst.value))
         else:
-            raise TypeError("A função comprimento espera receber uma lista como argumento!")
+            raise TypeError("A função comprimento espera receber uma lista ou cadeia como argumento!")
 
 def dot(definition):
     defStr = definition.value

@@ -33,6 +33,7 @@ var tupyHighlightRules = function() {
         "log|ln|raiz|exp|abs|min|max|sinal|piso|teto|arredondar|juntar|copiar|"+
         "graus|radianos|sen|cos|tg|arcsen|arccos|arctg|arctg2|" +
         "senh|cosh|tgh|arsenh|arcosh|artgh|lista|inserir|remover|embaralhar|" +
+        "sublista|substituir|ordenar|" +
         "grafo_MA|grafo_LA|digrafo_MA|digrafo_LA|arvore|matriz|vetor|pilha|fila|lista_encadeada|" +
         "grafo_valorado_MA|digrafo_valorado_MA|grafo_valorado_LA|digrafo_valorado_LA|heap|" +
         "comprimento|assercao|escrita|" +

@@ -776,7 +776,7 @@ class evalVisitor(ParseTreeVisitor):
         elif ctx.rangeDelimiter() is not None: #error check this
             begin_pos = int(self.visitExpression(ctx.expression(0)).get().value)
             end_pos = int(self.visitExpression(ctx.expression(1)).get().value)
-            if begin_pos <= end_pos:
+            if begin_pos <= end_pos or end_pos < 0:
                 return Subscript(begin=begin_pos,
                                 end=end_pos)
             else:

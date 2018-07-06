@@ -1859,6 +1859,15 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 3, 3])
         ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[-3..-1] <- 3; V")
         self.assertArrayEquals(ret, Type.INT, [1, 3, 3, 3])
+        ret = Interpreter.interpret("inteiro V[5] <- [1, 2, 3, 4]; V[1..-2] <- 3; V")
+        self.assertArrayEquals(ret, Type.INT, [1, 3, 3, 3, 0])
+        ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[1..-2] <- 3; V")
+        self.assertArrayEquals(ret, Type.INT, [1, 3, 3, 4])
+        ret = Interpreter.interpret("inteiro V[*] <- [1, 2, 3, 4]; V[3..-3] <- 3; V")
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 4])
+        ret = Interpreter.interpret("cadeia S <- \"ABCDE\"; S[1..-2] <- \"DCB\"; S")
+        self.assertEqual(ret.type, Type.STRING)
+        self.assertEqual(ret.value, "ADCBE")
 
     def test_assertion(self):
         ret = Interpreter.interpret("asserção(2 > 1); verdadeiro")
@@ -1968,6 +1977,52 @@ class TestEvalVisitor(unittest.TestCase):
     def test_dot(self):
         ret = Interpreter.interpret("dot(\"graph G { 1 -> 2 }\")\n")
         self.assertEqual(ret.value, "[[DOT graph G { 1 -> 2 }]]")
+
+    def test_extra_builtins(self):
+        ret = Interpreter.interpret('substituir("ABCBA", "BC", "B")')
+        self.assertEqual(ret.value, "ABBA")
+        ret = Interpreter.interpret('substituir("ABCBA", "A", "B", 1)')
+        self.assertEqual(ret.value, "BBCBA")
+        ret = Interpreter.interpret('sublista([1, 2, 3, 4, 5, 6, 7, 8], 4)')
+        self.assertArrayEquals(ret, Type.INT, [5, 6, 7, 8])
+        ret = Interpreter.interpret('sublista([1, 2, 3, 4, 5, 6, 7, 8], 1, 3)')
+        self.assertArrayEquals(ret, Type.INT, [2, 3, 4])
+        ret = Interpreter.interpret('sublista([1, 2, 3, 4, 5, 6, 7, 8], nulo, nulo, -1)')
+        self.assertArrayEquals(ret, Type.INT, [8, 7, 6, 5, 4, 3, 2, 1])
+        ret = Interpreter.interpret('sublista([1, 2, 3, 4, 5, 6, 7, 8], nulo, 3, -2)')
+        self.assertArrayEquals(ret, Type.INT, [8, 6, 4])
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista()")) # too few
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista(1, 2, 3, 4, 5)")) # too many
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista(1, 2, 3, 4)")) # expects list (1)
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista([], \"\", 3, 4)")) # expects int/null (2)
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista([], nulo, \"\")")) # expects int/null (3)
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("sublista([], nulo, 0, \"\")")) # expects int/null (4)
+
+    def test_sort(self):
+        ret = Interpreter.interpret('ordenar([7, 8, 5, 6, 3, 4, 1, 2])')
+        self.assertArrayEquals(ret, Type.INT, [1, 2, 3, 4, 5, 6, 7, 8])
+        ret = Interpreter.interpret(("inteiro decrescente(inteiro x):\n"
+                                     "  retornar -x\n"
+                                     "ordenar([7, 8, 5, 6, 3, 4, 1, 2], decrescente)"))
+        self.assertArrayEquals(ret, Type.INT, [8, 7, 6, 5, 4, 3, 2, 1])
+        ret = Interpreter.interpret('ordenar(["aaaaa", "bb", "c", "ddd"], comprimento)')
+        self.assertArrayEquals(ret, Type.STRING, ["c", "bb", "ddd", "aaaaa"])
+        ret = Interpreter.interpret(("inteiro primeiro(inteiro[] L):\n"
+                                     "  retornar L[0]\n"
+                                     "ordenar([[2, 8, 3], [4, 5, 7], [1, 9, 6]], primeiro)"))
+        self.assertArrayEquals(ret, Type.INT, [[1, 9, 6], [2, 8, 3], [4, 5, 7]])
+
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar()")) # too few
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar(1)")) # expects list
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([[7, 8, 5], [6, 3, 4], [1, 2]])")) # expects orderable
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([3, 2, 1], 1)")) # expects function
+        self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([3, 2, 1], min)")) # expects unary
+
+    # TODO
+    # def test_realloc(self):
+    #     ret = Interpreter.interpret('inteiro M[5]; realocar(M, 8); M')
+    #     self.assertArrayEquals(ret, Type.INT, [0, 0, 0, 0, 0, 0, 0, 0])
 
 if __name__ == '__main__':
     unittest.main()

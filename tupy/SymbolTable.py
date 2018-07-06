@@ -257,14 +257,15 @@ class SymbolTable(object):
         if __debug__:
             tupy.Interpreter.logger.debug("getTargetSize({0},{1},{2})".format(subscriptList, currentData, sizeList))
         targetSubscript = subscriptList[0]
+        if currentData.type == tupy.Type.Type.STRING:
+            data_size = len(currentData.value)
+        elif sizeList[0].isWildcard:
+            data_size = currentData.array_length() if currentData.is_pure_array() else 1
+        else:
+            data_size = sizeList[0].begin
+
         if targetSubscript.isWildcard:
-            if currentData.type == tupy.Type.Type.STRING:
-                return len(currentData.value)
-            else:
-                if sizeList[0].isWildcard:
-                    return currentData.array_length() if currentData.is_pure_array() else 1
-                else:
-                    return sizeList[0].begin
+            return data_size
         elif targetSubscript.isSingle:
             if len(subscriptList)==1:
                 return 1
@@ -275,13 +276,14 @@ class SymbolTable(object):
                                           sizeList[1:])
         else:
             if targetSubscript.end is None:
-                if sizeList[0].isWildcard:
-                    sz = currentData.array_length() if currentData.is_pure_array() else 1
-                else:
-                    sz = sizeList[0].begin
-                return sz - targetSubscript.begin
+                return data_size - targetSubscript.begin
             else:
-                return targetSubscript.end - targetSubscript.begin
+                # We use modulo to make negative indices work in ranges
+                # Subtracting and adding 1 is needed for edge cases because our ".end" is always shifted by +1
+                # e.g.:
+                #       S <- "ABC"      # length = 3
+                #       S[1..2] <- "XY" # end is 2+1 = 3, 3 mod 3 would be zero
+                return ((targetSubscript.end-1) % data_size)+1 - targetSubscript.begin
 
     def hasValidType(self, name, instance, trailerList):
         if (instance.roottype == tupy.Type.Type.NULL):

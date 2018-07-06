@@ -1,11 +1,11 @@
 class Subscript(object):
-    def __init__(self, begin=0, 
-                       end=0, 
+    def __init__(self, begin=0,
+                       end=0,
                        isWildcard=False,
                        isSingle=False):
         self.begin = begin
         self.end = end+1
-        if (self.end == 0): self.end = None
+        if (self.end == 0): self.end = None # No end == "until the array ends"
         self.isWildcard = isWildcard
         self.isSingle = isSingle
 

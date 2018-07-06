@@ -69,6 +69,8 @@ def translate(msg):
                     "<unknown input>": "<entrada desconhecida>",
                     " rule": " regra",
                     "extraneous input": "entrada inválida",
+                    "unorderable types": "tipos não ordenáveis",
+                    "MemoryCell()": "Célula",
                     "missing": "faltando",
                     " at ": " em ",
                     "list index out of range": "Acesso fora dos limites da lista!",
