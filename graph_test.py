@@ -134,55 +134,55 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret.value, desired_digraph)
 
     def test_graphviz_errors(self):
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro grafo[2,1]\n"
                             "grafo_MA(grafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro grafo[2,2]\n"
                             "grafo_MA(grafo, [0, 3])\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro grafo[2,2]\n"
                             "grafo_MA(grafo, [], [[1, 2, 3]])\n"))
 
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro digrafo[1,2]\n"
                             "digrafo_MA(digrafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro digrafo[2,2]\n"
                             "digrafo_MA(digrafo, [1, 3])\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro digrafo[2,2]\n"
                             "digrafo_MA(digrafo, [], [[1, 2, 3]])\n"))
 
-        self.assertRaises(TupyIndexError, Interpreter.interpret, 
+        self.assertRaises(TupyIndexError, Interpreter.interpret,
                            ("inteiro grafo[2,*] <- [ [3], [] ]\n"
                             "grafo_LA(grafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro grafo[2,*]\n"
                             "grafo_LA(grafo, [0, 3])\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro grafo[2,*]\n"
                             "grafo_LA(grafo, [], [[1, 2, 3]])\n"))
 
-        self.assertRaises(TupyIndexError, Interpreter.interpret, 
+        self.assertRaises(TupyIndexError, Interpreter.interpret,
                            ("inteiro digrafo[2,*] <- [ [], [3] ]\n"
                             "digrafo_LA(digrafo)\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro digrafo[2,*]\n"
                             "digrafo_LA(digrafo, [1, 3])\n"))
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
+        self.assertRaises(TupyValueError, Interpreter.interpret,
                            ("inteiro digrafo[2,*]\n"
                             "digrafo_LA(digrafo, [], [[1, 2, 3]])\n"))
 
     def test_graphviz_trees(self):
-        tree_data = ("1 -> 2 [style = invis]; " 
+        tree_data = ("1 -> 2 [style = invis]; "
                      "2 [style = invis]; "
-                     "1 -> 3; " 
+                     "1 -> 3; "
                      "3 [label = \"15\"]; "
                      "0 -> 1; "
                      "1 [label = \"10\"]; "
                      "4 -> 5; "
-                     "5 [label = \"20\"]; " 
+                     "5 [label = \"20\"]; "
                      "4 -> 6 [style = invis]; "
                      "6 [style = invis]; "
                      "0 -> 4; "
@@ -231,32 +231,32 @@ class TestGraphs(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1)") # too few args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1, 2, 3, 4, 5, 6, 7)") # too many args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "arvore(1, 2, 3)") # not struct
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, 2, 3)".format(typedef)) #not string
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", 3)".format(typedef)) #not string 2
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prox\", 4)".format(typedef)) #not list
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             ("{0}tipo Outro:\n"
              "\tinteiro c\n"
              "Nó raiz <- Nó(0); Outro outro <- Outro()\n"
              "arvore(raiz, \"c\", \"prox\", [outro])").format(typedef)) #not right class
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prox\", [raiz], 0)".format(typedef)) #not string
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prox\", [raiz], \"\", 4)".format(typedef)) #not string
-        self.assertRaises(TupyNameError, Interpreter.interpret, 
+        self.assertRaises(TupyNameError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"d\", \"prox\")".format(typedef)) #wrong attr
-        self.assertRaises(TupyNameError, Interpreter.interpret, 
+        self.assertRaises(TupyNameError, Interpreter.interpret,
             "{0}Nó raiz <- Nó(0); arvore(raiz, \"c\", \"prod\")".format(typedef)) #wrong attr 2
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             ("tipo Nó:\n"
             "\tinteiro c\n"
             "\tinteiro prox[2]\n"
             "Nó raiz <- Nó();\n"
             "arvore(raiz, \"c\", \"prox\")").format(typedef)) #wrong edge type
-        self.assertRaises(TupyRuntimeError, Interpreter.interpret, 
+        self.assertRaises(TupyRuntimeError, Interpreter.interpret,
             ("{0}{1}"
             "n4.prox[0] <- ref n2\n"
             "arvore(raiz, \"c\", \"prox\")").format(typedef, treebuild)) #tree has cycles
@@ -297,7 +297,7 @@ class TestGraphs(unittest.TestCase):
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"6\">99999999999</FONT></TD></TR></TABLE>>]; }]]")
         ret = Interpreter.interpret("matriz([ [1, 20, 300], [4000, 50000, 600000], [7000000, 80000000, 99999999999] ], [[0,0], [2,2], [1,1], [2,2]])\n")
         self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_matrix)      
+        self.assertEqual(ret.value, desired_matrix)
 
         desired_offset_matrix = ("[[DOT digraph G {node [shape=plaintext];"
                                 "  1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\"><TR>"
@@ -323,12 +323,12 @@ class TestGraphs(unittest.TestCase):
 
         ret = Interpreter.interpret("matriz([ [1, 2], [3, 4] ], [], 4, 7)\n")
         self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_offset_matrix)      
+        self.assertEqual(ret.value, desired_offset_matrix)
 
-        self.assertRaises(TupyValueError, Interpreter.interpret, 
-            "matriz([ [1, 2, 3], [4, 5, 6], [7, 8, 9] ], [[0,0], [2], [1,1,1]])\n")      
+        self.assertRaises(TupyValueError, Interpreter.interpret,
+            "matriz([ [1, 2, 3], [4, 5, 6], [7, 8, 9] ], [[0,0], [2], [1,1,1]])\n")
 
-    def test_graphviz_vector(self):        
+    def test_graphviz_vector(self):
         desired_vector = ("[[DOT digraph G { node [shape=plaintext]; 1 -> 3; 1 [label = <<TABLE BORDER=\"0\" CELLPADDING=\"0\" CELLSPACING=\"0\">"
                             "<TR><TD PORT=\"c0\" BGCOLOR=\"WHITE\" BORDER=\"0\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                             "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">0</FONT></TD>"
@@ -392,7 +392,7 @@ class TestGraphs(unittest.TestCase):
 
         ret = Interpreter.interpret("vetor([1, 2, 3, 4], [], 8)\n")
         self.assertEqual(ret.type, Type.STRING)
-        self.assertEqual(ret.value, desired_offset_vector)   
+        self.assertEqual(ret.value, desired_offset_vector)
 
     def test_graphviz_stack(self):
         desired_stack=("[[DOT digraph G { node [shape=plaintext]; edge [arrowsize = 0.5]; 1 -> 3; 0 [label = \" \"]; "
@@ -414,7 +414,7 @@ class TestGraphs(unittest.TestCase):
                         "<TD PORT=\"v1\" SIDES=\"LBRT\" BGCOLOR=\"YELLOW\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                         "<FONT FACE=\"COURIER\" POINT-SIZE=\"23\">20</FONT></TD></TR><TR>"
                         "<TD PORT=\"v0\" SIDES=\"LBRT\" BGCOLOR=\"WHITE\" BORDER=\"1\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
-                        "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">1</FONT></TD></TR></TABLE>>]; 3 -> 1}]]")
+                        "<FONT FACE=\"COURIER\" POINT-SIZE=\"27\">1</FONT></TD></TR></TABLE>>]; {rank=min; 0}; 3 -> 1}]]")
         ret = Interpreter.interpret("pilha([1, 20, 300, 4000, 50000, 600000, 7000000, 80000000, 99999999999], [4, 1, 8], \"1 -> 3;\", \"3 -> 1\")\n")
         self.assertEqual(ret.type, Type.STRING)
         self.assertEqual(ret.value, desired_stack)
@@ -577,35 +577,35 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(ret[0].value, desired_linked_list)
         self.assertEqual(ret[1].type, Type.STRING)
         self.assertEqual(ret[1].value, desired_double_linked_list)
-        
+
     def test_graphviz_linked_list_errors(self):
         typedef = "tipo Nó:\n\tinteiro c\n\tNó prox\n\tNó(inteiro chave):\n\t\tc <- chave\n"
 
         self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1)") # too few args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1, 2, 3, 4, 5, 6, 7, 8)") # too many args
         self.assertRaises(TupyTypeError, Interpreter.interpret, "lista_encadeada(1, 2, 3)") # not struct
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, 2, 3)".format(typedef)) #not string
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", 3)".format(typedef)) #not string 2
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", \"duplo\")".format(typedef)) #not bool
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", falso, 4)".format(typedef)) #not list
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             ("{0}tipo Outro:\n"
              "\tinteiro c\n"
              "Nó cab <- Nó(0); Outro outro <- Outro()\n"
              "lista_encadeada(cab, \"c\", \"prox\", [outro])").format(typedef)) #not right class
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", falso, [cab], 0)".format(typedef)) #not string
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prox\", falso, [cab], \"\", 2)".format(typedef)) #not string
-        self.assertRaises(TupyNameError, Interpreter.interpret, 
+        self.assertRaises(TupyNameError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"d\", \"prox\")".format(typedef)) #wrong attr
-        self.assertRaises(TupyNameError, Interpreter.interpret, 
+        self.assertRaises(TupyNameError, Interpreter.interpret,
             "{0}Nó cab <- Nó(0); lista_encadeada(cab, \"c\", \"prod\")".format(typedef)) #wrong attr 2
-        self.assertRaises(TupyTypeError, Interpreter.interpret, 
+        self.assertRaises(TupyTypeError, Interpreter.interpret,
             ("tipo Nó:\n"
             "\tinteiro c\n"
             "\tinteiro prox\n"

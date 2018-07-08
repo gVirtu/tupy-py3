@@ -1154,7 +1154,7 @@ def pilha(vetor, highlights, extraHeader, extraFooter):
     header = ("[[DOT digraph G {{ node [shape=plaintext]; edge [arrowsize = 0.5]; {0} "
               "0 [label = \" \"]; 0 -> 1; 1 -> 0; 1 [label = <<TABLE BORDER=\"0\" "
               "CELLPADDING=\"0\" CELLSPACING=\"0\">").format(extraHeader)
-    trailer = "</TABLE>>]; {0}}}]]".format(extraFooter)
+    trailer = "</TABLE>>]; {{rank=min; 0}}; {0}}}]]".format(extraFooter)
     element = ("<TR><TD PORT=\"{5}\" SIDES=\"{4}\" BGCOLOR=\"{3}\" BORDER=\"{2}\" FIXEDSIZE=\"TRUE\" WIDTH=\"42\" HEIGHT=\"42\">"
                "<FONT FACE=\"COURIER\" POINT-SIZE=\"{1}\">{0}</FONT></TD></TR>")
     getBgColor = lambda i : "YELLOW" if i in highlightSet else "WHITE"
