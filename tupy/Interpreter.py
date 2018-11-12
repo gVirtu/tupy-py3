@@ -555,10 +555,10 @@ class Interpreter(object):
         cls.outStream.write("\n")
 
     @classmethod
-    def trace(cls, line, returnData=None, exception=None):
+    def trace(cls, line, returnData=None, exception=None, isLast=False):
         if cls.traceOut is not None:
             if (exception or cls.should_print(line)):
-                cls.traceOut.trace(line, returnData, exception)
+                cls.traceOut.trace(line, returnData, exception, isLast)
 
     @classmethod
     def format_token(cls, token):

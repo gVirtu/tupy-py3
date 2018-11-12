@@ -15,7 +15,7 @@ class JSONPrinter(object):
     def dump(self):
         return json.dumps(self.data, indent=None)
 
-    def trace(self, line, returnData=None, exception=None):
+    def trace(self, line, returnData=None, exception=None, isLast=False):
         if __debug__:
             tupy.Interpreter.logger.debug("----------------TRACE----------------")
         element = {}
@@ -79,8 +79,15 @@ class JSONPrinter(object):
             element["event"] = self.map_event_to_string(tupy.Interpreter.Interpreter.callStack.size(),
                                                     returnData is not None)
 
-        # All done!
-        self.data["trace"].append(element)
+        if returnData is None or isLast:
+            # All done!
+            self.data["trace"].append(element)
+        else:
+            # Another hack! Since return events are added as an extra step AFTER the line with the
+            # return statement itself is traced, there is no harm in replacing the last element
+            # while preserving its line number.
+            element["line"] = self.data["trace"][-1]["line"]
+            self.data["trace"][-1] = element # replace
 
     # Encodes all non-function locals from a given context as references to
     # the trace heap. Stores the order in which the names appear session-wide.
