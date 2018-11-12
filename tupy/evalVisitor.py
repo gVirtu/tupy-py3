@@ -154,7 +154,7 @@ class evalVisitor(ParseTreeVisitor):
             tupy.Interpreter.logger.debug("ALL DONE!")
             tupy.Interpreter.logger.debug("CallStack top is {0}".format(str(tupy.Interpreter.Interpreter.callStack.top())))
             tupy.Interpreter.logger.debug("Returnin {0}".format(res))
-        tupy.Interpreter.Interpreter.trace(ctx.stop.line, res)
+        tupy.Interpreter.Interpreter.trace(ctx.stop.line, res, isLast=True)
         return res
 
     # Visit a parse tree produced by langParser#functionDefinition.
@@ -614,7 +614,8 @@ class evalVisitor(ParseTreeVisitor):
                     if (breakable and not returnable): # loops shouldn't trace returns per iteration
                         pass
                     else:
-                        tupy.Interpreter.Interpreter.trace(ctx.stop.line, ret)
+                        tupy.Interpreter.Interpreter.trace(-1, ret) # Returns get squashed by JSONPrinter,
+                                                                    # inheriting line number
                 else:
                     # Cannot return from a function without "retornar"
                     if __debug__:
