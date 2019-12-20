@@ -959,7 +959,7 @@ class TestEvalVisitor(unittest.TestCase):
                          ))
         self.assertRaises(TupyRuntimeError, Interpreter.interpret,
                          ("inteiro i\n"
-                          "para i <- 1..0 passo 1:\n"
+                          "para i <- 1..2 passo 0:\n"
                           "\t1\n"
                          ))
 
@@ -1125,7 +1125,7 @@ class TestEvalVisitor(unittest.TestCase):
                                      "\tA <- inserir(A, i)\n"
                                      "A\n"
                                     ))
-        self.assertArrayEquals(ret, Type.INT, [9, 8, 7, 6, 5, 4, 3, 2, 1])
+        self.assertArrayEquals(ret, Type.INT, [])
         ret = Interpreter.interpret(("inteiro i, j\n"
                                      "inteiro tot <- 0\n"
                                      "para i, j <- 1..4, 1..3 inclusive:\n"
@@ -1420,13 +1420,13 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, math.copysign(1,-x))
         ret = Interpreter.interpret("piso({0})\n".format(x))
-        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, math.floor(x))
         ret = Interpreter.interpret("teto({0})\n".format(x))
-        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, math.ceil(x))
         ret = Interpreter.interpret("arredondar({0})\n".format(x))
-        self.assertEqual(ret.type, Type.FLOAT)
+        self.assertEqual(ret.type, Type.INT)
         self.assertEqual(ret.value, builtins.round(x))
         ret = Interpreter.interpret("graus({0})\n".format(x))
         self.assertEqual(ret.type, Type.FLOAT)
@@ -2018,6 +2018,36 @@ class TestEvalVisitor(unittest.TestCase):
         self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([[7, 8, 5], [6, 3, 4], [1, 2]])")) # expects orderable
         self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([3, 2, 1], 1)")) # expects function
         self.assertRaises(TupyTypeError, Interpreter.interpret, ("ordenar([3, 2, 1], min)")) # expects unary
+
+    def test_for_loop_negative(self):
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "1\n2\n3\n4\n5\n6\n7\n8\n9\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1 passo 1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1 passo -1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "10\n9\n8\n7\n6\n5\n4\n3\n2\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10 passo 1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "1\n2\n3\n4\n5\n6\n7\n8\n9\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10 passo -1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1 incl.:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10 incl.:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1 incl. passo 1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        ret = Interpreter.interpret('inteiro i\npara i <- 10 .. 1 incl. passo -1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "10\n9\n8\n7\n6\n5\n4\n3\n2\n1\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10 incl. passo 1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n")
+        ret = Interpreter.interpret('inteiro i\npara i <- 1 .. 10 incl. passo -1:\n\tescrever(i)')
+        self.assertEqual(Interpreter.outStream.getvalue(), "")
+        
+
+
+
 
     # TODO
     # def test_realloc(self):

@@ -477,21 +477,20 @@ class evalVisitor(ParseTreeVisitor):
         stopFuncLTEQ = lambda iterator, limit : (iterator <= limit)
 
         if (len(names) == len(ranges) and (len(ranges) == len(steps) or fillSteps)):
-            for r in ranges:
-                if (r[1].value >= r[0].value):
+            for i,r in enumerate(ranges):
+                
+                if(fillSteps or (steps[i].get().value >= 0)):
                     if (r[2]): # Inclusive?
                         stopFuncs.append(stopFuncGT)
                     else:
                         stopFuncs.append(stopFuncGTEQ)
-                    if fillSteps:
-                        steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1)))
                 else:
-                    if (r[2]): # Inclusive?
+                    if (r[2]): # Inclusive? 
                         stopFuncs.append(stopFuncLT)
                     else:
                         stopFuncs.append(stopFuncLTEQ)
-                    if fillSteps:
-                        steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, -1)))
+                if fillSteps:
+                    steps.append(tupy.Variable.Literal(tupy.Instance.Instance(Type.INT, 1)))
 
             # Trace - For Statement
             # tupy.Interpreter.Interpreter.trace(ctx.start.line)

@@ -452,13 +452,13 @@ def sinal(n):
     return tupy.Instance.Instance(Type.INT, math.copysign(1, n.value))
 
 def piso(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.floor(n.value))
+    return tupy.Instance.Instance(Type.INT, int(math.floor(n.value)))
 
 def teto(n):
-    return tupy.Instance.Instance(Type.FLOAT, math.ceil(n.value))
+    return tupy.Instance.Instance(Type.INT, int(math.ceil(n.value)))
 
 def arredondar(n):
-    return tupy.Instance.Instance(Type.FLOAT, builtins.round(n.value))
+    return tupy.Instance.Instance(Type.INT, int(builtins.round(n.value)))
 
 def graus(n):
     return tupy.Instance.Instance(Type.FLOAT, math.degrees(n.value))
